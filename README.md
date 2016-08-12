@@ -12,13 +12,18 @@ Simply run the app.py located in repository root directory and start accepting T
 
 ##Plugins
 You can write plugins (in the plugins directory) which will serve content back to the apple tv.
+
 Just add a plugin dir with addon.xml, icon and main script.
+
 The script must have a main function which will be called with 2 parameters: bridge and url
+
 The script must return a list (may be empty) of Item objects
+
 The app in turn will translate the list of items into an XML template to be sent to the client TVML app
 
 #bridge
 The bridge is your utilities class for various interactions with the client.
+
 Method include:
 ```
 - inputdialog(title, description) - pops an input dialog with text field to the user. Returns the response
@@ -33,7 +38,9 @@ Method include:
 
 #url
 The main function is initially called with an empty string.
+
 if script was previously called and returned a list of Item objects, each item has a url attribute.
+
 Once the user selects an Item, the script will be called again with the selected Item url attribute to get a new list of Item objects
 
 #Item
