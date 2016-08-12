@@ -9,3 +9,6 @@ Working TVML server written in python(flask) and javascript
 
 ##How to use
 Simply run the app.py located in repository root directory and start accepting TVML connection from your apple TV using a TVML client like: TVMLExplorer
+
+##Plugins
+You can write plugins (in the plugins directory) which will server content back to the apple tv.
