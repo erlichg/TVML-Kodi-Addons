@@ -1,0 +1,6 @@
+<document>
+   <alertTemplate>
+      <title>Empty folder</title>
+      <description>No items found in this folder</description>      
+   </alertTemplate>
+</document>
