@@ -4,6 +4,8 @@ from base64 import b64encode, b64decode
 import sys, os, imp, urllib, json, time
 import urlparse
 import gevent.monkey
+from bridge import bridge
+bridge = bridge(__name__)
 gevent.monkey.patch_all()
 from gevent.pywsgi import WSGIServer
 
@@ -19,7 +21,7 @@ PLUGINS = []
 for plugin in os.listdir('plugins'):
 	try:
 		print 'Loading plugin {}'.format(plugin)
-		p = Plugin(__name__, os.path.join('plugins', plugin))
+		p = Plugin(bridge, os.path.join('plugins', plugin))
 		PLUGINS.append(p)
 		print 'Successfully loaded plugin: {}'.format(p)
 	except Exception as e:
@@ -56,8 +58,8 @@ def catalog(name, url=None):
 	print 'found plugin {}'.format(plugin)
 	items = get_items(plugin, url)
 	print items
-	if len(items) == 0:
-		if not isplaying():
+	if not items or len(items) == 0:
+		if not bridge.isplaying():
 			return render_template('alert.xml')
 		return '', 204
 	if items[0].title and items[0].subtitle and items[0].icon and items[0].details:
@@ -114,31 +116,6 @@ def message(msg):
 				return r['response']
 		time.sleep(0.1)
 
-def inputdialog(title):
-	return message({'type':'inputdialog', 'title':title, 'description':'blah blah blah'})
-	
-def progressdialog(heading, line1='', line2='', line3=''):
-	return message({'type':'progressdialog', 'title':heading, 'line1':line1, 'line2':line2, 'line3':line3})
-	
-def updateprogressdialog(percent, line1='', line2='', line3=''):
-	print 'updating progress with {}, {}, {}, {}'.format(percent, line1, line2, line3)
-	return message({'type': 'updateprogress', 'percent':percent, 'line1':line1, 'line2':line2, 'line3':line3})
-
-def isprogresscanceled():
-	return message({'type':'isprogresscanceled'}) in ['true', 'True', True]
-
-def closeprogress():
-	return message({'type':'closeprogress'})
-	
-def selectdialog(title, list_):
-	return message({'type':'selectdialog', 'title':title, 'list':list_})
-	
-def play(url):
-	print 'Playing {}'.format(url)
-	return message({'type':'play', 'url':url})
-
-def isplaying():
-	return message({'type':'isplaying'}) in ['true', 'True', True]
 	   
 if __name__ == '__main__':
 	http_server = WSGIServer(('',5000), app)
