@@ -17,39 +17,8 @@ function DocumentLoader(baseURL) {
         throw new TypeError("DocumentLoader: baseURL argument must be a string.");
     }
     this.baseURL = baseURL;
-    startTimer(this); 
 }
 
-function stopTimer(loader) {
-	console.log("cancelling timer");
-	clearInterval(loader.timer);
-}
-
-function startTimer(loader) {
-	loader.timer = setInterval(function() {
-	    loader.fetch(
-	    	{
-		    	url:loader.baseURL+"events",
-		    	error:function(xhr) {
-			    	//do nothing
-		    	},
-		    	abort: function() {
-					if(loadingDocument) {
-						navigationDocument.removeDocument(loadingDocument);
-					}
-        		}
-			}
-	    );
-	    var response;
-	    while((response=loader.responses.shift())!=null) {
-		    loader.fetch(
-			    {
-				    url:loader.baseURL+"response/"+response.id+"/"+response.response
-			    }
-		    );
-	    }
-	}, 10);
-};
 
 /*
  * Helper method to request templates from the server
@@ -80,7 +49,7 @@ DocumentLoader.prototype.fetch = function(options) {
 					options.abort();
       			}
     		}.bind(this), false);
-		} else if(xhr.status == 203) {
+    	} else if(xhr.status == 203) {
 			try {
 				var message = JSON.parse(xhr.responseText);
 				console.log("Got messsage: "+xhr.responseText);				
@@ -235,6 +204,18 @@ DocumentLoader.prototype.prepareURL = function(url) {
  */
 DocumentLoader.prototype.prepareDocument = function(document) {
     traverseElements(document.documentElement, this.prepareElement);
+    if (document.documentElement.getElementsByTagName("formTemplate").length != 0) {
+	    var text = document.documentElement.getElementsByTagName("textField")[0];
+	    var id = text.getAttribute("id");	    
+		dialog.addEventListener("select", function() {
+			var keyboard = text.getFeature('Keyboard');
+			var answer = keyboard.text;			
+			navigationDocument.removeDocument(dialog);
+			this.fetch({
+				url: this.baseURL + "response/" + id + "/" + answer
+			});
+		}.bind(this));
+    }
 };
 
 /*
@@ -258,7 +239,7 @@ function traverseElements(elem, callback) {
     callback(elem);
     const children = elem.children;
     for (var i = 0; i < children.length; ++i) {
-        traverseElements(children.item(i), callback);
+	    traverseElements(children.item(i), callback);
     }
 }
 

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<document>
+	<formTemplate>
+		<title>{{title}}</title>
+		<description>{{description}}</description>                
+		<textField id="textfield">{{placeholder}}</textField>
+		<footer>
+			<button documentURL="{{url}}">
+				<text>{{button}}</text>
+			</button>
+		</footer>		 
+	</formTemplate>
+</document>

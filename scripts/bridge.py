@@ -4,8 +4,8 @@ class bridge:
 		def __init__(self, app):
 			self.app = importlib.import_module(app)
 		
-		def inputdialog(self, title, description=''):
-			return self.app.message({'type':'inputdialog', 'title':title, 'description':description})
+		def inputdialog(self, title, description='', placeholder='', button='OK'):
+			return self.app.message({'type':'inputdialog', 'title':title, 'description':description, 'placeholder':placeholder, 'button':button})
 			
 		def progressdialog(self, heading, line1='', line2='', line3=''):
 			return self.app.message({'type':'progressdialog', 'title':heading, 'line1':line1, 'line2':line2, 'line3':line3})

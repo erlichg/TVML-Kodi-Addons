@@ -4,18 +4,39 @@ from base64 import b64encode, b64decode
 import sys, os, imp, urllib, json, time
 import urlparse
 import gevent.monkey
-from bridge import bridge
-bridge = bridge(__name__)
 gevent.monkey.patch_all()
 from gevent.pywsgi import WSGIServer
-
 
 reload(sys)
 sys.setdefaultencoding('utf8')
 sys.path.append('scripts')
-sys.path.append(os.path.join('scripts', 'kodi'))
 sys.path.append('plugins')
-from Plugin import Plugin
+from Plugin import *
+from bridge import bridge
+bridge = bridge(__name__)
+
+import threading
+
+
+class Thread(threading.Thread):
+	def __init__(self, target, *args):
+		self._target = target
+		self._args = args
+		self.messages = []
+		self.responses = []
+		self.id = 0
+		threading.Thread.__init__(self)
+	def run(self):
+		ans = self._target(*self._args)
+		self.message({'type':'end', 'ans':ans})
+	def response(self, id, response):
+		self.responses.append({'id':id, 'response':response})
+	def message(self, msg):
+		msg['id'] = self.id
+		self.id+=1
+		self.messages.append(msg)
+
+
 
 PLUGINS = []
 for plugin in os.listdir('plugins'):
@@ -48,6 +69,7 @@ def js(filename):
 def template(filename):
 	return send_from_directory('templates', filename)
 
+thread = None
 @app.route('/catalog/<name>')
 @app.route('/catalog/<name>/<url>')
 def catalog(name, url=None):	
@@ -55,18 +77,39 @@ def catalog(name, url=None):
 	name = b64decode(name)
 	#current_item = get_items('')[int(id)]
 	plugin = [p for p in PLUGINS if p.name == name][0]
-	print 'found plugin {}'.format(plugin)
-	items = get_items(plugin, url)
-	print items
-	if not items or len(items) == 0:
-		if not bridge.isplaying():
-			return render_template('alert.xml')
-		return '', 204
-	if items[0].title and items[0].subtitle and items[0].icon and items[0].details:
-		return render_template('list.xml', menu=items, plugin=plugin)
-	if items[0].title and items[0].icon:
-		return render_template('grid.xml', menu=items, plugin=plugin)	
-	return render_template('nakedlist.xml', menu=items, plugin = plugin)
+	global thread
+	thread = Thread(get_items, plugin, url)
+	thread.start()
+	while thread.is_alive():
+		if len(thread.messages)>0:
+			msg = thread.messages.pop(0)
+			return decipher_message(plugin, msg)
+		time.sleep(0.1)
+	if len(thread.messages)>0:
+		msg = thread.messages.pop(0)
+		return decipher_message(plugin, msg)		
+	
+	print 'Should not get here'
+
+def decipher_message(plugin, msg):
+	print 'deciphering {}'.format(msg)
+	if msg['type'] == 'end':
+		items = msg['ans']
+		print items
+		if not items or len(items) == 0:
+			if not bridge.isplaying():
+				return render_template('alert.xml')
+			return '', 204
+		if items[0].title and items[0].subtitle and items[0].icon and items[0].details:
+			return render_template('list.xml', menu=items, plugin=plugin)
+		if items[0].title and items[0].icon:
+			return render_template('grid.xml', menu=items, plugin=plugin)	
+		return render_template('nakedlist.xml', menu=items, plugin = plugin)
+	if msg['type'] == 'play':
+		return msg['url'], 202
+	if msg['type'] == 'inputdialog':
+		return render_template('inputdialog.xml', title=msg['title'], description=msg['description'], placeholder=msg['placeholder'], button=msg['button'])
+
 
 @app.route('/helloworld')
 def helloworld():
@@ -76,20 +119,12 @@ def helloworld():
 def main():	
 	return render_template('main.xml', menu=PLUGINS)
 	
-event_list = []
-@app.route('/events')
-def events():
-	global event_list
-	if len(event_list)>0:
-		return json.dumps(event_list.pop(0)), 203
-	else:
-		return '', 204
 
-response_list = []	
+
 @app.route('/response/<id>/<response>')
 def response(id, response):
-	global response_list
-	response_list.append({'id':id, 'response':response})
+	global thread
+	thread.responses.append({'id':id, 'response':response})
 	return 'OK', 205
 
 def get_items(plugin, url):
@@ -103,20 +138,18 @@ def is_ascii(s):
 
 id=0
 def message(msg):
-	global id
-	msg['id'] = id
-	id+=1
-	global event_list
-	event_list.append(msg)
-	global response_list
+	global thread
+	if not thread:
+		return None
+	print 'adding message: {}'.format(msg)
+	thread.message(msg)
 	while True:
-		for r in response_list:
+		for r in thread.responses:
 			if r['id'] == str(msg['id']):
-				response_list.remove(r)
+				thread.responses.remove(r)
 				return r['response']
 		time.sleep(0.1)
-
-	   
+		
 if __name__ == '__main__':
 	http_server = WSGIServer(('',5000), app)
 	http_server.log = open('http.log', 'w')

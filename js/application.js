@@ -87,19 +87,23 @@ App.onLaunch = function(options) {
     });
 };
 
-/**
-* This is exit point of the app. it is called when the user exits (i.e. presses 'menu' back from the root document)
+/*
+	This is exit point of the app. it is called when the user exits (i.e. presses 'menu' back from the root document)
 */
 App.onExit = function(options) {
 	
 }
 
+/*
+	This is called when the app gois to background
+*/
 App.onSuspend = function(options) {
-	stopTimer(documentLoader);
 }
 
+/*
+	This is called when app returns from background
+*/
 App.onResume = function(options) {
-	startTimer(documentLoader);
 }
 
 /**
