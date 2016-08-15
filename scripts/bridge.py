@@ -95,5 +95,5 @@ class bridge:
 		self.app.add_route(id, stop)
 		return self.message({'type':'play', 'url':url, 'stop':'/response/{}'.format(id), 'playtype': type_})
 	
-	def isplaying(self, ):
+	def isplaying(self):
 		return self.play is not None

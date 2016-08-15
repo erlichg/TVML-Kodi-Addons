@@ -36,13 +36,14 @@ The bridge is your utilities class for various interactions with the client.
 
 Method include:
 ```
-- inputdialog(title, description) - pops an input dialog with text field to the user. Returns the response
-- progressdialog(heading, line1, line2, line3) - shows a progress dialog. returns immediately
-- updateprogressdialog(percent, heading, line1, line2, line3) - update the active progress dialog with these values. Returns immediately
+- alertdialog(title, description) - pops an alert dialog to the user
+- inputdialog(title, description, placeholder, button) - pops an input dialog with text field to the user. placeholder is the placeholder of the textfield. button is the button text. Returns the response
+- progressdialog(heading, text) - shows a progress dialog. returns immediately
+- updateprogressdialog(value, text) - update the active progress dialog with these values. Returns immediately
 - isprogresscanceled() - returns true/false whether progress dialog is showing or user aborted it
 - closeprogress() - close the active progress dialog
 - selectdialog(title, list) - shows a dialog with list of items. Waits until user has made a selection
-- play(url) - invoke the player on a stream url. Returns immediately
+- play(url, type) - invoke the player on a stream url. type can be either video ir audio. Returns immediately
 - isplaying() - returns true/false whether player is still active
 ```
 
@@ -65,4 +66,3 @@ Please check demo plugin in the plugins folder
 ##What's next
 A lot more work to be done.
 - implement more elaborate bridge functions
-- implement a better mechanism for communication between server and javascript (i.e. client). Currently it relies on constant polling by client
