@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <document>
-	<formTemplate>
+	<formTemplate msgid="{{msgid}}">
 		<title>{{title}}</title>
 		<description>{{description}}</description>                
-		<textField id="textfield">{{placeholder}}</textField>
+		<textField id="text">{{placeholder}}</textField>
 		<footer>
 			<button documentURL="{{url}}">
 				<text>{{button}}</text>

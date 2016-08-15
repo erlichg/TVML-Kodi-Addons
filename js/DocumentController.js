@@ -58,9 +58,9 @@ DocumentController.prototype.setupDocument = function(document) {
     document.addEventListener("holdselect", this.handleHoldSelect);    
 };
 
-DocumentController.prototype.handleDocument = function(document, loadingDocument) {
-    if (loadingDocument) {
-        navigationDocument.replaceDocument(document, loadingDocument);
+DocumentController.prototype.handleDocument = function(document, loadingDocument) {	
+    if (loadingDocument && navigationDocument.documents.indexOf(loadingDocument)!=-1) {	    
+        navigationDocument.replaceDocument(document, loadingDocument);        
     } else {
         navigationDocument.pushDocument(document);
     }

@@ -1,4 +1,5 @@
 from Plugin import Item
+import time
 
 def main(bridge, url):
 	if not url:
@@ -14,10 +15,33 @@ def main(bridge, url):
 		bridge.play('http://satfeedhunter.nl/2.mp4') #test stream taken from VLC site
 		return
 	if url == '3':
+		return [Item('31', 'input'), Item('32', 'progress'), Item('33', 'select')]
+	if url == '31':
 		ans = bridge.inputdialog('my title', 'hello world')
-		print ans
-		if ans == '1':
-			return [Item('11', 'movie1', 'sub-title of movie1', 'https://pixabay.com/static/uploads/photo/2016/07/29/18/42/spider-1555216_960_720.jpg', 'A lot of details about movie1', {})]
-		if ans == '2':
-			return [Item('21', 'tv1', 'sub-title of tv1', 'https://pixabay.com/static/uploads/photo/2016/07/24/23/35/blackberries-1539540_960_720.jpg', 'A lot of details about tv1', {})]
+		if ans:
+			bridge.alertdialog('response', 'User entered: {}'.format(ans))
 		return
+	if url == '32':
+		bridge.progressdialog('progress title', 'progress text')
+		time.sleep(1)
+		if bridge.isprogresscanceled():
+			return
+		bridge.updateprogressdialog('20', 'new progress text')
+		time.sleep(1)
+		if bridge.isprogresscanceled():
+			return
+		bridge.updateprogressdialog('50', 'new progress text')
+		time.sleep(1)
+		if bridge.isprogresscanceled():
+			return
+		bridge.updateprogressdialog('90', 'new progress text')
+		time.sleep(1)
+		if bridge.isprogresscanceled():
+			return
+		bridge.closeprogress()
+		return
+	if url == '33':
+		ans = bridge.selectdialog('select from list', [Item('41', 'item 1'), Item('42', 'item 2')])
+		bridge.alertdialog('select ended', 'user selected item {}'.format(ans))
+		return
+	

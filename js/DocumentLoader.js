@@ -38,7 +38,9 @@ DocumentLoader.prototype.fetch = function(options) {
     xhr.responseType = "document";
     xhr.onload = function() {
 	    if (xhr.status == 202) {
-		    var singleVideo = new MediaItem('video', xhr.responseText);
+		    var msg = JSON.parse(xhr.responseText)
+		    console.log("got message: " + xhr.responseText);
+		    var singleVideo = new MediaItem(msg['type'], msg['url']);
 			var videoList = new Playlist();
 			videoList.push(singleVideo);
 			var myPlayer = new Player();
@@ -47,97 +49,18 @@ DocumentLoader.prototype.fetch = function(options) {
 			myPlayer.addEventListener("stateDidChange", function(e) {  
 				if(e.state == "end") {
 					options.abort();
+					this.fetch({
+						url:msg['stop'],
+						abort: function() {
+							//do nothing
+						}
+					});
       			}
     		}.bind(this), false);
-    	} else if(xhr.status == 203) {
-			try {
-				var message = JSON.parse(xhr.responseText);
-				console.log("Got messsage: "+xhr.responseText);				
-				this.alertDocument = null;
-				switch(message.type) {
-				case "inputdialog":
-					var dialog = createInputDialog(message.title, message.description, {id:"gg",placeholder:"write any text here"}, {text:"OK"});
-					var text = dialog.getElementById("gg");
-					dialog.addEventListener("select", function() {
-						var keyboard = text.getFeature('Keyboard');
-						var answer = keyboard.text;
-						this.responses.push({id:message.id,response:answer});
-						navigationDocument.removeDocument(dialog);
-					}.bind(this));
-					navigationDocument.pushDocument(dialog);
-					break;
-				case "progressdialog":
-					console.log("creating progress dialog");
-					var dialog = createProgressDialog(message.title, message.line1, message.line2, message.line3, 'Progress: 0%');
-					navigationDocument.pushDocument(dialog);
-					this.isprogresscanceled = false;
-					this.progressDialog = dialog;
-					dialog.addEventListener("disappear", function() {
-						this.isprogresscanceled = true;
-						this.progressDialog = null;
-					}.bind(this));
-					this.responses.push({id:message.id, response:'OK'})
-					break;
-				case "updateprogress":
-					console.log("updating progress");
-					if(typeof this.progressDialog != "undefined" && !this.isprogresscanceled) {
-						var dialog = this.progressDialog;
-						try {	
-							dialog.getElementById("line1").textContent = message.line1;
-							dialog.getElementById("line2").textContent = message.line2;
-							dialog.getElementById("line3").textContent = message.line3;	
-							dialog.getElementById("progress").textContent = 'Progress: '+message.percent+'%';							
-						} catch(e) {
-							console.log("ERROR: "+e);
-						}
-					}
-					this.responses.push({id:message.id, response:'OK'})
-					break;
-				case "isprogresscanceled":
-					var b = typeof this.progressDialog != "undefined" && this.isprogresscanceled;
-					console.log("answering to isprogresscanceled with: "+b);
-					this.responses.push({id:message.id, response:b});
-					break;
-				case "closeprogress":
-					console.log("removing progress dialog");
-					navigationDocument.removeDocument(this.progressDialog);
-					this.responses.push({id:message.id, response:'OK'})
-					break;
-				case "selectdialog":
-					console.log("creating select dialog");
-					var dialog = createSelectDialog(message.title, message.list);
-					navigationDocument.pushDocument(dialog);
-					break;
-				case "play":
-					console.log("creating player");
-					var singleVideo = new MediaItem('video', message.url);
-					var videoList = new Playlist();
-					videoList.push(singleVideo);
-					var myPlayer = new Player();
-					myPlayer.playlist = videoList;
-					myPlayer.play();
-					this.isplaying = true;
-					myPlayer.addEventListener("stateDidChange", function(e) {  
-						if(e.state == "end") {
-							this.isplaying = false;
-							navigationDocument.popDocument();
-      					}
-    				}.bind(this), false);
-    				this.responses.push({id:message.id, response:'OK'})
-    				break;
-    			case "isplaying":
-    				var b = typeof this.isplaying != "undefined" && this.isplaying;
-					console.log("answering to isplaying with: "+b);
-					this.responses.push({id:message.id, response:b})
-					break;
-				}
-			} catch(err) {
-				console.log("unable to parse message"+err);
-			}
 		} else if(xhr.status == 204) {
 			//no message
 		} else if(xhr.status == 205) {
-			console.log('sent response')	
+			console.log('sent response')
 	    } else if(xhr.status == 206) {
 		    options.abort();
 	    } else {
@@ -147,7 +70,6 @@ DocumentLoader.prototype.fetch = function(options) {
 				responseDoc.addEventListener("disappear", function() {
 					if(navigationDocument.documents.length==1) {
 						//if we got here than we've exited from the web server since the only page (root) has disappeared
-						stopTimer(this);
 						App.onExit({});
 					}
 				}.bind(this));				
@@ -204,18 +126,89 @@ DocumentLoader.prototype.prepareURL = function(url) {
  */
 DocumentLoader.prototype.prepareDocument = function(document) {
     traverseElements(document.documentElement, this.prepareElement);
-    if (document.documentElement.getElementsByTagName("formTemplate").length != 0) {
-	    var text = document.documentElement.getElementsByTagName("textField")[0];
-	    var id = text.getAttribute("id");	    
-		dialog.addEventListener("select", function() {
+    if (document.documentElement.getElementsByTagName("formTemplate").length != 0) { //input dialog
+	    var text = document.getElementById("text");
+	    var id = document.documentElement.getElementsByTagName("formTemplate").item(0).getAttribute("msgid");	
+	    var ans = false;    
+		document.addEventListener("select", function() {
+			ans = true;
 			var keyboard = text.getFeature('Keyboard');
-			var answer = keyboard.text;			
-			navigationDocument.removeDocument(dialog);
-			this.fetch({
-				url: this.baseURL + "response/" + id + "/" + answer
-			});
+			var answer = keyboard.text;	
+			navigationDocument.removeDocument(document); //remove the document	
+			setTimeout(function() {
+				this.fetch({
+					url: "/response/" + id + "/" + btoa(answer)
+				});
+			}.bind(this), 100);				
+			
 		}.bind(this));
+		document.addEventListener("unload", function() {
+			if (!ans) {
+				this.fetch({
+				url: "/response/" + id,
+				abort: function() {
+					//do nothing
+				},
+				error: function(xhr) {
+					//do nothing
+				}
+			});
+			}
+		}.bind(this));
+    } else if (typeof document.getElementById("progress")!="undefined") { //progress dialog
+	    var progress = document.getElementById("progress");
+	    var url = progress.getAttribute("documentURL");
+	    var id = progress.getAttribute("msgid");
+	    this.fetch({
+			url: url,
+			success: function(responseDoc) {
+				try {
+					navigationDocument.replaceDocument(responseDoc, document);
+				} catch (err) {
+					this.fetch({
+					url: "/response/" + id,
+					abort: function() {
+						//do nothing
+					},
+					error: function(xhr) {
+						//do nothing
+					}
+				});
+				}
+			}.bind(this),
+			abort: function() {
+				try {
+					navigationDocument.removeDocument(document); //remove the document
+				} catch (err) {
+					this.fetch({
+					url: "/response/" + id,
+					abort: function() {
+						//do nothing
+					},
+					error: function(xhr) {
+						//do nothing
+					}
+				});
+				}
+			}.bind(this)
+		});
     }
+    traverseElements(document.documentElement, function(elem) {
+	   if (elem.hasAttribute("notify")) {
+		   var url = elem.getAttribute("notify");
+		   elem.addEventListener("select", function() {
+			   this.fetch({
+					url: url,
+					abort: function() {
+						navigationDocument.removeDocument(document); //remove the document
+					},
+					error: function(xhr) {
+						//do nothing
+					}				
+		   		});
+	   		}.bind(this)) 
+	   	}
+    }.bind(this));
 };
 
 /*

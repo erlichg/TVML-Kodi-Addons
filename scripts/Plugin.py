@@ -17,8 +17,7 @@ class Item:
 
 
 class Plugin:
-	def __init__(self, bridge, dir):
-		self.bridge = bridge
+	def __init__(self, dir):
 		self.dir = dir
 		tree = ET.parse(os.path.join(dir, 'addon.xml'))
 		for e in tree.iter('addon'):
@@ -36,8 +35,8 @@ class Plugin:
 
         plugin.run('')
     """
-	def run(self, url):
-		return self.module.main(self.bridge, url)	
+	def run(self, bridge, url):
+		return self.module.main(bridge, url)	
 		
 	def __repr__(self):
 		return str({'name':self.name, 'dir':self.dir, 'script':self.script, 'icon':self.icon, 'module':self.module})

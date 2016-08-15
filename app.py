@@ -13,7 +13,8 @@ sys.path.append('scripts')
 sys.path.append('plugins')
 from Plugin import *
 from bridge import bridge
-bridge = bridge(__name__)
+
+import messages
 
 import threading
 
@@ -24,7 +25,7 @@ class Thread(threading.Thread):
 		self._args = args
 		self.messages = []
 		self.responses = []
-		self.id = 0
+		self.stop = False #can be used to indicate stop
 		threading.Thread.__init__(self)
 	def run(self):
 		ans = self._target(*self._args)
@@ -32,8 +33,6 @@ class Thread(threading.Thread):
 	def response(self, id, response):
 		self.responses.append({'id':id, 'response':response})
 	def message(self, msg):
-		msg['id'] = self.id
-		self.id+=1
 		self.messages.append(msg)
 
 
@@ -42,7 +41,7 @@ PLUGINS = []
 for plugin in os.listdir('plugins'):
 	try:
 		print 'Loading plugin {}'.format(plugin)
-		p = Plugin(bridge, os.path.join('plugins', plugin))
+		p = Plugin(os.path.join('plugins', plugin))
 		PLUGINS.append(p)
 		print 'Successfully loaded plugin: {}'.format(p)
 	except Exception as e:
@@ -52,6 +51,24 @@ for plugin in os.listdir('plugins'):
 
 app = Flask(__name__)
 app.jinja_env.filters['base64encode'] = b64encode
+
+_routes = {}
+
+@app.route('/response/<id>')
+@app.route('/response/<id>/<res>')
+def route(id, res=None):
+	handler = _routes.get(id, None)
+	if handler is not None:
+		return handler(res)
+	return render_template('alert.xml', title='Communication error', description="Failed to load page.\nThis could mean the server had a problem, or the request dialog timed-out\nPlease try again")
+
+def add_route(id, handler):
+	_routes[id] = handler
+	
+def remove_route(id):
+	del _routes[id]
+
+
 
 @app.route('/icon.png')
 def icon():
@@ -65,50 +82,43 @@ def plugin_icon(filename):
 def js(filename):
 	return send_from_directory('js', filename)
 	
+	
 @app.route('/templates/<path:filename>')
 def template(filename):
 	return send_from_directory('templates', filename)
 
-thread = None
+
+bridges = {}
 @app.route('/catalog/<name>')
 @app.route('/catalog/<name>/<url>')
-def catalog(name, url=None):	
-	url = b64decode(url) if url else ''
-	name = b64decode(name)
+@app.route('/catalog/<name>/<url>/<response>')
+def catalog(name, url=None, response=None):	
+	decoded_url = b64decode(url) if url else ''
+	decoded_name = b64decode(name)
 	#current_item = get_items('')[int(id)]
-	plugin = [p for p in PLUGINS if p.name == name][0]
-	global thread
-	thread = Thread(get_items, plugin, url)
-	thread.start()
-	while thread.is_alive():
-		if len(thread.messages)>0:
-			msg = thread.messages.pop(0)
-			return decipher_message(plugin, msg)
+	plugin = [p for p in PLUGINS if p.name == decoded_name][0]	
+	global bridges
+	if response:
+		b = bridges[response]
+	else:
+		b = bridge(__name__, plugin)		
+		print 'saving bridge id {}'.format(id(b))
+		bridges[str(id(b))] = b
+		b.thread = Thread(get_items, b, plugin, decoded_url)
+		b.thread.start()
+	while b.thread.is_alive():
+		if len(b.thread.messages)>0:
+			msg = b.thread.messages.pop(0)
+			method = getattr(messages, msg['type'])
+			return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, id(b)))
 		time.sleep(0.1)
-	if len(thread.messages)>0:
-		msg = thread.messages.pop(0)
-		return decipher_message(plugin, msg)		
+	#Check for possible last message which could have appeared after the thread has died. This could happen if message was sent during time.sleep in while and loop exited immediately afterwards
+	if len(b.thread.messages)>0:
+		msg = b.thread.messages.pop(0)
+		method = getattr(messages, msg['type'])
+		return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, id(b)))	
 	
-	print 'Should not get here'
-
-def decipher_message(plugin, msg):
-	print 'deciphering {}'.format(msg)
-	if msg['type'] == 'end':
-		items = msg['ans']
-		print items
-		if not items or len(items) == 0:
-			if not bridge.isplaying():
-				return render_template('alert.xml')
-			return '', 204
-		if items[0].title and items[0].subtitle and items[0].icon and items[0].details:
-			return render_template('list.xml', menu=items, plugin=plugin)
-		if items[0].title and items[0].icon:
-			return render_template('grid.xml', menu=items, plugin=plugin)	
-		return render_template('nakedlist.xml', menu=items, plugin = plugin)
-	if msg['type'] == 'play':
-		return msg['url'], 202
-	if msg['type'] == 'inputdialog':
-		return render_template('inputdialog.xml', title=msg['title'], description=msg['description'], placeholder=msg['placeholder'], button=msg['button'])
+	raise Exception('Should not get here')
 
 
 @app.route('/helloworld')
@@ -120,38 +130,19 @@ def main():
 	return render_template('main.xml', menu=PLUGINS)
 	
 
-
-@app.route('/response/<id>/<response>')
-def response(id, response):
-	global thread
-	thread.responses.append({'id':id, 'response':response})
-	return 'OK', 205
-
-def get_items(plugin, url):
+def get_items(bridge, plugin, url):
 	print('Getting items for: {}'.format(url))
 	url = url.split('?')[1] if '?' in url else url	
-	items = plugin.run(url)
+	items = plugin.run(bridge, url)
 	return items
 
 def is_ascii(s):
 	return all(ord(c) < 128 for c in s)
 
-id=0
-def message(msg):
-	global thread
-	if not thread:
-		return None
-	print 'adding message: {}'.format(msg)
-	thread.message(msg)
-	while True:
-		for r in thread.responses:
-			if r['id'] == str(msg['id']):
-				thread.responses.remove(r)
-				return r['response']
-		time.sleep(0.1)
+
 		
 if __name__ == '__main__':
 	http_server = WSGIServer(('',5000), app)
-	http_server.log = open('http.log', 'w')
+	#http_server.log = open('http.log', 'w')
 	http_server.serve_forever()
 	#app.run(debug=True, host='0.0.0.0')

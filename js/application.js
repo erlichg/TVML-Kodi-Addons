@@ -98,12 +98,20 @@ App.onExit = function(options) {
 	This is called when the app gois to background
 */
 App.onSuspend = function(options) {
+
 }
 
 /*
 	This is called when app returns from background
 */
 App.onResume = function(options) {
+}
+
+/*
+	This is called when app receives memory warning. If ignored, the app will be exited forcefully
+*/
+App.onMemoryWarning = function(options) {
+	
 }
 
 /**
@@ -176,7 +184,7 @@ function createEvalErrorAlertDocument() {
  */
 function createLoadErrorAlertDocument(url, xhr, isModal) {
     const title = "Communication error";
-    const description = "Failed to load document from server\nPlease try again later";
+    const description = "Failed to load page.\nThis could mean the server had a problem, or the request dialog timed out.\nPlease try again";
     return createAlertDocument(title, description, isModal);
 }
 

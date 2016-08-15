@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<document>
+   <alertTemplate>
+      <title style="color: rgb(0,0,0);">{{title}}</title>
+      <description style="color: rgb(0,0,0);">{{text}}</description>
+      <description msgid="{{msgid}}" style="color: rgb(0,0,0);" class="desc" id="progress" documentURL="{{url}}">Progress: {{value}}%</description>   
+   </alertTemplate>
+</document>
