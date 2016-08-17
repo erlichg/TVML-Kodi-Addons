@@ -43,9 +43,15 @@ DocumentLoader.prototype.fetch = function(options) {
 		    var singleVideo = new MediaItem(msg['type'], msg['url']);
 			var videoList = new Playlist();
 			videoList.push(singleVideo);
-			var myPlayer = new Player();
+			var myPlayer = new Player();			
 			myPlayer.playlist = videoList;
+			var overlayDocument = createSubtitleDocument();
+			var subtitle = overlayDocument.getElementsByTagName("text").item(0);
 			myPlayer.play();
+			myPlayer.addEventListener("timeDidChange", function(info) {
+				console.log("timeDidChange");
+				subtitle.textContent = "timeDidChange "+info.time;
+			}, {"interval":1});
 			myPlayer.addEventListener("stateDidChange", function(e) {  
 				if(e.state == "end") {
 					options.abort();
@@ -55,6 +61,9 @@ DocumentLoader.prototype.fetch = function(options) {
 							//do nothing
 						}
 					});
+      			} else if(e.state == "playing") {
+	      			console.log("attaching overlay");
+	      			myPlayer.overlayDocument = overlayDocument;	      			
       			}
     		}.bind(this), false);
 		} else if(xhr.status == 204) {
@@ -192,6 +201,33 @@ DocumentLoader.prototype.prepareDocument = function(document) {
 				}
 			}.bind(this)
 		});
+    } else if (typeof document.getElementById("player")!="undefined") { //player
+	    var m = document.getElementById("player");
+	    var singleVideo = new MediaItem(m.getAttribute('type'), m.getAttribute('url'));
+		var videoList = new Playlist();
+		videoList.push(singleVideo);
+		var myPlayer = m.getFeature('Player');			
+		myPlayer.playlist = videoList;
+		var subtitle = m.getElementsByTagName("text").item(0);
+		myPlayer.play();
+		myPlayer.addEventListener("timeDidChange", function(info) {
+			console.log("timeDidChange");
+			subtitle.textContent = "timeDidChange "+info.time;
+		}, {"interval":1});
+		myPlayer.addEventListener("stateDidChange", function(e) {  
+			if(e.state == "end") {
+				options.abort();
+				this.fetch({
+					url:msg['stop'],
+					abort: function() {
+						//do nothing
+					}
+				});
+      		} else if(e.state == "playing") {
+	    		console.log("attaching overlay");
+	    		myPlayer.overlayDocument = overlayDocument;	      			
+      		}
+    	}.bind(this), false);
     }
     traverseElements(document.documentElement, function(elem) {
 	   if (elem.hasAttribute("notify")) {

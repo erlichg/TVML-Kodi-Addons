@@ -17,7 +17,8 @@ def end(plugin, msg, url=None):
 
 def play(plugin, msg, url=None):
 	"""Opens the player on msg url attribute"""
-	return json.dumps({'url': msg['url'], 'stop': msg['stop'], 'type':msg['playtype']}), 202
+	#return render_template('player.xml', url=msg['url'], type=msg['playtype'])
+	return json.dumps({'url': msg['url'], 'stop': msg['stop'], 'type':msg['playtype'], 'subtitle':msg['subtitle']}), 202
 	
 def isplaying(plugin, msg, url=None):
 	pass

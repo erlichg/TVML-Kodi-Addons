@@ -9,7 +9,7 @@ def main(bridge, url):
 	if url == '2':
 		return [Item('21', 'tv1', 'sub-title of tv1', 'https://pixabay.com/static/uploads/photo/2016/07/24/23/35/blackberries-1539540_960_720.jpg', 'A lot of details about tv1', {})]
 	if url == '11':
-		bridge.play('http://satfeedhunter.nl/3.mp4') #test stream taken from VLC site
+		bridge.play("https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8") #test stream taken from VLC site
 		return
 	if url == '21':
 		bridge.play('http://satfeedhunter.nl/2.mp4') #test stream taken from VLC site

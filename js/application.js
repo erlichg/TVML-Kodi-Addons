@@ -237,4 +237,37 @@ function createLoadErrorAlertDocument(url, xhr, isModal) {
 </document>`;
 	return new DOMParser().parseFromString(template, "application/xml");
  }
+ 
+ function createSubtitleDocument() {
+	 var template = `<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+ Copyright (C) 2016 Apple Inc. All Rights Reserved.
+ See LICENSE.txt for this sample’s licensing information
+ -->
+<document>
+	<stackTemplate onload="setupMediaContent(event.target)">
+		<banner>
+			<title>Always Playing Embedded Videos</title>
+		</banner>
+
+		<collectionList style="margin: 100 0 0;">
+			<shelf style="tv-interitem-spacing: 50;" onselect="presentVideo(event.target)">
+				<section>
+					<lockup>
+						<mediaContent mediaContent="http://p.events-delivery.apple.com.edgesuite.net/15pijbnaefvpoijbaefvpihb06/m3u8/hls_vod_mvp.m3u8" playbackMode="always">
+							<img src="http://images.apple.com/apple-events/static/apple-events/apple-events-index/pastevents/june2015/hero_image_large.jpg" aspectFill="true" width="845" height="475"/>
+						</mediaContent>
+					</lockup>
+					<lockup>
+						<mediaContent mediaContent="http://p.events-delivery.apple.com.edgesuite.net/1509pijnedfvopihbefvpijlkjb/m3u8/hls_vod_mvp.m3u8" playbackMode="always">
+							<img src="http://images.apple.com/apple-events/static/apple-events/apple-events-index/hero/september2015/hero_image_large.jpg" aspectFill="true" width="845" height="475"/>
+						</mediaContent>
+					</lockup>
+				</section>
+			</shelf>
+		</collectionList>
+	</stackTemplate>
+</document>`;
+	return new DOMParser().parseFromString(template, "application/xml");
+ }
 

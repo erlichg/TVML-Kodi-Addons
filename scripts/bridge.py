@@ -84,7 +84,7 @@ class bridge:
 	def selectdialog(self, title, list_):
 		return self.message({'type':'selectdialog', 'title':title, 'list':list_}, True)				
 		
-	def play(self, url, type_='video'):
+	def play(self, url, type_='video', subtitle_url=None):
 		print 'Playing {}'.format(url)
 		self.play = url
 		def stop(res):
@@ -93,7 +93,7 @@ class bridge:
 			return 'OK', 206
 		id = randomword()
 		self.app.add_route(id, stop)
-		return self.message({'type':'play', 'url':url, 'stop':'/response/{}'.format(id), 'playtype': type_})
+		return self.message({'type':'play', 'url':url, 'stop':'/response/{}'.format(id), 'playtype': type_, 'subtitle':subtitle_url})
 	
 	def isplaying(self):
 		return self.play is not None
