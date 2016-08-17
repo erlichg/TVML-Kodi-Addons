@@ -66,3 +66,9 @@ Please check demo plugin in the plugins folder
 ##What's next
 A lot more work to be done.
 - implement more elaborate bridge functions
+
+## License
+
+Licensed under Apache License v2.0.
+<br>
+Copyright 2016 Guy Erlich
