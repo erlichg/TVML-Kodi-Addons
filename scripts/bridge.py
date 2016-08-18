@@ -1,7 +1,7 @@
 import importlib, time, random, string
 from base64 import b64encode, b64decode
 
-def randomword():
+def _randomword():
 	"""Create a random string of 20 characters"""
 	return ''.join(random.choice(string.lowercase) for i in range(20))
    
@@ -15,11 +15,11 @@ class bridge:
 		self.Thread = getattr(self.app, 'Thread')
 		self.thread = None
 		
-	def message(self, msg, wait=False, id=None):			
+	def _message(self, msg, wait=False, id=None):			
 		if not self.thread:
 			return None
 		if not id:
-			id = randomword()
+			id = _randomword()
 			msg['id'] = id						
 		
 		if wait:
@@ -52,18 +52,18 @@ class bridge:
 	
 	def alertdialog(self, title, description):
 		"""Show an alert dialog with title and description. Returns immediately"""
-		return self.message({'type':'alertdialog', 'title':title, 'description':description})
+		return self._message({'type':'alertdialog', 'title':title, 'description':description})
 		
 	def inputdialog(self, title, description='', placeholder='', button='OK'):
 		"""Shows an input dialog to the user with text field. Returns the text the user typed or None if user aborted"""
-		s = self.message({'type':'inputdialog', 'title':title, 'description':description, 'placeholder':placeholder, 'button':button}, True)
+		s = self._message({'type':'inputdialog', 'title':title, 'description':description, 'placeholder':placeholder, 'button':button}, True)
 		return b64decode(s) if s else None
 		
 	def progressdialog(self, heading, text=''):
-		id = randomword()
+		id = _randomword()
 		self.progress={'title': heading, 'id': id}
 		def f():
-			self.message({'type':'progressdialog', 'title':heading, 'text':text, 'value':'0', 'id':id}, True, id)
+			self._message({'type':'progressdialog', 'title':heading, 'text':text, 'value':'0', 'id':id}, True, id)
 			print 'progress closed'
 			self.progress=None
 		t = self.Thread(f)
@@ -72,17 +72,17 @@ class bridge:
 	def updateprogressdialog(self, value, text=''):
 		if self.progress:
 			print 'updating progress with {}, {}'.format(value, text)
-			return self.message({'type':'progressdialog', 'title':self.progress['title'], 'text':text, 'value':value, 'id':self.progress['id']}, False, self.progress['id'])
+			return self._message({'type':'progressdialog', 'title':self.progress['title'], 'text':text, 'value':value, 'id':self.progress['id']}, False, self.progress['id'])
 	
 	def isprogresscanceled(self):
 		return not self.progress
 	
 	def closeprogress(self):
 		self.progress = None
-		return self.message({'type':'closeprogress'})
+		return self._message({'type':'closeprogress'})
 		
 	def selectdialog(self, title, list_):
-		return self.message({'type':'selectdialog', 'title':title, 'list':list_}, True)				
+		return self._message({'type':'selectdialog', 'title':title, 'list':list_}, True)				
 		
 	def play(self, url, type_='video', subtitle_url=None):
 		print 'Playing {}'.format(url)
@@ -91,9 +91,9 @@ class bridge:
 			self.play = None
 			print 'detected player stop'
 			return 'OK', 206
-		id = randomword()
+		id = _randomword()
 		self.app.add_route(id, stop)
-		return self.message({'type':'play', 'url':url, 'stop':'/response/{}'.format(id), 'playtype': type_, 'subtitle':subtitle_url})
+		return self._message({'type':'play', 'url':url, 'stop':'/response/{}'.format(id), 'playtype': type_, 'subtitle':subtitle_url})
 	
 	def isplaying(self):
 		return self.play is not None
