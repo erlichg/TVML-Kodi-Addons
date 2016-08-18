@@ -72,6 +72,10 @@ DocumentLoader.prototype.fetch = function(options) {
 			console.log('sent response')
 	    } else if(xhr.status == 206) {
 		    options.abort();
+		} else if(xhr.status == 208) {
+			const responseDoc = xhr.response;
+			this.prepareDocument(responseDoc);
+			options.success(responseDoc, true);
 	    } else {
         	const responseDoc = xhr.response;
         	if (typeof options.initial == "boolean" && options.initial) {
@@ -143,12 +147,16 @@ DocumentLoader.prototype.prepareDocument = function(document) {
 			ans = true;
 			var keyboard = text.getFeature('Keyboard');
 			var answer = keyboard.text;	
-			navigationDocument.removeDocument(document); //remove the document	
-			setTimeout(function() {
+			//navigationDocument.removeDocument(document); //remove the document	
+			//navigationDocument.dismissModal();
+			//setTimeout(function() {
 				this.fetch({
-					url: "/response/" + id + "/" + btoa(answer)
+					url: "/response/" + id + "/" + btoa(answer),
+					abort: function() {
+						
+					}
 				});
-			}.bind(this), 100);				
+			//}.bind(this), 100);				
 			
 		}.bind(this));
 		document.addEventListener("unload", function() {

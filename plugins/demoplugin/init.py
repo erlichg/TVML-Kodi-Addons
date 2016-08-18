@@ -26,15 +26,15 @@ def main(bridge, url):
 		time.sleep(1)
 		if bridge.isprogresscanceled():
 			return
-		bridge.updateprogressdialog('20', 'new progress text')
+		bridge.updateprogressdialog('0.2', 'new progress text')
 		time.sleep(1)
 		if bridge.isprogresscanceled():
 			return
-		bridge.updateprogressdialog('50', 'new progress text')
+		bridge.updateprogressdialog('0.5', 'new progress text')
 		time.sleep(1)
 		if bridge.isprogresscanceled():
 			return
-		bridge.updateprogressdialog('90', 'new progress text')
+		bridge.updateprogressdialog('0.8', 'new progress text')
 		time.sleep(1)
 		if bridge.isprogresscanceled():
 			return

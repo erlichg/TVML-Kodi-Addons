@@ -32,11 +32,11 @@ function DocumentController(documentLoader, documentURL, loadingDocument, initia
     documentLoader.fetch({
 	    initial: initial,
         url: documentURL,
-        success: function(document) {
+        success: function(document, isModal) {
             // Add the event listener for document
             this.setupDocument(document);
             // Allow subclass to do custom handling for this document
-            this.handleDocument(document, loadingDocument);
+            this.handleDocument(document, loadingDocument, isModal);
         }.bind(this),
         error: function(xhr) {
             const alertDocument = createLoadErrorAlertDocument(documentURL, xhr, false);
@@ -58,11 +58,29 @@ DocumentController.prototype.setupDocument = function(document) {
     document.addEventListener("holdselect", this.handleHoldSelect);    
 };
 
-DocumentController.prototype.handleDocument = function(document, loadingDocument) {	
-    if (loadingDocument && navigationDocument.documents.indexOf(loadingDocument)!=-1) {	    
-        navigationDocument.replaceDocument(document, loadingDocument);        
+DocumentController.prototype.handleDocument = function(document, loadingDocument, isModal) {	
+    if (loadingDocument && navigationDocument.documents.indexOf(loadingDocument)!=-1) {
+	    if (typeof isModal == "undefined") {   
+        	navigationDocument.replaceDocument(document, loadingDocument);
+        } else {
+	        //navigationDocument.removeDocument(loadingDocument);
+	        navigationDocument.presentModal(document);
+	        document.addEventListener("unload", function(e) {
+		       navigationDocument.removeDocument(loadingDocument); 
+	        });
+	        document.addEventListener("select", function(e) {
+		       navigationDocument.dismissModal();
+	        });
+        }     
     } else {
-        navigationDocument.pushDocument(document);
+	    if (typeof isModal == "undefined") { 
+        	navigationDocument.pushDocument(document);
+        } else {
+	        navigationDocument.presentModal(document);
+	        document.addEventListener("select", function(e) {
+		       navigationDocument.dismissModal();
+	        });
+        }
     }
 };
 

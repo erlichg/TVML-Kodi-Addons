@@ -1,8 +1,21 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <document>
-   <alertTemplate>
-      <title style="color: rgb(0,0,0);">{{title}}</title>
-      <description style="color: rgb(0,0,0);">{{text}}</description>
-      <description msgid="{{msgid}}" style="color: rgb(0,0,0);" class="desc" id="progress" documentURL="{{url}}">Progress: {{value}}%</description>   
-   </alertTemplate>
+  <head>
+    <style>
+    </style>
+  </head>
+  <productBundleTemplate>
+    <shelf centered="true">
+      <section>
+        <lockup disabled="true">
+          <img src="" width="1200" height="768" />
+          <overlay>
+	        <text style="tv-position: top; margin: 10; text-align: center; font-size: 50; color: rgb(0,0,0);">{{title}}</text>text>            
+            <progressBar style="tv-position: center;" id="progress" msgid="{{msgid}}" documentURL="{{url}}" value="{{value}}" />
+            <text style="margin: 10; text-align: center; font-size: 30; color: rgb(0,0,0);">{{text}}</text>
+          </overlay>
+        </lockup>
+      </section>
+    </shelf>
+  </productBundleTemplate>
 </document>

@@ -26,7 +26,7 @@ def isplaying(plugin, msg, url=None):
 
 def inputdialog(plugin, msg, url=None):
 	"""Shows an input dialog with text field. Returns the response"""
-	return render_template('inputdialog.xml', title=msg['title'], description=msg['description'], placeholder=msg['placeholder'], button=msg['button'], url=url, msgid=msg['id'])
+	return render_template('inputdialog.xml', title=msg['title'], description=msg['description'], placeholder=msg['placeholder'], button=msg['button'], url=url, msgid=msg['id']), 208 #present modal
 
 def alertdialog(plugin, msg, url=None):
 	"""Shows an alert dialog"""
@@ -42,10 +42,10 @@ def selectdialog(plugin, msg, url=None):
 	if not items or len(items) == 0:
 		return '', 204
 	if items[0].title and items[0].subtitle and items[0].icon and items[0].details:
-		return render_template('list.xml', menu=items, msgid=msg['id'], url=url)
+		return render_template('list.xml', menu=items, msgid=msg['id'], url=url), 208 #present modal
 	if items[0].title and items[0].icon:
-		return render_template('grid.xml', menu=items, msgid=msg['id'], url=url)	
-	return render_template('nakedlist.xml', menu=items, msgid=msg['id'], url=url)
+		return render_template('grid.xml', menu=items, msgid=msg['id'], url=url)	, 208 #present modal
+	return render_template('nakedlist.xml', menu=items, msgid=msg['id'], url=url), 208 #present modal
 
 
 def closeprogress(plugin, msg, url=None):
