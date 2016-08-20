@@ -132,8 +132,12 @@ def main():
 
 def get_items(bridge, plugin, url):
 	print('Getting items for: {}'.format(url))
-	url = url.split('?')[1] if '?' in url else url	
-	items = plugin.run(bridge, url)
+	url = url.split('?')[1] if '?' in url else url
+	try:
+		items = plugin.run(bridge, url)
+	except Exception as e:
+		print 'Encountered error in plugin: {}'.format(e)
+		items = None
 	return items
 
 def is_ascii(s):
