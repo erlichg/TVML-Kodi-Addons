@@ -40,32 +40,54 @@ DocumentLoader.prototype.fetch = function(options) {
 	    if (xhr.status == 202) {
 		    var msg = JSON.parse(xhr.responseText)
 		    console.log("got message: " + xhr.responseText);
+		    var time;
+		    if (localStorage.getItem(msg['url']) != null) { //if we've played this url before, retrieve it's stop time
+			    time = localStorage.getItem(msg['url']);
+		    } else {
+			    time = 0;
+		    }
 		    var singleVideo = new MediaItem(msg['type'], msg['url']);
+			singleVideo.resumeTime = time;
 			var videoList = new Playlist();
 			videoList.push(singleVideo);
 			var myPlayer = new Player();			
 			myPlayer.playlist = videoList;
-			var overlayDocument = createSubtitleDocument();
-			var subtitle = overlayDocument.getElementsByTagName("text").item(0);
+			//var overlayDocument = createSubtitleDocument();
+			//var subtitle = overlayDocument.getElementsByTagName("text").item(0);
 			myPlayer.play();
+			var currenttime = 0;
+			var duration = 0;
 			myPlayer.addEventListener("timeDidChange", function(info) {
-				console.log("timeDidChange");
-				subtitle.textContent = "timeDidChange "+info.time;
+				currenttime = info.time;
+				//hack for duration
+				if (duration == 0) {
+					setTimeout(function(){
+						myPlayer.pause(); //this will trigger "shouldHandleStateChange"
+						setTimeout(function(){
+							myPlayer.play();
+						},100);
+       				},1000);
+				}
+				//subtitle.textContent = "timeDidChange "+info.time;
 			}, {"interval":1});
+			myPlayer.addEventListener("shouldHandleStateChange", function(e) {
+				duration = e.duration;
+			});
 			myPlayer.addEventListener("stateDidChange", function(e) {  
 				if(e.state == "end") {
 					options.abort();
+					if ((duration - currenttime) * 100/duration >= 97) { //if we've stopped at more than 97% play time, don't resume
+						currenttime = 0;
+					}
+					localStorage.setItem(msg['url'], currenttime); //save this url's stop time for future playback
 					this.fetch({
-						url:msg['stop'],
+						url:msg['stop']+"/"+btoa(currenttime.toString()),
 						abort: function() {
 							//do nothing
 						}
 					});
-      			} else if(e.state == "playing") {
-	      			console.log("attaching overlay");
-	      			myPlayer.overlayDocument = overlayDocument;	      			
-      			}
-    		}.bind(this), false);
+				}
+			}.bind(this), false);  			
 		} else if(xhr.status == 204) {
 			//no message
 		} else if(xhr.status == 205) {
@@ -278,5 +300,9 @@ function traverseElements(elem, callback) {
     for (var i = 0; i < children.length; ++i) {
 	    traverseElements(children.item(i), callback);
     }
+}
+
+DocumentLoader.prototype.play = function(options, url, type, time, stopurl) {
+	
 }
 

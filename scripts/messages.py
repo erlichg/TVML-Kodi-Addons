@@ -17,6 +17,7 @@ def end(plugin, msg, url=None):
 
 def play(plugin, msg, url=None):
 	"""Opens the player on msg url attribute"""
+	#since url paremeter is the original url that was called which resulted in a play message, we can save this url for time
 	#return render_template('player.xml', url=msg['url'], type=msg['playtype'])
 	return json.dumps({'url': msg['url'], 'stop': msg['stop'], 'type':msg['playtype'], 'subtitle':msg['subtitle']}), 202
 	
@@ -44,7 +45,7 @@ def selectdialog(plugin, msg, url=None):
 	if items[0].title and items[0].subtitle and items[0].icon and items[0].details:
 		return render_template('list.xml', menu=items, msgid=msg['id'], url=url), 208 #present modal
 	if items[0].title and items[0].icon:
-		return render_template('grid.xml', menu=items, msgid=msg['id'], url=url)	, 208 #present modal
+		return render_template('grid.xml', menu=items, msgid=msg['id'], url=url), 208 #present modal
 	return render_template('nakedlist.xml', menu=items, msgid=msg['id'], url=url), 208 #present modal
 
 

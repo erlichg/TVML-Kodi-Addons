@@ -84,12 +84,13 @@ class bridge:
 	def selectdialog(self, title, list_):
 		return self._message({'type':'selectdialog', 'title':title, 'list':list_}, True)				
 		
-	def play(self, url, type_='video', subtitle_url=None):
+	def play(self, url, type_='video', subtitle_url=None, stop_completion=None):
 		print 'Playing {}'.format(url)
 		self.play = url
 		def stop(res):
 			self.play = None
-			print 'detected player stop'
+			print 'detected player stop at time {}'.format(b64decode(res))
+			stop_completion(b64decode(res))
 			return 'OK', 206
 		id = _randomword()
 		self.app.add_route(id, stop)
