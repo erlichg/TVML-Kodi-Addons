@@ -47,6 +47,15 @@ DocumentLoader.prototype.fetch = function(options) {
 			    time = 0;
 		    }
 		    var singleVideo = new MediaItem(msg['type'], msg['url']);
+		    if(msg['image'] != null) {
+		    	singleVideo.artworkImageURL = msg['image'];
+		    }
+		    if(msg['description'] != null) {
+		    	singleVideo.description = msg['description'];
+		    }
+		    if(msg['title'] != null) {
+		    	singleVideo.title = msg['title'];
+		    }
 			singleVideo.resumeTime = time;
 			var videoList = new Playlist();
 			videoList.push(singleVideo);
@@ -56,27 +65,30 @@ DocumentLoader.prototype.fetch = function(options) {
 			//var subtitle = overlayDocument.getElementsByTagName("text").item(0);
 			myPlayer.play();
 			var currenttime = 0;
-			var duration = 0;
+			var duration;
+			if (myPlayer.currentMediaItemDuration == null) { //pre tvos 10
+				duration = 0;
+				myPlayer.addEventListener("shouldHandleStateChange", function(e) {
+					duration = e.duration;
+				});
+			} else {
+				duration = myPlayer.currentMediaItemDuration;
+			}
 			myPlayer.addEventListener("timeDidChange", function(info) {
 				currenttime = info.time;
 				//hack for duration
 				if (duration == 0) {
+					myPlayer.pause(); //this will trigger "shouldHandleStateChange"
 					setTimeout(function(){
-						myPlayer.pause(); //this will trigger "shouldHandleStateChange"
-						setTimeout(function(){
-							myPlayer.play();
-						},100);
-       				},1000);
+						myPlayer.play();
+					},100);
 				}
 				//subtitle.textContent = "timeDidChange "+info.time;
-			}, {"interval":1});
-			myPlayer.addEventListener("shouldHandleStateChange", function(e) {
-				duration = e.duration;
-			});
+			}, {"interval":1});			
 			myPlayer.addEventListener("stateDidChange", function(e) {  
 				if(e.state == "end") {
 					options.abort();
-					if ((duration - currenttime) * 100/duration >= 97) { //if we've stopped at more than 97% play time, don't resume
+					if ((duration - currenttime) * 100/duration <=3) { //if we've stopped at more than 97% play time, don't resume
 						currenttime = 0;
 					}
 					localStorage.setItem(msg['url'], currenttime); //save this url's stop time for future playback
@@ -198,39 +210,45 @@ DocumentLoader.prototype.prepareDocument = function(document) {
 	    var progress = document.getElementById("progress");
 	    var url = progress.getAttribute("documentURL");
 	    var id = progress.getAttribute("msgid");
-	    this.fetch({
-			url: url,
-			success: function(responseDoc) {
-				try {
-					navigationDocument.replaceDocument(responseDoc, document);
-				} catch (err) {
-					this.fetch({
-					url: "/response/" + id,
-					abort: function() {
-						//do nothing
-					},
-					error: function(xhr) {
-						//do nothing
+	    setTimeout(function() {
+		    this.fetch({
+				url: url,
+				success: function(responseDoc) {
+					try {
+						console.log("updating progress dialog");
+						navigationDocument.replaceDocument(responseDoc, document);
+					} catch (err) {
+						this.fetch({
+						url: "/response/" + id,
+						abort: function() {
+							//do nothing
+						},
+						error: function(xhr) {
+							//do nothing
+						}
+					});
 					}
-				});
-				}
-			}.bind(this),
-			abort: function() {
-				try {
-					navigationDocument.removeDocument(document); //remove the document
-				} catch (err) {
-					this.fetch({
-					url: "/response/" + id,
-					abort: function() {
-						//do nothing
-					},
-					error: function(xhr) {
-						//do nothing
+				}.bind(this),
+				abort: function() {
+					try {
+						console.log("Removing progress dialog");
+						var loadingDocument = createLoadingDocument();
+						navigationDocument.replaceDocument(loadingDocument, document);
+						new DocumentController(this, url, loadingDocument);
+					} catch (err) {
+						this.fetch({
+						url: "/response/" + id,
+						abort: function() {
+							//do nothing
+						},
+						error: function(xhr) {
+							//do nothing
+						}
+					});
 					}
-				});
-				}
-			}.bind(this)
-		});
+				}.bind(this)
+			});
+		}.bind(this), 1000);	    
     } else if (typeof document.getElementById("player")!="undefined") { //player
 	    var m = document.getElementById("player");
 	    var singleVideo = new MediaItem(m.getAttribute('type'), m.getAttribute('url'));
@@ -302,7 +320,5 @@ function traverseElements(elem, callback) {
     }
 }
 
-DocumentLoader.prototype.play = function(options, url, type, time, stopurl) {
-	
-}
+
 

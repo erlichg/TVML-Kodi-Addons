@@ -1,7 +1,7 @@
 from __future__ import division
 from flask import Flask, render_template, send_from_directory, request
 from base64 import b64encode, b64decode
-import sys, os, imp, urllib, json, time
+import sys, os, imp, urllib, json, time, traceback
 import urlparse
 import gevent.monkey
 gevent.monkey.patch_all()
@@ -11,7 +11,9 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 sys.path.append('scripts')
 sys.path.append('plugins')
+sys.path.append('kodiplugins')
 from Plugin import *
+from KodiPlugin import *
 from bridge import bridge
 
 import messages
@@ -40,12 +42,27 @@ class Thread(threading.Thread):
 PLUGINS = []
 for plugin in os.listdir('plugins'):
 	try:
+		dir = os.path.join('plugins', plugin)
+		if not os.path.isdir(dir):
+			continue
 		print 'Loading plugin {}'.format(plugin)
-		p = Plugin(os.path.join('plugins', plugin))
+		p = Plugin(dir)
 		PLUGINS.append(p)
 		print 'Successfully loaded plugin: {}'.format(p)
 	except Exception as e:
 		print 'Failed to load plugin {}. Error: {}'.format(plugin, e)
+		
+for plugin in os.listdir('kodiplugins'):
+	try:
+		dir = os.path.join('kodiplugins', plugin)
+		if not os.path.isdir(dir):
+			continue
+		print 'Loading plugin {}'.format(plugin)
+		p = KodiPlugin(dir)
+		PLUGINS.append(p)
+		print 'Successfully loaded kodi plugin: {}'.format(p)
+	except Exception as e:
+		print 'Failed to load kodi plugin {}. Error: {}'.format(plugin, e)
 
 
 
@@ -77,6 +94,10 @@ def icon():
 @app.route('/plugins/<path:filename>')
 def plugin_icon(filename):
 	return send_from_directory('plugins', filename)
+	
+@app.route('/kodiplugins/<path:filename>')
+def kodiplugin_icon(filename):
+	return send_from_directory('kodiplugins', filename)
 		
 @app.route('/js/<path:filename>')
 def js(filename):
@@ -120,6 +141,34 @@ def catalog(name, url=None, response=None):
 	
 	raise Exception('Should not get here')
 
+@app.route('/menu/<name>')
+@app.route('/menu/<name>/<response>')
+def menu(name, response=None):
+	decoded_name = b64decode(name)
+	#current_item = get_items('')[int(id)]
+	plugin = [p for p in PLUGINS if p.name == decoded_name][0]
+	global bridges
+	if response:
+		b = bridges[response]
+	else:
+		b = bridge(__name__, plugin)		
+		print 'saving bridge id {}'.format(id(b))
+		bridges[str(id(b))] = b
+		b.thread = Thread(get_menu, b, plugin, '')
+		b.thread.start()
+		
+	while b.thread.is_alive():
+		if len(b.thread.messages)>0:
+			msg = b.thread.messages.pop(0)
+			method = getattr(messages, msg['type'])
+			return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, id(b)))
+		time.sleep(0.1)
+	#Check for possible last message which could have appeared after the thread has died. This could happen if message was sent during time.sleep in while and loop exited immediately afterwards
+	if len(b.thread.messages)>0:
+		msg = b.thread.messages.pop(0)
+		method = getattr(messages, msg['type'])
+		return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, id(b)))
+
 
 @app.route('/helloworld')
 def helloworld():
@@ -135,8 +184,20 @@ def get_items(bridge, plugin, url):
 	url = url.split('?')[1] if '?' in url else url
 	try:
 		items = plugin.run(bridge, url)
-	except Exception as e:
-		print 'Encountered error in plugin: {}'.format(e)
+	except:
+		print 'Encountered error in plugin: {}'.format(plugin.name)
+		traceback.print_exc(file=sys.stdout)
+		items = None
+	return items
+	
+def get_menu(bridge, plugin, url):
+	print('Getting menu for: {}'.format(url))
+	url = url.split('?')[1] if '?' in url else url
+	try:
+		items = plugin.menu(bridge, url)
+	except:
+		print 'Encountered error in plugin: {}'.format(plugin.name)
+		traceback.print_exc(file=sys.stdout)
 		items = None
 	return items
 

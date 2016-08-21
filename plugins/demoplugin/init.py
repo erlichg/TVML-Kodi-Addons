@@ -25,23 +25,23 @@ def main(bridge, url):
 		return
 	if url == '32':
 		bridge.progressdialog('progress title', 'progress text')
-		time.sleep(1)
+		#time.sleep(1)
 		if bridge.isprogresscanceled():
 			return
 		bridge.updateprogressdialog('0.2', 'new progress text')
-		time.sleep(1)
+		#time.sleep(1)
 		if bridge.isprogresscanceled():
 			return
 		bridge.updateprogressdialog('0.5', 'new progress text')
-		time.sleep(1)
+		#time.sleep(1)
 		if bridge.isprogresscanceled():
 			return
 		bridge.updateprogressdialog('0.8', 'new progress text')
-		time.sleep(1)
+		#time.sleep(1)
 		if bridge.isprogresscanceled():
 			return
 		bridge.closeprogress()
-		return
+		return [Item('55', 'bah')]
 	if url == '33':
 		ans = bridge.selectdialog('select from list', [Item('41', 'item 1'), Item('42', 'item 2')])
 		bridge.alertdialog('select ended', 'user selected item {}'.format(ans))

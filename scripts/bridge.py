@@ -1,4 +1,4 @@
-import importlib, time, random, string
+import importlib, time, random, string, sys
 from base64 import b64encode, b64decode
 
 def _randomword():
@@ -54,9 +54,9 @@ class bridge:
 		"""Show an alert dialog with title and description. Returns immediately"""
 		return self._message({'type':'alertdialog', 'title':title, 'description':description})
 		
-	def inputdialog(self, title, description='', placeholder='', button='OK'):
+	def inputdialog(self, title, description='', placeholder='', button='OK', secure=False):
 		"""Shows an input dialog to the user with text field. Returns the text the user typed or None if user aborted"""
-		s = self._message({'type':'inputdialog', 'title':title, 'description':description, 'placeholder':placeholder, 'button':button}, True)
+		s = self._message({'type':'inputdialog', 'title':title, 'description':description, 'placeholder':placeholder, 'button':button, 'secure':secure}, True)
 		return b64decode(s) if s else None
 		
 	def progressdialog(self, heading, text=''):
@@ -78,23 +78,23 @@ class bridge:
 		return not self.progress
 	
 	def closeprogress(self):
-		self.progress = None
 		return self._message({'type':'closeprogress'})
 		
 	def selectdialog(self, title, list_):
 		return self._message({'type':'selectdialog', 'title':title, 'list':list_}, True)				
 		
-	def play(self, url, type_='video', subtitle_url=None, stop_completion=None):
+	def play(self, url, type_='video', title=None, description=None, image=None, subtitle_url=None, stop_completion=None):
 		print 'Playing {}'.format(url)
 		self.play = url
 		def stop(res):
 			self.play = None
 			print 'detected player stop at time {}'.format(b64decode(res))
-			stop_completion(b64decode(res))
+			if stop_completion:
+				stop_completion(b64decode(res))
 			return 'OK', 206
 		id = _randomword()
 		self.app.add_route(id, stop)
-		return self._message({'type':'play', 'url':url, 'stop':'/response/{}'.format(id), 'playtype': type_, 'subtitle':subtitle_url})
+		return self._message({'type':'play', 'url':url, 'stop':'/response/{}'.format(id), 'playtype': type_, 'subtitle':subtitle_url, 'title':title, 'description':description, 'image':image})
 	
 	def isplaying(self):
 		return self.play is not None

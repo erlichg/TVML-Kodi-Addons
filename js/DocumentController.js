@@ -111,12 +111,14 @@ DocumentController.prototype.handleHoldSelect = function(event) {
 	const target = event.target;
 	if (target.hasAttribute("menuURL")) {
 		const documentURL = target.getAttribute("menuURL");
-		var loadingDocument;
-        if (!DocumentController.preventLoadingDocument) {
-            loadingDocument = createLoadingDocument();
-            navigationDocument.pushDocument(loadingDocument);
+		if (documentURL != "") {
+			var loadingDocument;
+        	if (!DocumentController.preventLoadingDocument) {
+        	    loadingDocument = createLoadingDocument();
+        	    navigationDocument.pushDocument(loadingDocument);
+        	}
+        	// Create the subsequent controller based on the atribute and its value. Controller would handle its presentation.
+			new DocumentController(this._documentLoader, documentURL, loadingDocument);
         }
-        // Create the subsequent controller based on the atribute and its value. Controller would handle its presentation.
-        new DocumentController(this._documentLoader, documentURL, loadingDocument);
 	}
 }

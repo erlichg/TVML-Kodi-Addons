@@ -13,9 +13,9 @@ See LICENSE.txt for this sample’s licensing information
 		  <section>
 				{% for item in menu %}
 				{% if msgid is defined %}
-				<listItemLockup documentURL="{{url}}" notify="/response/{{msgid}}/{{loop.index}}">
+				<listItemLockup menuURL="{{item.menuurl}}" documentURL="{{url}}" notify="/response/{{msgid}}/{{loop.index}}">
 				{% else %}
-				<listItemLockup documentURL="/catalog/{{plugin.name | base64encode}}/{{item.url | base64encode}}">								
+				<listItemLockup menuURL="{{item.menuurl}}" documentURL="/catalog/{{plugin.name | base64encode}}/{{item.url | base64encode}}">								
 				{% endif %}							
 				 	<title>{{item.title}}</title>				 					 	
 				</listItemLockup>

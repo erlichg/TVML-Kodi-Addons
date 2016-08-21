@@ -19,7 +19,7 @@ def play(plugin, msg, url=None):
 	"""Opens the player on msg url attribute"""
 	#since url paremeter is the original url that was called which resulted in a play message, we can save this url for time
 	#return render_template('player.xml', url=msg['url'], type=msg['playtype'])
-	return json.dumps({'url': msg['url'], 'stop': msg['stop'], 'type':msg['playtype'], 'subtitle':msg['subtitle']}), 202
+	return json.dumps({'url': msg['url'], 'stop': msg['stop'], 'type':msg['playtype'], 'subtitle':msg['subtitle'], 'title':msg['title'], 'description':msg['description'], 'image':msg['image']}), 202
 	
 def isplaying(plugin, msg, url=None):
 	pass
@@ -27,7 +27,7 @@ def isplaying(plugin, msg, url=None):
 
 def inputdialog(plugin, msg, url=None):
 	"""Shows an input dialog with text field. Returns the response"""
-	return render_template('inputdialog.xml', title=msg['title'], description=msg['description'], placeholder=msg['placeholder'], button=msg['button'], url=url, msgid=msg['id']), 208 #present modal
+	return render_template('inputdialog.xml', title=msg['title'], description=msg['description'], placeholder=msg['placeholder'], button=msg['button'], url=url, msgid=msg['id'], secure=msg['secure']), 208 #present modal
 
 def alertdialog(plugin, msg, url=None):
 	"""Shows an alert dialog"""
