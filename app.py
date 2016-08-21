@@ -13,7 +13,6 @@ sys.path.append('scripts')
 sys.path.append('plugins')
 sys.path.append('kodiplugins')
 from Plugin import *
-from KodiPlugin import *
 from bridge import bridge
 
 import messages
@@ -52,17 +51,6 @@ for plugin in os.listdir('plugins'):
 	except Exception as e:
 		print 'Failed to load plugin {}. Error: {}'.format(plugin, e)
 		
-for plugin in os.listdir('kodiplugins'):
-	try:
-		dir = os.path.join('kodiplugins', plugin)
-		if not os.path.isdir(dir):
-			continue
-		print 'Loading plugin {}'.format(plugin)
-		p = KodiPlugin(dir)
-		PLUGINS.append(p)
-		print 'Successfully loaded kodi plugin: {}'.format(p)
-	except Exception as e:
-		print 'Failed to load kodi plugin {}. Error: {}'.format(plugin, e)
 
 
 

@@ -4,6 +4,7 @@
 		<title>{{title}}</title>
 		<description>{{description}}</description>                
 		<textField id="text" secure="{{secure}}">{{placeholder}}</textField>
+		<checkbox on="true"/>
 		<footer>
 			<button documentURL="{{url}}">
 				<text>{{button}}</text>
