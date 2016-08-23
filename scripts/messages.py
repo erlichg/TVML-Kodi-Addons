@@ -9,10 +9,12 @@ def end(plugin, msg, url=None):
 	print items
 	if not items or len(items) == 0:
 		return '', 206
-	if items[0].title and items[0].subtitle and items[0].icon and items[0].details:
-		return render_template('list.xml', menu=items, plugin=plugin)
-	if items[0].title and items[0].icon:
-		return render_template('grid.xml', menu=items, plugin=plugin)	
+    for item in items:
+	    if item.title and item.subtitle and item.icon and item.details:
+		    return render_template('list.xml', menu=items, plugin=plugin)
+    for item in items:
+	    if item.title and item.icon:
+		    return render_template('grid.xml', menu=items, plugin=plugin)	
 	return render_template('nakedlist.xml', menu=items, plugin = plugin)
 
 def play(plugin, msg, url=None):

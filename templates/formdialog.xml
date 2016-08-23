@@ -3,7 +3,10 @@
 	<formTemplate msgid="{{msgid}}">
 		<title>{{title}}</title>
 		<description>{{description}}</description>                
-		<textField id="text" secure="{{secure}}">{{placeholder}}</textField>		
+		<row>
+			<text>hello</text>
+			<textField id="text" secure="{{secure}}">{{placeholder}}</textField>
+		</row>	
 		<footer>
 			<button documentURL="{{url}}">
 				<text>{{button}}</text>
