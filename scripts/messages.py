@@ -9,12 +9,12 @@ def end(plugin, msg, url=None):
 	print items
 	if not items or len(items) == 0:
 		return '', 206
-    for item in items:
-	    if item.title and item.subtitle and item.icon and item.details:
-		    return render_template('list.xml', menu=items, plugin=plugin)
-    for item in items:
-	    if item.title and item.icon:
-		    return render_template('grid.xml', menu=items, plugin=plugin)	
+	for item in items:
+		if item.title and item.subtitle and item.icon and item.details:
+			return render_template('list.xml', menu=items, plugin=plugin)
+	for item in items:
+		if item.title and item.icon:
+			return render_template('grid.xml', menu=items, plugin=plugin)	
 	return render_template('nakedlist.xml', menu=items, plugin = plugin)
 
 def play(plugin, msg, url=None):
@@ -55,4 +55,6 @@ def closeprogress(plugin, msg, url=None):
 	"""Close the progress dialog"""
 	return '', 206
 	
-	
+def formdialog(plugin, msg, url=None):
+	#{'type':'formdialog', 'title':title, 'texts':texts, 'buttons':buttons}
+	return render_template('formdialog.xml', title=msg['title'], fields=msg['fields'], msgid=msg['id'], url=url)

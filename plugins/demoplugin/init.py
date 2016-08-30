@@ -17,7 +17,7 @@ def main(bridge, url):
 		bridge.play('http://satfeedhunter.nl/2.mp4', stop_completion=f)
 		return
 	if url == '3':
-		return [Item('31', 'input'), Item('32', 'progress'), Item('33', 'select')]
+		return [Item('31', 'input'), Item('32', 'progress'), Item('33', 'select'), Item('34', 'form')]
 	if url == '31':
 		ans = bridge.inputdialog('my title', 'hello world')
 		if ans:
@@ -45,5 +45,9 @@ def main(bridge, url):
 	if url == '33':
 		ans = bridge.selectdialog('select from list', [Item('41', 'item 1'), Item('42', 'item 2')])
 		bridge.alertdialog('select ended', 'user selected item {}'.format(ans))
+		return
+	if url == '34':
+		ans = bridge.formdialog('hello', fields=[{'type':'textfield', 'label':'label1', 'value':'hello world', 'description':'desc', 'placeholder':'place holder'}, {'type':'yesno', 'label':'label2', 'value':False}, {'type':'selection', 'label':'label3', 'value':'choice1', 'choices':['choice1', 'choice2', 'choice3']}])
+		bridge.alertdialog('form ended', 'form selections are: {}'.format(ans))
 		return
 	

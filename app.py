@@ -56,6 +56,7 @@ for plugin in os.listdir('plugins'):
 
 app = Flask(__name__)
 app.jinja_env.filters['base64encode'] = b64encode
+#app.jinja_env.add_extension('jinja2.ext.do')
 
 _routes = {}
 

@@ -190,7 +190,7 @@ function createLoadErrorAlertDocument(url, xhr, isModal) {
 
 /**
  * Convenience function to create a TVML dialog
- */
+**/
  function createInputDialog(title, description, textfield, button) {
 	 var template = `<?xml version="1.0" encoding="UTF-8" ?>
         <document>

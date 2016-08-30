@@ -172,41 +172,8 @@ DocumentLoader.prototype.prepareURL = function(url) {
  * Helper method to mangle relative URLs in XMLHttpRequest response documents
  */
 DocumentLoader.prototype.prepareDocument = function(document) {
-    traverseElements(document.documentElement, this.prepareElement);
-    if (document.documentElement.getElementsByTagName("formTemplate").length != 0) { //input dialog
-	    var text = document.getElementById("text");
-	    var id = document.documentElement.getElementsByTagName("formTemplate").item(0).getAttribute("msgid");	
-	    var ans = false;    
-		document.addEventListener("select", function() {
-			ans = true;
-			var keyboard = text.getFeature('Keyboard');
-			var answer = keyboard.text;	
-			//navigationDocument.removeDocument(document); //remove the document	
-			//navigationDocument.dismissModal();
-			//setTimeout(function() {
-				this.fetch({
-					url: "/response/" + id + "/" + btoa(answer),
-					abort: function() {
-						
-					}
-				});
-			//}.bind(this), 100);				
-			
-		}.bind(this));
-		document.addEventListener("unload", function() {
-			if (!ans) {
-				this.fetch({
-				url: "/response/" + id,
-				abort: function() {
-					//do nothing
-				},
-				error: function(xhr) {
-					//do nothing
-				}
-			});
-			}
-		}.bind(this));
-    } else if (typeof document.getElementById("progress")!="undefined") { //progress dialog
+    traverseElements(document.documentElement, this.prepareElement);   
+    if (typeof document.getElementById("progress")!="undefined") { //progress dialog
 	    var progress = document.getElementById("progress");
 	    var url = progress.getAttribute("documentURL");
 	    var id = progress.getAttribute("msgid");
@@ -291,6 +258,19 @@ DocumentLoader.prototype.prepareDocument = function(document) {
 					}				
 		   		});
 	   		}.bind(this)) 
+	   	}
+	   	if(elem.hasAttribute("abort")) {
+		   	var url = elem.getAttribute("abort");
+		   	document.addEventListener("unload", function() {
+				notify(url);  	
+		   	});
+	   	}
+	   	if(elem.hasAttribute("abortfunction")) {
+		   	//var url = function() { return eval(elem.getAttribute("abortfunction"));}.call({document:document});
+		   	var url = eval(elem.getAttribute("abortfunction"));
+		   	document.addEventListener("unload", function() {
+				notify(url);  	
+		   	});
 	   	}
     }.bind(this));
 };

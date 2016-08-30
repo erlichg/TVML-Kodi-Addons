@@ -122,3 +122,67 @@ DocumentController.prototype.handleHoldSelect = function(event) {
         }
 	}
 }
+
+function notify(url) {
+	documentLoader.fetch({
+		url:url,
+		abort: function() {
+						
+		},
+		success: function() {
+			
+		},
+		error: function() {
+			
+		}
+	});
+}
+
+function load(url) {
+	new DocumentController(documentLoader, url, createLoadingDocument());
+}
+
+function showInputDialog(title, description, placeholder, button, secure, callback) {
+	if(typeof description == "undefined") {
+		description = '';
+	}
+	if(typeof placeholder == "undefined") {
+		placeholder = '';
+	}
+	if(typeof button == "undefined") {
+		button = 'OK';
+	}
+	if(typeof secure == "undefined") {
+		secure = false;
+	}
+	var template = `<?xml version="1.0" encoding="UTF-8" ?>
+	<document>
+		<formTemplate>
+			<banner>
+				<title>${title}</title>
+				<description>${description}</description> 
+			</banner>               
+			<textField id="text" secure="${secure}">${placeholder}</textField>		
+			<footer>
+				<button id="button">
+					<text>${button}</text>
+				</button>
+			</footer>		 
+		</formTemplate>
+	</document>
+	`;
+	var dialog = new DOMParser().parseFromString(template, "application/xml");
+	var sent_answer = false;
+	dialog.getElementById("button").addEventListener("select", function() {
+		var ans = dialog.getElementById("text").getFeature('Keyboard').text;
+		callback(ans);
+		sent_answer = true;
+		navigationDocument.dismissModal(dialog);
+	});
+	dialog.addEventListener("unload", function() {
+		if(!sent_answer) {
+			callback();
+		}
+	});
+	navigationDocument.presentModal(dialog);
+}

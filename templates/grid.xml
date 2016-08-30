@@ -14,9 +14,9 @@ See LICENSE.txt for this sample’s licensing information
 		  <section>
 				{% for item in menu %}
 				{% if msgid is defined %}
-				<lockup menuURL="{{item.menuurl}}" documentURL="{{url}}" notify="/response/{{msgid}}/{{loop.index}}">
+				<lockup onselect="notify('/response/{{msgid}}/{{loop.index}}'); load('{{url}}')" menuURL="{{item.menuurl}}">
 				{% else %}
-				<lockup menuURL="{{item.menuurl}}" documentURL="/catalog/{{plugin.name | base64encode}}/{{item.url | base64encode}}">								
+				<lockup menuURL="{{item.menuurl}}" onselect="load('/catalog/{{plugin.name | base64encode}}/{{item.url | base64encode}}')">								
 				{% endif %}							
 					<img src="{{item.icon}}" width="650" height="360"/>
 				 	<title>{{item.title}}</title>				 					 	

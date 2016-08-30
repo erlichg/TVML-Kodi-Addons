@@ -1,4 +1,4 @@
-import importlib, time, random, string, sys
+import importlib, time, random, string, sys, json
 from base64 import b64encode, b64decode
 
 def _randomword():
@@ -60,6 +60,7 @@ class bridge:
 		return b64decode(s) if s else None
 		
 	def progressdialog(self, heading, text=''):
+		"""Shows a progress dialog to the user"""
 		id = _randomword()
 		self.progress={'title': heading, 'id': id}
 		def f():
@@ -70,20 +71,25 @@ class bridge:
 		t.start()
 		
 	def updateprogressdialog(self, value, text=''):
+		"""Updates the progress dialog"""
 		if self.progress:
 			print 'updating progress with {}, {}'.format(value, text)
 			return self._message({'type':'progressdialog', 'title':self.progress['title'], 'text':text, 'value':value, 'id':self.progress['id']}, False, self.progress['id'])
 	
 	def isprogresscanceled(self):
+		"""Returns whether the progress dialog is still showing or canceled by user"""
 		return not self.progress
 	
 	def closeprogress(self):
+		"""Closes the progress dialog"""
 		return self._message({'type':'closeprogress'})
 		
 	def selectdialog(self, title, list_):
+		"""Shows a selection dialog"""
 		return self._message({'type':'selectdialog', 'title':title, 'list':list_}, True)				
 		
 	def play(self, url, type_='video', title=None, description=None, image=None, subtitle_url=None, stop_completion=None):
+		"""Plays a url"""
 		print 'Playing {}'.format(url)
 		self.play = url
 		def stop(res):
@@ -97,4 +103,21 @@ class bridge:
 		return self._message({'type':'play', 'url':url, 'stop':'/response/{}'.format(id), 'playtype': type_, 'subtitle':subtitle_url, 'title':title, 'description':description, 'image':image})
 	
 	def isplaying(self):
+		"""Returns whether the player is still showing or has been cancelled"""
 		return self.play is not None
+		
+	def formdialog(self, title, fields=[]):
+		"""Show a custom form dialog with custom fields
+			A field is an object with a type, a label, a value (initial) and other attributes depending on its type.
+			Available types are: textfield, yesno and selection
+			textfield:
+				displayed as a label. when clicked, user is presented with an input form to modify the field. Additional optional attributes: description, placeholder, button and secure.
+			yesno:
+				value must be a boolean. displayed as a label with 'Yes' or 'No' depending on the value. Clicking on it changes the value between 'Yes' and 'No'. Has no other attributes.
+			selection:
+				displayed exactly like yesno, but clicking rotates the field on values from the list. possible values are passed via the 'choices' attribute. Initial value must be one of the choices.
+				
+			returns a dict with keys as field labels and values as their (modified) value
+			"""
+		s = self._message({'type':'formdialog', 'title':title, 'fields':fields}, True)
+		return json.loads(b64decode(s)) if s else None
