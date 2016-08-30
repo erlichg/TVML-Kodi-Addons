@@ -11,7 +11,6 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 sys.path.append('scripts')
 sys.path.append('plugins')
-sys.path.append('kodiplugins')
 from Plugin import *
 from bridge import bridge
 
