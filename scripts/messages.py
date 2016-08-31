@@ -57,4 +57,12 @@ def closeprogress(plugin, msg, url=None):
 	
 def formdialog(plugin, msg, url=None):
 	#{'type':'formdialog', 'title':title, 'texts':texts, 'buttons':buttons}
-	return render_template('formdialog.xml', title=msg['title'], fields=msg['fields'], msgid=msg['id'], url=url)
+	return render_template('multiformdialog.xml', title=msg['title'], sections=msg['sections'], msgid=msg['id'], url=url if msg['cont'] else '')
+
+def saveSettings(plugin, msg, url=None):
+	print 'SaveSettings in messages'	
+	return json.dumps(msg), 210
+	
+def loadSettings(plugin, msg, url=None):
+	print 'loadSettings in messages'
+	return json.dumps({'type':'loadSettings', 'addon':plugin.id, 'msgid':msg['id'], 'url': url }), 210

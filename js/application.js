@@ -71,7 +71,7 @@ App.onLaunch = function(options) {
             // Instantiate the DocumentLoader, which will be used to fetch and resolve URLs from the fecthed XML documents.
             // This instance is passed along to subsequent DocumentController objects.
             documentLoader = new DocumentLoader(baseURL);
-            //const startDocURL = baseURL + "templates/Index.xml";
+            //const startDocURL = baseURL + "templates/Index.xml";            
             const startDocURL = baseURL + "main";
             // Instantiate the controller with root template. The controller is passed in the loading document which
             // was pushed while scripts were being evaluated, and controller will replace it with root template once
@@ -82,7 +82,7 @@ App.onLaunch = function(options) {
             // error message to the user in an alert dialog.
             const alertDocument = createEvalErrorAlertDocument();
             navigationDocument.replaceDocument(alertDocument, loadingDocument);
-            throw new EvalError("TVMLCatalog application.js: unable to evaluate scripts.");
+            throw new EvalError("application.js: unable to evaluate scripts.");
         }
     });
 };

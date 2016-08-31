@@ -19,6 +19,26 @@ function DocumentLoader(baseURL) {
     this.baseURL = baseURL;
 }
 
+DocumentLoader.prototype.post = function(options) {
+	if (typeof options.url !== "string") {
+        throw new TypeError("DocumentLoader.fetch: url option must be a string.");
+    }
+    const docURL = this.prepareURL(options.url);
+    const xhr = new XMLHttpRequest();    
+    xhr.open("POST", docURL);
+    xhr.timeout = 0;
+    xhr.onload = function() {
+		if (typeof options.success != "undefined") {
+			options.success();
+		}  
+    };
+    xhr.onerror = function() {
+		if (typeof options.failure != "undefined") {
+			options.failure();
+		}  
+    };
+    xhr.send(options.data);
+}
 
 /*
  * Helper method to request templates from the server
@@ -41,8 +61,12 @@ DocumentLoader.prototype.fetch = function(options) {
 		    var msg = JSON.parse(xhr.responseText)
 		    console.log("got message: " + xhr.responseText);
 		    var time;
-		    if (localStorage.getItem(msg['url']) != null) { //if we've played this url before, retrieve it's stop time
-			    time = localStorage.getItem(msg['url']);
+		    var playCache = localStorage.getItem('playCache');
+		    if (playCache == null) {
+			    playCache = {};
+		    }
+		    if (playCache[msg['url']] != null) { //if we've played this url before, retrieve it's stop time
+			    time = playCache[msg['url']];
 		    } else {
 			    time = 0;
 		    }
@@ -91,7 +115,8 @@ DocumentLoader.prototype.fetch = function(options) {
 					if ((duration - currenttime) * 100/duration <=3) { //if we've stopped at more than 97% play time, don't resume
 						currenttime = 0;
 					}
-					localStorage.setItem(msg['url'], currenttime); //save this url's stop time for future playback
+					playCache[msg['url']] = currenttime;
+					localStorage.setItem('playCache', playCache); //save this url's stop time for future playback
 					this.fetch({
 						url:msg['stop']+"/"+btoa(currenttime.toString()),
 						abort: function() {
@@ -110,6 +135,18 @@ DocumentLoader.prototype.fetch = function(options) {
 			const responseDoc = xhr.response;
 			this.prepareDocument(responseDoc);
 			options.success(responseDoc, true);
+		} else if (xhr.status == 210) {
+			var msg = JSON.parse(xhr.responseText);
+			if (msg['type'] == 'saveSettings') {
+				saveSettings(msg['addon'], msg['settings']);
+			} else if(msg['type'] == 'loadSettings') {
+				var settings = loadSettings(msg['addon']);
+				notify('/response/'+msg['msgid']+"/"+btoa(JSON.stringify(settings)));
+				setTimeout(function() {
+					options.url = msg['url']
+					this.fetch(options);
+				}.bind(this), 1000)				
+			}
 	    } else {
         	const responseDoc = xhr.response;
         	if (typeof options.initial == "boolean" && options.initial) {
@@ -185,15 +222,10 @@ DocumentLoader.prototype.prepareDocument = function(document) {
 						console.log("updating progress dialog");
 						navigationDocument.replaceDocument(responseDoc, document);
 					} catch (err) {
-						this.fetch({
-						url: "/response/" + id,
-						abort: function() {
-							//do nothing
-						},
-						error: function(xhr) {
-							//do nothing
-						}
-					});
+						this.post({
+							url: "/response/" + id,
+							data: ""
+						});
 					}
 				}.bind(this),
 				abort: function() {
@@ -203,15 +235,10 @@ DocumentLoader.prototype.prepareDocument = function(document) {
 						navigationDocument.replaceDocument(loadingDocument, document);
 						new DocumentController(this, url, loadingDocument);
 					} catch (err) {
-						this.fetch({
-						url: "/response/" + id,
-						abort: function() {
-							//do nothing
-						},
-						error: function(xhr) {
-							//do nothing
-						}
-					});
+						this.post({
+							url: "/response/" + id,
+							data: ""
+						});
 					}
 				}.bind(this)
 			});
@@ -266,11 +293,10 @@ DocumentLoader.prototype.prepareDocument = function(document) {
 		   	});
 	   	}
 	   	if(elem.hasAttribute("abortfunction")) {
-		   	//var url = function() { return eval(elem.getAttribute("abortfunction"));}.call({document:document});
-		   	var url = eval(elem.getAttribute("abortfunction"));
+		   	//var url = function() { return eval(elem.getAttribute("abortfunction"));}.call({document:document});		   	
 		   	document.addEventListener("unload", function() {
-				notify(url);  	
-		   	});
+			   	eval(elem.getAttribute("abortfunction"));
+		   	}.bind(this));
 	   	}
     }.bind(this));
 };

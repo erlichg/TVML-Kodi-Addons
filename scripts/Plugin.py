@@ -28,16 +28,16 @@ class Plugin:
 		sys.path.append(os.path.join(os.getcwd(), self.dir))
 		self.module = importlib.import_module(self.script[:-3]) #remove the .py
 		self.menuurl = ''
-
-	"""Run the plugin on a url argument and expect a list of Item
-
-    :param url: a url if the last item that was selected. Initially it will be an empty string
-       
-    Example::
-
-        plugin.run('')
-    """
+		
+	
 	def run(self, bridge, url):
+		"""Run the plugin on a url argument and expect a list of Item
+
+		:param url: a url if the last item that was selected. Initially it will be an empty string
+       
+		Example::
+
+        plugin.run('')"""
 		return self.module.main(bridge, url)	
 		
 	def __repr__(self):

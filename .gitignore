@@ -1,2 +1,4 @@
 *.pyc
 *.log
+kodiplugins/*c
+!kodiplugins/*c/

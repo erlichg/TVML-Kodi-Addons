@@ -139,7 +139,34 @@ function notify(url) {
 }
 
 function load(url) {
-	new DocumentController(documentLoader, url, createLoadingDocument());
+	console.log("loading "+url);
+	var loadingDocument = createLoadingDocument();
+	navigationDocument.pushDocument(loadingDocument);
+	new DocumentController(documentLoader, url, loadingDocument);
+}
+
+function saveSettings(addon, settings) {
+	console.log("saving settings: "+JSON.stringify(settings));
+	var addonsSettings = null;
+    if (addonsSettings == null) {
+	    addonsSettings = {};
+    }
+    addonsSettings[addon] = settings;
+    localStorage.setItem('addonsSettings', JSON.stringify(addonsSettings));
+}
+
+function loadSettings(addon) {
+	var addonsSettings = null;
+    if (addonsSettings == null) {
+	    addonsSettings = "{}";
+    }
+    console.log('Loaded settings '+addonsSettings);
+    addonsSettings = JSON.parse(addonsSettings);
+    var addonSettings = addonsSettings[addon];
+    if(addonSettings == null) {
+	    addonSettings = {};
+    }
+    return addonSettings;
 }
 
 function showInputDialog(title, description, placeholder, button, secure, callback) {
@@ -175,6 +202,41 @@ function showInputDialog(title, description, placeholder, button, secure, callba
 	var sent_answer = false;
 	dialog.getElementById("button").addEventListener("select", function() {
 		var ans = dialog.getElementById("text").getFeature('Keyboard').text;
+		callback(ans);
+		sent_answer = true;
+		navigationDocument.dismissModal(dialog);
+	});
+	dialog.addEventListener("unload", function() {
+		if(!sent_answer) {
+			callback();
+		}
+	});
+	navigationDocument.presentModal(dialog);
+}
+
+function showSelectDialog(title, choices, index, callback) {
+	var template=`<?xml version="1.0" encoding="UTF-8" ?>
+  <document>
+	<head>
+	  <style>
+	  </style>
+	</head>
+	<listTemplate>
+	  <list>
+		  <section>`;
+	for (var item in choices) {
+		template = template + `<listItemLockup>										
+				 	<title>${choices[item]}</title>				 					 	
+				</listItemLockup>`;
+	}
+	template = template +`</section>
+	  </list>
+	</listTemplate>
+  </document>`;
+  	var dialog = new DOMParser().parseFromString(template, "application/xml");
+	var sent_answer = false;
+	dialog.addEventListener("select", function(event) {
+		var ans = event.target.childNodes.item(0).textContent;
 		callback(ans);
 		sent_answer = true;
 		navigationDocument.dismissModal(dialog);

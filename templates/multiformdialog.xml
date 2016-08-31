@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <document>
-	<listTemplate abortfunction='if (typeof url != "undefined") load("{{url}}");
-								var ans = {};
+	<listTemplate abortfunction='var ans = {};
 								var arr = document.documentElement.getElementsByTagName("placeholder");
 								var i=0;								
 								while(true) {
@@ -9,23 +8,34 @@
 									if (typeof place == "undefined") break;
 									var field = JSON.parse(place.getAttribute("field"));
 									var val = document.getElementById(field.label).textContent;
-									ans[field.label] = val;
+									ans[field.id] = val;
 									i = i+1;
 								};
-								"/response/{{msgid}}/"+btoa(JSON.stringify(ans));'>
+								this.post({
+									url: "/response/{{msgid}}",
+									data: btoa(JSON.stringify(ans)),
+									success: function() {
+										if ("{{url}}" != "") load("{{url}}");
+									}
+								});
+								'>
 		<banner>
 			<title>{{title}}</title>
 		</banner>
 		<list>
+			{% for section in sections %}
 			<section>
-				{% for field in fields %}				
+				<header>
+					<title>{{section}}</title>
+				</header>
+				{% for field in sections[section] %}
 					{% if field.type == "yesno" %}
 						<listItemLockup onselect="var field = JSON.parse(event.target.children.item(0).getAttribute('field')); event.target.children.item(2).textContent = (event.target.children.item(2).textContent == 'No' ? 'Yes' : 'No')">
 							<placeholder field='{{field | tojson}}'></placeholder>
-							<title>{{field.label}}</title><decorationLabel id="{{field.label}}">{{'Yes' if field.value == 'True' else 'No'}}</decorationLabel>
+							<title>{{field.label}}</title><decorationLabel id="{{field.label}}">{{'Yes' if field.value == 'True' or field.value == 'true' else 'No'}}</decorationLabel>
 						</listItemLockup>
 					{% elif field.type == "selection" %}
-						<listItemLockup onselect="var field = JSON.parse(event.target.children.item(0).getAttribute('field')); var s = event.target.children.item(2).textContent; var index=field.choices.indexOf(s); var s2 = field.choices[(index+1)%field.choices.length]; event.target.children.item(2).textContent=s2;">
+						<listItemLockup onselect="var field = JSON.parse(event.target.children.item(0).getAttribute('field')); var s = event.target.children.item(2).textContent; var index=field.choices.indexOf(s); showSelectDialog(field.label, field.choices, index, function(ans) { if (typeof ans != 'undefined') {event.target.children.item(2).textContent=ans;}});">
 							<placeholder field='{{field | tojson}}'></placeholder>							
 							<title>{{field.label}}</title><decorationLabel id="{{field.label}}">{{field.value}}</decorationLabel>
 						</listItemLockup>
@@ -34,9 +44,14 @@
 							<placeholder field='{{field | tojson}}'></placeholder>
 							<title>{{field.label}}</title><subtitle id="{{field.label}}">{{field.value}}</subtitle><decorationImage src="resource://list-chevron"/>
 						</listItemLockup>
+					{% elif field.type == "label" %}
+						<listItemLockup disabled="true">
+							<title>{{field.label}}</title><decorationLabel>{{field.value}}</decorationLabel>
+						</listItemLockup>
 					{% endif %}				
 				{% endfor %}				
 			</section>
+			{% endfor %}
 		</list>
 	</listTemplate>
 </document>

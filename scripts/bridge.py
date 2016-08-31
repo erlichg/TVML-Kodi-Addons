@@ -4,6 +4,18 @@ from base64 import b64encode, b64decode
 def _randomword():
 	"""Create a random string of 20 characters"""
 	return ''.join(random.choice(string.lowercase) for i in range(20))
+	
+def decode_base64(data):
+    """Decode base64, padding being optional.
+
+    :param data: Base64 data as an ASCII byte string
+    :returns: The decoded byte string.
+
+    """
+    missing_padding = len(data) % 4
+    if missing_padding != 0:
+        data += b'='* (4 - missing_padding)
+    return b64decode(data)
    
 class bridge:
 	"""Bridge class which is created on every client request.
@@ -36,6 +48,7 @@ class bridge:
 			return
 		start = time.time()
 		while not self.thread.stop and time.time() - start < 3600: #wait for response at most 1 hour. This is meant to limit amount of threads on web server
+			print 'waiting for message to {}'.format(id)
 			for r in self.thread.responses:
 				if r['id'] == id:
 					print 'received response while waiting: {}'.format(r['response'])
@@ -57,7 +70,7 @@ class bridge:
 	def inputdialog(self, title, description='', placeholder='', button='OK', secure=False):
 		"""Shows an input dialog to the user with text field. Returns the text the user typed or None if user aborted"""
 		s = self._message({'type':'inputdialog', 'title':title, 'description':description, 'placeholder':placeholder, 'button':button, 'secure':secure}, True)
-		return b64decode(s) if s else None
+		return decode_base64(s) if s else None
 		
 	def progressdialog(self, heading, text=''):
 		"""Shows a progress dialog to the user"""
@@ -94,9 +107,9 @@ class bridge:
 		self.play = url
 		def stop(res):
 			self.play = None
-			print 'detected player stop at time {}'.format(b64decode(res))
+			print 'detected player stop at time {}'.format(decode_base64(res))
 			if stop_completion:
-				stop_completion(b64decode(res))
+				stop_completion(decode_base64(res))
 			return 'OK', 206
 		id = _randomword()
 		self.app.add_route(id, stop)
@@ -106,7 +119,7 @@ class bridge:
 		"""Returns whether the player is still showing or has been cancelled"""
 		return self.play is not None
 		
-	def formdialog(self, title, fields=[]):
+	def formdialog(self, title, fields=[], sections={}, cont=False):
 		"""Show a custom form dialog with custom fields
 			A field is an object with a type, a label, a value (initial) and other attributes depending on its type.
 			Available types are: textfield, yesno and selection
@@ -117,7 +130,15 @@ class bridge:
 			selection:
 				displayed exactly like yesno, but clicking rotates the field on values from the list. possible values are passed via the 'choices' attribute. Initial value must be one of the choices.
 				
+			There are 2 ways you can call this function: With a list of fields passed with the fields parameter, or a dict of sections where key is the title, and value is a list of fields
+			
+			cont is a boolean whether to continue receiving messages after form has been dismissed
 			returns a dict with keys as field labels and values as their (modified) value
 			"""
-		s = self._message({'type':'formdialog', 'title':title, 'fields':fields}, True)
-		return json.loads(b64decode(s)) if s else None
+		if fields:
+			s = self._message({'type':'formdialog', 'title':title, 'sections':{'General':fields}, 'cont':cont}, True)
+		elif sections:
+			s = self._message({'type':'formdialog', 'title':title, 'sections':sections, 'cont':cont}, True)
+		else:
+			raise Exception('Must have either fields or sections')
+		return json.loads(decode_base64(s)) if s else None

@@ -10,9 +10,11 @@ from gevent.pywsgi import WSGIServer
 reload(sys)
 sys.setdefaultencoding('utf8')
 sys.path.append('scripts')
+sys.path.append(os.path.join('scripts', 'kodi'))
 sys.path.append('plugins')
 sys.path.append('kodiplugins')
 from Plugin import *
+from KodiPlugin import *
 from bridge import bridge
 
 import messages
@@ -31,10 +33,13 @@ class Thread(threading.Thread):
 	def run(self):
 		ans = self._target(*self._args)
 		self.message({'type':'end', 'ans':ans})
+		self.onStop()
 	def response(self, id, response):
 		self.responses.append({'id':id, 'response':response})
 	def message(self, msg):
 		self.messages.append(msg)
+	def onStop(self):
+		pass
 
 
 
@@ -50,6 +55,17 @@ for plugin in os.listdir('plugins'):
 		print 'Successfully loaded plugin: {}'.format(p)
 	except Exception as e:
 		print 'Failed to load plugin {}. Error: {}'.format(plugin, e)
+for plugin in os.listdir('kodiplugins'):
+	try:
+		dir = os.path.join('kodiplugins', plugin)
+		if not os.path.isdir(dir):
+			continue
+		print 'Loading kodi plugin {}'.format(plugin)
+		p = KodiPlugin(dir)
+		PLUGINS.append(p)
+		print 'Successfully loaded plugin: {}'.format(p)
+	except Exception as e:
+		print 'Failed to load kodi plugin {}. Error: {}'.format(plugin, e)
 		
 
 
@@ -60,9 +76,11 @@ app.jinja_env.filters['base64encode'] = b64encode
 
 _routes = {}
 
-@app.route('/response/<id>')
+@app.route('/response/<id>', methods=['POST', 'GET'])
 @app.route('/response/<id>/<res>')
 def route(id, res=None):
+	if request.method == 'POST':
+		res = request.form.keys()[0]
 	handler = _routes.get(id, None)
 	if handler is not None:
 		return handler(res)
@@ -115,6 +133,12 @@ def catalog(name, url=None, response=None):
 		print 'saving bridge id {}'.format(id(b))
 		bridges[str(id(b))] = b
 		b.thread = Thread(get_items, b, plugin, decoded_url)
+		def stop():
+			global bridges
+			print 'brfore stop {}'.format(bridges)
+			del bridges[str(id(b))]
+			print 'after stop {}'.format(bridges)
+		b.thread.onStop = stop
 		b.thread.start()
 	while b.thread.is_alive():
 		if len(b.thread.messages)>0:
@@ -144,6 +168,12 @@ def menu(name, response=None):
 		print 'saving bridge id {}'.format(id(b))
 		bridges[str(id(b))] = b
 		b.thread = Thread(get_menu, b, plugin, '')
+		def stop():
+			global bridges
+			print 'brfore stop {}'.format(bridges)
+			del bridges[str(id(b))]
+			print 'after stop {}'.format(bridges)
+		b.thread.onStop = stop
 		b.thread.start()
 		
 	while b.thread.is_alive():
@@ -164,7 +194,7 @@ def helloworld():
 	return render_template('helloworld.xml')
 
 @app.route('/main')
-def main():	
+def main():
 	return render_template('main.xml', menu=PLUGINS)
 	
 
@@ -183,7 +213,7 @@ def get_menu(bridge, plugin, url):
 	print('Getting menu for: {}'.format(url))
 	url = url.split('?')[1] if '?' in url else url
 	try:
-		items = plugin.menu(bridge, url)
+		items = plugin.settings(bridge, url)
 	except:
 		print 'Encountered error in plugin: {}'.format(plugin.name)
 		traceback.print_exc(file=sys.stdout)
