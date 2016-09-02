@@ -120,12 +120,12 @@ App.onMemoryWarning = function(options) {
 function createLoadingDocument(title) {
     // If no title has been specified, fall back to "Loading...".
     title = title || "Loading...";
-
+	console.log("Creating loading document");
     const template = `<?xml version="1.0" encoding="UTF-8" ?>
         <document>
             <loadingTemplate>
-                <activityIndicator>
-                    <title>${title}</title>
+            	<activityIndicator>
+                    <title style="color:rgb(241,241,241)">${title}</title>
                 </activityIndicator>
             </loadingTemplate>
         </document>
@@ -143,6 +143,9 @@ function createAlertDocument(title, description, isModal) {
     const template = `<?xml version="1.0" encoding="UTF-8" ?>
         <document>
             <alertTemplate>
+            	<background>
+					<img src="/templates/background.png"/>
+				</background>
                 <title style="${textStyle}">${title}</title>
                 <description style="${textStyle}">${description}</description>
             </alertTemplate>

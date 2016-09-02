@@ -9,6 +9,9 @@ See LICENSE.txt for this sample’s licensing information
 	  </style>
 	</head>
 	<stackTemplate>
+		<background>
+			<img src="/templates/background.png"/>
+		</background>
 	  <collectionList>
 		  <grid>
 		  <section>
@@ -19,7 +22,7 @@ See LICENSE.txt for this sample’s licensing information
 				<lockup menuURL="{{item.menuurl}}" onselect="load('/catalog/{{plugin.id | base64encode}}/{{item.url | base64encode}}')">								
 				{% endif %}							
 					<img src="{{item.icon}}" width="650" height="360"/>
-				 	<title>{{item.title}}</title>				 					 	
+				 	<title style="color:rgb(241,241,241); tv-highlight-color:rgb(0,0,0);">{{item.title}}</title>				 					 	
 				</lockup>
 				{% endfor %}
 			</section>

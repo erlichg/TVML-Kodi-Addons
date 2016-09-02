@@ -33,8 +33,7 @@ class Thread(threading.Thread):
 		self.stop = False #can be used to indicate stop
 		threading.Thread.__init__(self)
 	def run(self):
-		ans = self._target(*self._args)
-		time.sleep(5)
+		ans = self._target(*self._args)		
 		print 'Thread adding end message'
 		self.message({'type':'end', 'ans':ans})		
 		self.onStop()
@@ -139,7 +138,7 @@ def catalog(pluginid, url=None, response=None):
 		bridges[str(id(b))] = b
 		b.thread = Thread(get_items, b, plugin, decoded_url)
 		def stop():
-			#time.sleep(10) #close bridge after 10s
+			time.sleep(5) #close bridge after 10s
 			global bridges
 			print 'brfore stop {}'.format(bridges)
 			del bridges[str(id(b))]
@@ -153,7 +152,7 @@ def catalog(pluginid, url=None, response=None):
 			return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, id(b)))
 		time.sleep(0.1)
 	#Check for possible last message which could have appeared after the thread has died. This could happen if message was sent during time.sleep in while and loop exited immediately afterwards
-	if len(b.thread.messages)>0:
+	while len(b.thread.messages)>0:
 		msg = b.thread.messages.pop(0)
 		method = getattr(messages, msg['type'])
 		return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, id(b)))	
@@ -175,7 +174,7 @@ def menu(pluginid, response=None):
 		bridges[str(id(b))] = b
 		b.thread = Thread(get_menu, b, plugin, '')
 		def stop():
-			#time.sleep(10)
+			time.sleep(5)
 			global bridges
 			print 'brfore stop {}'.format(bridges)
 			del bridges[str(id(b))]
@@ -190,11 +189,11 @@ def menu(pluginid, response=None):
 			return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, id(b)))
 		time.sleep(0.1)
 	#Check for possible last message which could have appeared after the thread has died. This could happen if message was sent during time.sleep in while and loop exited immediately afterwards
-	if len(b.thread.messages)>0:
+	while len(b.thread.messages)>0:
 		msg = b.thread.messages.pop(0)
 		method = getattr(messages, msg['type'])
 		return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, id(b)))
-
+	raise Exception('Should not get here')
 
 @app.route('/helloworld')
 def helloworld():

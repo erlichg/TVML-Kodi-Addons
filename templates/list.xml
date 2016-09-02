@@ -9,7 +9,10 @@ See LICENSE.txt for this sample’s licensing information
 	  </style>
 	</head>
 	<listTemplate>
-	  <list>
+		<background>
+			<img src="/templates/background.png"/>
+		</background>
+	  <list style="width: 1000">
 		  <section>
 				{% for item in menu %}
 				{% if msgid is defined %}
@@ -17,12 +20,12 @@ See LICENSE.txt for this sample’s licensing information
 				{% else %}
 				<listItemLockup menuURL="{{item.menuurl}}" onselect="load('/catalog/{{plugin.id | base64encode}}/{{item.url | base64encode}}')">								
 				{% endif %}
-				 	<title>{{item.title}}</title>
+				 	<title style="color:rgb(241,241,241); tv-highlight-color:rgb(0,0,0);">{{item.title}}</title>
 				 	<relatedContent>
 					 	<lockup>
 						 	<img src="{{item.icon}}" width="857" height="842"/>
-						 	<title>{{item.subtitle}}</title>
-						 	<description>{{item.details}}</description>
+						 	<title style="color:rgb(241,241,241)">{{item.subtitle}}</title>
+						 	<description style="color:rgb(241,241,241)">{{item.details}}</description>
 					 	</lockup>
 				 	</relatedContent>			 					 	
 				</listItemLockup>
