@@ -1,21 +1,7 @@
-import importlib, time, random, string, sys, json
-from base64 import b64encode, b64decode
+import importlib, time, sys, json, utils
 
-def _randomword():
-	"""Create a random string of 20 characters"""
-	return ''.join(random.choice(string.lowercase) for i in range(20))
+
 	
-def decode_base64(data):
-    """Decode base64, padding being optional.
-
-    :param data: Base64 data as an ASCII byte string
-    :returns: The decoded byte string.
-
-    """
-    missing_padding = len(data) % 4
-    if missing_padding != 0:
-        data += b'='* (4 - missing_padding)
-    return b64decode(data)
    
 class bridge:
 	"""Bridge class which is created on every client request.
@@ -31,7 +17,7 @@ class bridge:
 		if not self.thread:
 			return None
 		if not id:
-			id = _randomword()
+			id = utils.randomword()
 			msg['id'] = id						
 		
 		if wait:
@@ -56,7 +42,10 @@ class bridge:
 					self.app.remove_route(id)
 					return r['response']
 			time.sleep(0.1)
-		print 'Aborting response wait due to time out'
+		if self.thread.stop:
+			print 'finished waiting for response due to thread stop'
+		else:
+			print 'Aborting response wait due to time out'
 		try:
 			self.app.remove_route(id)
 		except:
@@ -70,11 +59,11 @@ class bridge:
 	def inputdialog(self, title, description='', placeholder='', button='OK', secure=False):
 		"""Shows an input dialog to the user with text field. Returns the text the user typed or None if user aborted"""
 		s = self._message({'type':'inputdialog', 'title':title, 'description':description, 'placeholder':placeholder, 'button':button, 'secure':secure}, True)
-		return decode_base64(s) if s else None
+		return utils.b64decode(s) if s else None
 		
 	def progressdialog(self, heading, text=''):
 		"""Shows a progress dialog to the user"""
-		id = _randomword()
+		id = utils.randomword()
 		self.progress={'title': heading, 'id': id}
 		def f():
 			self._message({'type':'progressdialog', 'title':heading, 'text':text, 'value':'0', 'id':id}, True, id)
@@ -107,11 +96,11 @@ class bridge:
 		self.play = url
 		def stop(res):
 			self.play = None
-			print 'detected player stop at time {}'.format(decode_base64(res))
+			print 'detected player stop at time {}'.format(utils.b64decode(res))
 			if stop_completion:
-				stop_completion(decode_base64(res))
+				stop_completion(utils.b64decode(res))
 			return 'OK', 206
-		id = _randomword()
+		id = utils.randomword()
 		self.app.add_route(id, stop)
 		return self._message({'type':'play', 'url':url, 'stop':'/response/{}'.format(id), 'playtype': type_, 'subtitle':subtitle_url, 'title':title, 'description':description, 'image':image})
 	
@@ -141,4 +130,4 @@ class bridge:
 			s = self._message({'type':'formdialog', 'title':title, 'sections':sections, 'cont':cont}, True)
 		else:
 			raise Exception('Must have either fields or sections')
-		return json.loads(decode_base64(s)) if s else None
+		return json.loads(utils.b64decode(s)) if s else None

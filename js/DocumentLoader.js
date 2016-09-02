@@ -63,8 +63,9 @@ DocumentLoader.prototype.fetch = function(options) {
 		    var time;
 		    var playCache = localStorage.getItem('playCache');
 		    if (playCache == null) {
-			    playCache = {};
+			    playCache = '{}';
 		    }
+		    playCache = JSON.parse(playCache);
 		    if (playCache[msg['url']] != null) { //if we've played this url before, retrieve it's stop time
 			    time = playCache[msg['url']];
 		    } else {
@@ -116,7 +117,7 @@ DocumentLoader.prototype.fetch = function(options) {
 						currenttime = 0;
 					}
 					playCache[msg['url']] = currenttime;
-					localStorage.setItem('playCache', playCache); //save this url's stop time for future playback
+					localStorage.setItem('playCache', JSON.stringify(playCache)); //save this url's stop time for future playback
 					this.fetch({
 						url:msg['stop']+"/"+btoa(currenttime.toString()),
 						abort: function() {
@@ -139,9 +140,13 @@ DocumentLoader.prototype.fetch = function(options) {
 			var msg = JSON.parse(xhr.responseText);
 			if (msg['type'] == 'saveSettings') {
 				saveSettings(msg['addon'], msg['settings']);
+				options.abort();
 			} else if(msg['type'] == 'loadSettings') {
 				var settings = loadSettings(msg['addon']);
-				notify('/response/'+msg['msgid']+"/"+btoa(JSON.stringify(settings)));
+				this.post({
+					url:'/response/'+msg['msgid'],
+					data:btoa(JSON.stringify(settings))
+				});
 				setTimeout(function() {
 					options.url = msg['url']
 					this.fetch(options);

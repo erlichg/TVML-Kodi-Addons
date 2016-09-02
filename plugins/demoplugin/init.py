@@ -47,7 +47,7 @@ def main(bridge, url):
 		bridge.alertdialog('select ended', 'user selected item {}'.format(ans))
 		return
 	if url == '34':
-		ans = bridge.formdialog('hello', fields=[{'type':'textfield', 'label':'label1', 'value':'hello world', 'description':'desc', 'placeholder':'place holder'}, {'type':'yesno', 'label':'label2', 'value':False}, {'type':'selection', 'label':'label3', 'value':'choice1', 'choices':['choice1', 'choice2', 'choice3']}])
+		ans = bridge.formdialog('hello', sections={'section 1':[{'type':'textfield', 'label':'label1', 'value':'hello world', 'description':'desc', 'placeholder':'place holder'}, {'type':'yesno', 'label':'label2', 'value':False}, {'type':'selection', 'label':'label3', 'value':'choice1', 'choices':['choice1', 'choice2', 'choice3']}], 'section 2':[{'type':'textfield', 'label':'label4', 'value':''}]}, cont=True)
 		bridge.alertdialog('form ended', 'form selections are: {}'.format(ans))
 		return
 	

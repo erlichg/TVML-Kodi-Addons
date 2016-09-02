@@ -13,7 +13,7 @@ import codecs
 import xml.etree.ElementTree as ET
 import xbmc
 from collections import OrderedDict
-from base64 import b64encode, b64decode
+import utils
 
 ADDON_CACHE = {}
 
@@ -69,28 +69,7 @@ class Addon(object):
 			while ADDON_CACHE[self.id] == 'lock':
 				time.sleep(0.1)
 			self.settings = ADDON_CACHE[self.id]
-		else:
-			def isvisible(setting):
-				visible = setting['visible']
-				if visible == 'false':
-					return False
-				m = re.search('(!*)eq\(([^,]*),([^,]*)\)', visible)
-				if m:
-					x=m.group(2)
-					y=m.group(3)
-					neg=m.group(1) == '!'
-					if neg:
-						return x != y
-					else:
-						return x == y
-				m = re.search('(!*)System.HasAddon\((.*)\)', visible)
-				if m:
-					neg = m.group(1) == '!'
-					if neg:
-						return not os.path.isdir(os.path.join('kodiplugins', m.group(2)))
-					else:
-						return os.path.isdir(os.path.join('kodiplugins', m.group(2)))
-			
+		else:						
 			self.settings = OrderedDict()
 			settings_xml = os.path.join('kodiplugins', self.id, 'resources', 'settings.xml')
 			if os.path.isfile(settings_xml):
@@ -99,11 +78,10 @@ class Addon(object):
 				if sum(1 for _ in iter) == 0:
 					self.settings['General'] = []
 					for e in tree.iter('setting'):
-						#dismiss invisible settings
-						if 'visible' in e.attrib and not isvisible(e.attrib):
-							continue
 						if 'default' in e.attrib:
 							e.attrib['value'] = e.attrib['default']
+						if not 'value' in e.attrib:
+							e.attrib['value'] = ''
 						self.settings['General'].append(e.attrib)
 				else:
 					iter = tree.iter('category')
@@ -111,15 +89,16 @@ class Addon(object):
 						label = cat.attrib['label']
 						self.settings[label] = []
 						for e in cat.iter('setting'):
-							#dismiss invisible settings
-							if 'visible' in e.attrib and not isvisible(e.attrib):
-								continue
 							if 'default' in e.attrib:
 								e.attrib['value'] = e.attrib['default']
+							if not 'value' in e.attrib:
+								e.attrib['value'] = ''
 							self.settings[label].append(e.attrib)
 				ADDON_CACHE[self.id] = 'lock'
-				loaded_settings = json.loads(b64decode(xbmc.bridge._message({'type':'loadSettings'}, True)))
+				print 'trakt.user before settings load is {}'.format(self.getSetting('trakt.user'))
+				loaded_settings = json.loads(utils.b64decode(xbmc.bridge._message({'type':'loadSettings'}, True)))
 				self.settings.update(loaded_settings)
+				print 'trakt.user after settings load is {}'.format(self.getSetting('trakt.user'))
 				ADDON_CACHE[self.id] = self.settings
 						
 
@@ -170,13 +149,35 @@ class Addon(object):
 	def openSettings(self):
 		"""Opens this scripts settings dialog."""
 		sections = OrderedDict()
+		def isvisible(setting):
+			visible = setting['visible']
+			if visible == 'false':
+				return False
+			m = re.search('(!*)eq\(([^,]*),([^,]*)\)', visible)
+			if m:
+				x=m.group(2)
+				y=m.group(3)
+				neg=m.group(1) == '!'
+				if neg:
+					return x != y
+				else:
+					return x == y
+			m = re.search('(!*)System.HasAddon\((.*)\)', visible)
+			if m:
+				neg = m.group(1) == '!'
+				if neg:
+					return not os.path.isdir(os.path.join('kodiplugins', m.group(2)))
+				else:
+					return os.path.isdir(os.path.join('kodiplugins', m.group(2)))
 		for cat in self.settings:
 			fields = []
 			for attrib in self.settings[cat]:
+				if 'visible' in attrib and not isvisible(attrib):
+					continue
 				if 'type' in attrib and attrib['type'] == 'lsep':
 					fields.append({'type':'label', 'label':self.getLocalizedString(attrib['label']), 'value':''})
 					continue
-				if 'value' not in attrib or 'label' not in attrib:
+				if 'label' not in attrib:
 					continue				
 				_type = attrib['type']
 				if _type == 'select':
@@ -189,13 +190,14 @@ class Addon(object):
 					fields.append({'id':attrib['id'], 'type':'selection', 'label':self.getLocalizedString(attrib['label']), 'value':values[int(attrib['value'])], 'choices':values})
 				elif _type == 'text':
 					fields.append({'id':attrib['id'], 'type':'textfield', 'label':self.getLocalizedString(attrib['label']), 'value':attrib['value'], 'secure':'option' in attrib and 'hidden' in attrib['option']})
+				elif _type == 'action':
+					fields.append({'id':attrib['id'], 'type':'action', 'label':self.getLocalizedString(attrib['label']), 'action':attrib['action'], 'value':attrib['value'] if 'value' in attrib else ''})
 				else:
 					fields.append({'type':'label', 'label':self.getLocalizedString(attrib['label']), 'value':'Not supported'})
 			if not fields:
 				continue
 			sections[self.getLocalizedString(cat)] = fields
-		ans = xbmc.bridge.formdialog('Addon settings', sections=sections)
-		xbmc.bridge._message({'type':'saveSettings','addon':self.id, 'settings':ans})
+		ans = xbmc.bridge.formdialog('Addon settings', sections=sections, cont=True)		
 		def getSet(id):
 			for cat in self.settings:
 				for s in self.settings[cat]:
@@ -208,15 +210,14 @@ class Addon(object):
 			if field['type'] == 'select':
 				val = ans[id]
 			elif field['type'] == 'bool':
-				val = ans[id] is 'Yes'
+				val = 'true' if ans[id] == 'Yes' else 'false'
 			elif field['type'] == 'enum':
 				values = field['values'].split("|") if 'values' in field else [self.getLocalizedString(s) for s in field['lvalues'].split("|")]
-				print 'geting index of {} from {}'.format(ans[id], values)
 				val = values.index(ans[id])
 			elif field['type'] == 'text':
-				val = ans[id]
-			print 'setting {}={}'.format(id, val)
+				val = ans[id]						
 			self.setSetting(id, val)
+		xbmc.bridge._message({'type':'saveSettings','addon':self.id, 'settings':self.settings})
 
 	def getAddonInfo(self, id):
 		"""Returns the value of an addon property as a string.

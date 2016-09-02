@@ -2800,7 +2800,7 @@ class DialogProgress(object):
 
 			pDialog.update(25, 'Importing modules...')
 		"""
-		return _xbmc.bridge.updateprogressdialog(percent/100, '{}\n{}\n{}'.format(line1, line2, line3))
+		return _xbmc.bridge.updateprogressdialog(float(percent)/100, '{}\n{}\n{}'.format(line1, line2, line3))
 
 	def iscanceled(self):
 		"""Returns ``True`` if the user pressed cancel."""

@@ -7,7 +7,7 @@ import bridge
 class Item:
 	def __init__(self, url, title, subtitle=None, icon=None, details=None, menuurl='', info={}):
 		self.url = url
-		self.title = escape(title) #'[COLOR green] >>  Move to next page[/COLOR]'
+		self.title = title #'[COLOR green] >>  Move to next page[/COLOR]'
 		self.subtitle = escape(subtitle) if subtitle else None
 		self.icon = icon
 		self.details = escape(details) if details else None
@@ -19,6 +19,7 @@ class Item:
 
 class Plugin:
 	def __init__(self, dir):
+		self.id = dir		
 		self.dir = dir
 		tree = ET.parse(os.path.join(dir, 'addon.xml'))
 		for e in tree.iter('addon'):

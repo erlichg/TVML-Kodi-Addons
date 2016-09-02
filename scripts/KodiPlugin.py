@@ -2,10 +2,18 @@ import xml.etree.ElementTree as ET
 import os, sys
 import importlib
 import bridge
-from base64 import b64encode
+import utils
 import Plugin
 
 sys.path.append(os.path.join('scripts', 'kodi'))
+
+def convert_kodi_tags_to_html_tags(s):
+	s = s.replace('[B]', '<b>')
+	s = s.replace('[/B]', '</b>')
+	s = s.replace('[I]', '<i>')
+	s = s.replace('[/I]', '</i>')
+	return s
+
 
 class KodiPlugin:
 	def __init__(self, dir):
@@ -19,7 +27,7 @@ class KodiPlugin:
 				self.script = e2.attrib['library']
 		self.icon = os.path.join(self.dir, 'icon.png')
 		self.module = self.script[:-3]
-		self.menuurl = '/menu/{}'.format(b64encode(self.name))
+		self.menuurl = '/menu/{}'.format(utils.b64encode(self.id))
 		
 	def settings(self, bridge, url):
 		import xbmc
@@ -58,7 +66,7 @@ class KodiPlugin:
 			return items
 		for item in items:
 			#url, title, subtitle=None, icon=None, details=None, menuurl='', info={})
-			i = Item(url=item['url'], title=item['listitem'].label, subtitle=item['listitem'].getProperty('subtitle'), icon=item['listitem'].thumbnailImage if item['listitem'].thumbnailImage != 'DefaultFolder.png' else '', details=item['listitem'].getProperty('details'),info=item['listitem'].infos)
+			i = Item(url=item['url'], title=convert_kodi_tags_to_html_tags(item['listitem'].label), subtitle=item['listitem'].getProperty('subtitle'), icon=item['listitem'].thumbnailImage if item['listitem'].thumbnailImage != 'DefaultFolder.png' else '', details=item['listitem'].getProperty('details'),info=item['listitem'].infos)
 			infos = item['listitem'].infos
 			if 'poster' in infos:
 				i.icon = infos['poster']

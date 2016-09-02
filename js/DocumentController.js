@@ -147,25 +147,37 @@ function load(url) {
 
 function saveSettings(addon, settings) {
 	console.log("saving settings: "+JSON.stringify(settings));
-	var addonsSettings = null;
-    if (addonsSettings == null) {
-	    addonsSettings = {};
+	var addonsSettings = localStorage.getItem("addonsSettings");
+	if (addonsSettings == null) {
+	    addonsSettings = "{}";
     }
+	try {
+		addonsSettings = JSON.parse(addonsSettings);
+	} catch (e) {
+		console.log("Error getting addonsSettings from local storage");
+		addonsSettings = {};
+	}    
     addonsSettings[addon] = settings;
     localStorage.setItem('addonsSettings', JSON.stringify(addonsSettings));
 }
 
 function loadSettings(addon) {
-	var addonsSettings = null;
-    if (addonsSettings == null) {
+	var addonsSettings = localStorage.getItem("addonsSettings");
+	if (addonsSettings == null) {
 	    addonsSettings = "{}";
     }
-    console.log('Loaded settings '+addonsSettings);
-    addonsSettings = JSON.parse(addonsSettings);
+	try {
+		addonsSettings = JSON.parse(addonsSettings);
+	} catch (e) {
+		console.log("Error getting addonsSettings from local storage");
+		addonsSettings = {};
+	} 
+    
     var addonSettings = addonsSettings[addon];
     if(addonSettings == null) {
 	    addonSettings = {};
     }
+    console.log('Loaded addon settings '+JSON.stringify(addonSettings));
     return addonSettings;
 }
 
@@ -247,4 +259,14 @@ function showSelectDialog(title, choices, index, callback) {
 		}
 	});
 	navigationDocument.presentModal(dialog);
+}
+
+function performAction(action) {
+	var re = /RunPlugin\(plugin:\/\/(.*)\/\?(.*)\)/;
+	var result = re.exec(action);
+	if (result != null) {
+		var plugin = result[1];
+		var query = result[2];
+		load("/catalog/"+btoa(plugin)+"/"+btoa(query));	
+	}
 }

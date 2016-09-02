@@ -6,7 +6,7 @@ Various classes and functions to interact with Kodi.
 """
 
 import xbmcgui as _xbmcgui
-import time
+import time, re, os
 
 CAPTURE_FLAG_CONTINUOUS = 1
 CAPTURE_FLAG_IMMEDIATELY = 2
@@ -1058,6 +1058,14 @@ def getCondVisibility(condition):
 		return False
 	if condition == 'Window.IsActive(yesnoDialog)':
 		return False
+	m = re.search('(!*)System.HasAddon\((.*)\)', condition)
+	if m:
+		neg = m.group(1) == '!'
+		if neg:
+			return not os.path.isdir(os.path.join('kodiplugins', m.group(2)))
+		else:
+			return os.path.isdir(os.path.join('kodiplugins', m.group(2)))
+		
 		
 	return bool(1)
 

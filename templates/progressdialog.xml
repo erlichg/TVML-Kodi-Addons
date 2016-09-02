@@ -8,11 +8,13 @@
     <shelf centered="true">
       <section>
         <lockup disabled="true">
-          <img src="" width="1200" height="768" />
+          <img src="" width="1200" height="600" />
           <overlay>
-	        <text style="tv-position: top; margin: 10; text-align: center; font-size: 50; color: rgb(0,0,0);">{{title}}</text>text>            
+	        <text style="tv-position: top; margin: 10; text-align: center; font-size: 50; color: rgb(0,0,0);">{{title}}</text>           
             <progressBar style="tv-position: center;" id="progress" msgid="{{msgid}}" documentURL="{{url}}" value="{{value}}" />
+            {% for text in lines %}
             <text style="margin: 10; text-align: center; font-size: 30; color: rgb(0,0,0);">{{text}}</text>
+            {% endfor %}
           </overlay>
         </lockup>
       </section>

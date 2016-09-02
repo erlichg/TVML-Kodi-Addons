@@ -37,7 +37,7 @@ def alertdialog(plugin, msg, url=None):
 		
 def progressdialog(plugin, msg, url=None):
 	"""Shows a progress dialog. Initially with progress 0"""
-	return render_template('progressdialog.xml', title=msg['title'], text=msg['text'], value=msg['value'], url=url, msgid=msg['id'])
+	return render_template('progressdialog.xml', title=msg['title'], lines=msg['text'].split('\n'), value=msg['value'], url=url, msgid=msg['id'])
 	
 def selectdialog(plugin, msg, url=None):
 	items = msg['list']
@@ -57,7 +57,7 @@ def closeprogress(plugin, msg, url=None):
 	
 def formdialog(plugin, msg, url=None):
 	#{'type':'formdialog', 'title':title, 'texts':texts, 'buttons':buttons}
-	return render_template('multiformdialog.xml', title=msg['title'], sections=msg['sections'], msgid=msg['id'], url=url if msg['cont'] else '')
+	return render_template('multiformdialog2.xml', title=msg['title'], sections=msg['sections'], msgid=msg['id'], url=url if msg['cont'] else '')
 
 def saveSettings(plugin, msg, url=None):
 	print 'SaveSettings in messages'	

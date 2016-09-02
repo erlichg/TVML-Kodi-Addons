@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<document>
+	<catalogTemplate abortfunction='var ans = {};
+								var arr = document.documentElement.getElementsByTagName("placeholder");
+								var i=0;								
+								while(true) {
+									var place = arr.item(i);
+									if (typeof place == "undefined") break;
+									var field = JSON.parse(place.getAttribute("field"));
+									try {
+										var val = document.getElementById(field.label).textContent;
+										ans[field.id] = val;
+									} catch (e) {}
+									i = i+1;
+								};
+								this.post({
+									url: "/response/{{msgid}}",
+									data: btoa(JSON.stringify(ans)),
+									success: function() {
+										if ("{{url}}" != "") load("{{url}}");
+									}
+								});
+								'>
+		<banner>
+			<title>{{title}}</title>
+		</banner>
+		<list>
+			{% for section in sections %}
+			<section>
+				<listItemLockup>
+					<title>{{section}}</title>
+					<relatedContent>
+						<list style="width: 1000">
+							<section>
+							{% for field in sections[section] %}
+								{% if field.type == "yesno" %}
+								<listItemLockup onselect="var field = JSON.parse(event.target.children.item(0).getAttribute('field')); event.target.children.item(2).textContent = (event.target.children.item(2).textContent == 'No' ? 'Yes' : 'No')">
+									<placeholder field='{{field | tojson}}'></placeholder>
+									<title>{{field.label}}</title><decorationLabel id="{{field.label}}">{{'Yes' if field.value == 'True' or field.value == 'true' else 'No'}}</decorationLabel>
+								</listItemLockup>
+								{% elif field.type == "selection" %}
+								<listItemLockup onselect="var field = JSON.parse(event.target.children.item(0).getAttribute('field')); var s = event.target.children.item(2).textContent; var index=field.choices.indexOf(s); showSelectDialog(field.label, field.choices, index, function(ans) { if (typeof ans != 'undefined') {event.target.children.item(2).textContent=ans;}});">
+									<placeholder field='{{field | tojson}}'></placeholder>							
+									<title>{{field.label}}</title><decorationLabel id="{{field.label}}">{{field.value}}</decorationLabel>
+								</listItemLockup>
+								{% elif field.type == "textfield" %}
+								<listItemLockup onselect="var field = JSON.parse(event.target.children.item(0).getAttribute('field')); showInputDialog(field.label, field.description, field.placeholder, field.button, field.secure, function(ans) {if (typeof ans != 'undefined') {event.target.children.item(2).textContent = ans;}});">
+									<placeholder field='{{field | tojson}}'></placeholder>
+									<title>{{field.label}}</title><subtitle id="{{field.label}}">{{field.value}}</subtitle><decorationImage src="resource://list-chevron"/>
+								</listItemLockup>
+								{% elif field.type == "action" %}
+								<listItemLockup onselect="var field = JSON.parse(event.target.children.item(0).getAttribute('field')); performAction(field.action);">
+									<placeholder field='{{field | tojson}}'></placeholder>
+									<title>{{field.label}}</title><decorationLabel>{{field.value}}</decorationLabel>
+								</listItemLockup>
+								{% elif field.type == "label" %}
+								<listItemLockup disabled="true">
+									<title>{{field.label}}</title><decorationLabel>{{field.value}}</decorationLabel>
+								</listItemLockup>
+								{% endif %}	
+							{% endfor %}
+							</section>
+						</list>
+					</relatedContent>
+				</listItemLockup>			
+			</section>
+			{% endfor %}
+		</list>
+	</catalogTemplate>
+</document>

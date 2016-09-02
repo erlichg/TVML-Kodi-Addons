@@ -1,6 +1,6 @@
 from __future__ import division
 from flask import Flask, render_template, send_from_directory, request
-from base64 import b64encode, b64decode
+
 import sys, os, imp, urllib, json, time, traceback
 import urlparse
 import gevent.monkey
@@ -13,13 +13,15 @@ sys.path.append('scripts')
 sys.path.append(os.path.join('scripts', 'kodi'))
 sys.path.append('plugins')
 sys.path.append('kodiplugins')
-from Plugin import *
+import utils
+from Plugin import Plugin, Item
 from KodiPlugin import *
 from bridge import bridge
 
 import messages
 
 import threading
+
 
 
 class Thread(threading.Thread):
@@ -32,8 +34,11 @@ class Thread(threading.Thread):
 		threading.Thread.__init__(self)
 	def run(self):
 		ans = self._target(*self._args)
-		self.message({'type':'end', 'ans':ans})
+		time.sleep(5)
+		print 'Thread adding end message'
+		self.message({'type':'end', 'ans':ans})		
 		self.onStop()
+		self.stop = True
 	def response(self, id, response):
 		self.responses.append({'id':id, 'response':response})
 	def message(self, msg):
@@ -50,7 +55,7 @@ for plugin in os.listdir('plugins'):
 		if not os.path.isdir(dir):
 			continue
 		print 'Loading plugin {}'.format(plugin)
-		p = Plugin(dir)
+		p = Plugin.Plugin(dir)
 		PLUGINS.append(p)
 		print 'Successfully loaded plugin: {}'.format(p)
 	except Exception as e:
@@ -71,7 +76,7 @@ for plugin in os.listdir('kodiplugins'):
 
 
 app = Flask(__name__)
-app.jinja_env.filters['base64encode'] = b64encode
+app.jinja_env.filters['base64encode'] = utils.b64encode
 #app.jinja_env.add_extension('jinja2.ext.do')
 
 _routes = {}
@@ -117,14 +122,14 @@ def template(filename):
 
 
 bridges = {}
-@app.route('/catalog/<name>')
-@app.route('/catalog/<name>/<url>')
-@app.route('/catalog/<name>/<url>/<response>')
-def catalog(name, url=None, response=None):	
-	decoded_url = b64decode(url) if url else ''
-	decoded_name = b64decode(name)
+@app.route('/catalog/<pluginid>')
+@app.route('/catalog/<pluginid>/<url>')
+@app.route('/catalog/<pluginid>/<url>/<response>')
+def catalog(pluginid, url=None, response=None):	
+	decoded_url = utils.b64decode(url) if url else ''
+	decoded_id = utils.b64decode(pluginid)
 	#current_item = get_items('')[int(id)]
-	plugin = [p for p in PLUGINS if p.name == decoded_name][0]	
+	plugin = [p for p in PLUGINS if p.id == decoded_id][0]	
 	global bridges
 	if response:
 		b = bridges[response]
@@ -134,6 +139,7 @@ def catalog(name, url=None, response=None):
 		bridges[str(id(b))] = b
 		b.thread = Thread(get_items, b, plugin, decoded_url)
 		def stop():
+			#time.sleep(10) #close bridge after 10s
 			global bridges
 			print 'brfore stop {}'.format(bridges)
 			del bridges[str(id(b))]
@@ -154,12 +160,12 @@ def catalog(name, url=None, response=None):
 	
 	raise Exception('Should not get here')
 
-@app.route('/menu/<name>')
-@app.route('/menu/<name>/<response>')
-def menu(name, response=None):
-	decoded_name = b64decode(name)
+@app.route('/menu/<pluginid>')
+@app.route('/menu/<pluginid>/<response>')
+def menu(pluginid, response=None):
+	decoded_id = utils.b64decode(pluginid)
 	#current_item = get_items('')[int(id)]
-	plugin = [p for p in PLUGINS if p.name == decoded_name][0]
+	plugin = [p for p in PLUGINS if p.id == decoded_id][0]
 	global bridges
 	if response:
 		b = bridges[response]
@@ -169,6 +175,7 @@ def menu(name, response=None):
 		bridges[str(id(b))] = b
 		b.thread = Thread(get_menu, b, plugin, '')
 		def stop():
+			#time.sleep(10)
 			global bridges
 			print 'brfore stop {}'.format(bridges)
 			del bridges[str(id(b))]
