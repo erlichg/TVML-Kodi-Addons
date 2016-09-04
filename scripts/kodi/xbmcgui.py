@@ -4,6 +4,7 @@ Classes and functions to work with Kodi GUI
 """
 
 import xbmc as _xbmc
+from Plugin import Item
 import ast
 
 ACTION_ANALOG_FORWARD = 113
@@ -1170,6 +1171,8 @@ class ListItem(object):
 
 			self.list.getSelectedItem().addStreamInfo('video', { 'Codec': 'h264', 'Width' : 1280 })
 		"""
+		if not 'streamInfo' in self.infos:
+			self.infos['streamInfo'] = {}
 		self.infos['streamInfo'][cType] = dictionary
 
 	def getdescription(self):
@@ -1348,7 +1351,7 @@ class ListItem(object):
 		"""
 		return self.infos[key] if key in self.infos else None
 
-	def addContextMenuItems(self, items):
+	def addContextMenuItems(self, items, replaceItems=None):
 		"""Adds item(s) to the context menu for media lists.
 
 		:param items: list - [(label, action)] A list of tuples consisting of label and action pairs.
@@ -2679,7 +2682,7 @@ class Dialog(object):
 			dialog = xbmcgui.Dialog()
 			ret = dialog.yesno('XBMC', 'Do you want to exit this script?')
 		"""
-		return bool(1)
+		return _xbmc.bridge.selectdialog(heading, text='{}\n{}\n{}'.format(line1, line2, line3), list_=[Item('1', yeslabel if yeslabel else 'Yes'), Item('2', nolabel if nolabel else 'No')]) == '1'
 
 	def ok(self, heading, line1, line2='', line3=''):
 		"""Show a dialog 'OK'.

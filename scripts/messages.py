@@ -45,10 +45,10 @@ def selectdialog(plugin, msg, url=None):
 	if not items or len(items) == 0:
 		return '', 204
 	if items[0].title and items[0].subtitle and items[0].icon and items[0].details:
-		return render_template('list.xml', menu=items, msgid=msg['id'], url=url), 208 #present modal
+		return render_template('list.xml', menu=items, title=msg['title'], text = msg['text'].split('\n'), msgid=msg['id'], url=url), 208 #present modal
 	if items[0].title and items[0].icon:
-		return render_template('grid.xml', menu=items, msgid=msg['id'], url=url), 208 #present modal
-	return render_template('nakedlist.xml', menu=items, msgid=msg['id'], url=url), 208 #present modal
+		return render_template('grid.xml', menu=items, title=msg['title'], text = msg['text'].split('\n'), msgid=msg['id'], url=url), 208 #present modal
+	return render_template('nakedlist.xml', menu=items, title=msg['title'], text = msg['text'].split('\n'), msgid=msg['id'], url=url), 208 #present modal
 
 
 def closeprogress(plugin, msg, url=None):
@@ -66,3 +66,6 @@ def saveSettings(plugin, msg, url=None):
 def loadSettings(plugin, msg, url=None):
 	print 'loadSettings in messages'
 	return json.dumps({'type':'loadSettings', 'addon':plugin.id, 'msgid':msg['id'], 'url': url }), 210
+	
+def load(plugin, msg, url=None):
+	return json.dumps(msg), 212

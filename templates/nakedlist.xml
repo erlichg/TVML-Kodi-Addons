@@ -9,6 +9,18 @@ See LICENSE.txt for this sample’s licensing information
 	  </style>
 	</head>
 	<listTemplate>
+		<banner>
+			<title>{{title}}</title>
+			{% if text is defined %}
+			<infoList>
+				<info>
+				{% for t in text %}
+				<text style="font-size:30">{{t}}</text>
+				{% endfor %}
+				</info>
+			</infoList>
+			{% endif %}
+		</banner>		
 		<background>
 			<img src="/templates/background.png"/>
 		</background>

@@ -181,12 +181,12 @@ def selectDialog(list, heading=addonInfo('name')):
 
 
 def moderator():
-	netloc = [urlparse.urlparse(sys.argv[0]).netloc, '', 'plugin.video.live.streamspro', 'plugin.video.phstreams', 'plugin.video.tinklepad']
-	print infoLabel('Container.PluginName')
-	if not infoLabel('Container.PluginName') in netloc: sys.exit(1)
+	#netloc = [urlparse.urlparse(sys.argv[0]).netloc, '', 'plugin.video.live.streamspro', 'plugin.video.phstreams', 'plugin.video.tinklepad']
+	#print infoLabel('Container.PluginName')
+	#if not infoLabel('Container.PluginName') in netloc: sys.exit(1)
 
-	if '.strm' in str(infoLabel('ListItem.FileName')): sys.exit(2)
-
+	#if '.strm' in str(infoLabel('ListItem.FileName')): sys.exit(2)
+	pass
 
 def apiLanguage():
 	langDict = {'Bulgarian': 'bg', 'Chinese': 'zh', 'Croatian': 'hr', 'Czech': 'cs', 'Danish': 'da', 'Dutch': 'nl', 'English': 'en', 'Finnish': 'fi', 'French': 'fr', 'German': 'de', 'Greek': 'el', 'Hebrew': 'he', 'Hungarian': 'hu', 'Italian': 'it', 'Japanese': 'ja', 'Korean': 'ko', 'Norwegian': 'no', 'Polish': 'pl', 'Portuguese': 'pt', 'Romanian': 'ro', 'Russian': 'ru', 'Serbian': 'sr', 'Slovak': 'sk', 'Slovenian': 'sl', 'Spanish': 'es', 'Swedish': 'sv', 'Thai': 'th', 'Turkish': 'tr', 'Ukrainian': 'uk'}

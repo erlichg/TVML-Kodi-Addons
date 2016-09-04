@@ -8,258 +8,279 @@ __date__ = 'Fri May 01 16:22:23 BST 2015'
 __platform__ = 'ALL'
 __version__ = '2.20.0'
 
+import os
+import xbmc
 
 class File(object):
-    """
-    File(filepath, mode=None)
+	"""
+	File(filepath, mode=None)
 
-    Creates a file object
+	Creates a file object
 
-    :param filepath: file path
-    :param mode: (opt) file access mode. ``None``: read (default), ``'w'``: write.
+	:param filepath: file path
+	:param mode: (opt) file access mode. ``None``: read (default), ``'w'``: write.
 
-    Example::
+	Example::
 
-        f = xbmcvfs.File(file, 'w')
-    """
-    def __init__(self, filepath, mode=None):
-        """
-        :param filepath: file path
-        :param mode: (opt) file access mode. None: read (default), 'w': write.
+		f = xbmcvfs.File(file, 'w')
+	"""
+	def __init__(self, filepath, mode=None):
+		"""
+		:param filepath: file path
+		:param mode: (opt) file access mode. None: read (default), 'w': write.
 
-        Example::
+		Example::
 
-            f = xbmcvfs.File(file, 'w')
-        """
-        pass
+			f = xbmcvfs.File(file, 'w')
+		"""
+		pass
 
-    def close(self):
-        """
-        Close the file
+	def close(self):
+		"""
+		Close the file
 
-        example::
+		example::
 
-            f = xbmcvfs.File(file)
-            f.close()
-        """
-        pass
+			f = xbmcvfs.File(file)
+			f.close()
+		"""
+		pass
 
-    def read(self, numBytes=0):
-        """
-        Read from the file to a string.
+	def read(self, numBytes=0):
+		"""
+		Read from the file to a string.
 
-        :param numBytes: how many bytes to read [opt]- if not set it will read the whole file
-        :returns: str
+		:param numBytes: how many bytes to read [opt]- if not set it will read the whole file
+		:returns: str
 
-        example::
+		example::
 
-            f = xbmcvfs.File(file)
-            b = f.read()
-            f.close()
-        """
-        return str()
+			f = xbmcvfs.File(file)
+			b = f.read()
+			f.close()
+		"""
+		return str()
 
-    def readBytes(self, numBytes=0):
-        """
-        Read from the file to a bytearray.
+	def readBytes(self, numBytes=0):
+		"""
+		Read from the file to a bytearray.
 
-        :param numBytes: how many bytes to read [opt]- if not set it will read the whole file
-        :return: bytearray
+		:param numBytes: how many bytes to read [opt]- if not set it will read the whole file
+		:return: bytearray
 
-        example::
-            f = xbmcvfs.File(file)
-            b = f.read()
-            f.close()
-        """
-        return bytearray()
+		example::
+			f = xbmcvfs.File(file)
+			b = f.read()
+			f.close()
+		"""
+		return bytearray()
 
-    def seek(self, seekBytes, iWhence):
-        """
-        Seek the file to the specified position.
+	def seek(self, seekBytes, iWhence):
+		"""
+		Seek the file to the specified position.
 
-        :param seekBytes: position in the file
-        :param iWhence: where in a file to seek from [0 begining, 1 current , 2 end possition]
+		:param seekBytes: position in the file
+		:param iWhence: where in a file to seek from [0 begining, 1 current , 2 end possition]
 
-        example::
+		example::
 
-            f = xbmcvfs.File(file)
-            result = f.seek(8129, 0)
-            f.close()
-        """
-        return long()
+			f = xbmcvfs.File(file)
+			result = f.seek(8129, 0)
+			f.close()
+		"""
+		return long()
 
-    def size(self):
-        """
-        Returns the size of the file
+	def size(self):
+		"""
+		Returns the size of the file
 
-        example::
+		example::
 
-            f = xbmcvfs.File(file)
-            s = f.size()
-            f.close()
-        """
-        return long()
+			f = xbmcvfs.File(file)
+			s = f.size()
+			f.close()
+		"""
+		return long()
 
-    def write(self, buffer):
-        """
-        Write to the file.
+	def write(self, buffer):
+		"""
+		Write to the file.
 
-        :param buffer: buffer to write to the file
+		:param buffer: buffer to write to the file
 
-        example::
+		example::
 
-            f = xbmcvfs.File(file, 'w')
-            result = f.write(buffer)
-            f.close()
-        """
-        return bool(1)
+			f = xbmcvfs.File(file, 'w')
+			result = f.write(buffer)
+			f.close()
+		"""
+		return bool(1)
 
 
 def copy(strSource, strDestnation):
-    """Copy file to destination, returns true/false.
+	"""Copy file to destination, returns true/false.
 
-    :param source: string - file to copy.
-    :param destination: string - destination file
+	:param source: string - file to copy.
+	:param destination: string - destination file
 
-    Example::
+	Example::
 
-        success = xbmcvfs.copy(source, destination)
-    """
-    return bool(1)
+		success = xbmcvfs.copy(source, destination)
+	"""
+	return bool(1)
 
 
 def delete(file):
-    """Delete the file
+	"""Delete the file
 
-    :param file: string - file to delete
+	:param file: string - file to delete
 
-    Example::
+	Example::
 
-        xbmcvfs.delete(file)
-    """
-    pass
+		xbmcvfs.delete(file)
+	"""
+	if file.startswith('/') and not file.startswith(os.path.join(os.getcwd(), 'kodiplugins', xbmc.Container.plugin.id)):
+		return
+	return os.remove(file)
 
 
 def rename(file, newFile):
-    """Renames a file, returns true/false.
+	"""Renames a file, returns true/false.
 
-    :param file: string - file to rename
-    :param newFile: string - new filename, including the full path
+	:param file: string - file to rename
+	:param newFile: string - new filename, including the full path
 
-    Example::
+	Example::
 
-        success = xbmcvfs.rename(file,newFileName)"""
-    return bool(1)
+		success = xbmcvfs.rename(file,newFileName)"""
+	if file.startswith('/') and not file.startswith(os.path.join(os.getcwd(), 'kodiplugins', xbmc.Container.plugin.id)):
+		return
+	if newFile.startswith('/') and not newFile.startswith(os.path.join(os.getcwd(), 'kodiplugins', xbmc.Container.plugin.id)):
+		return
+	return os.rename(file, newFile)
 
 
 def mkdir(path):
-    """Create a folder.
+	"""Create a folder.
 
-    :param path: folder
+	:param path: folder
 
-    Example::
+	Example::
 
-        success = xbmcfvs.mkdir(path)
-    """
-    return bool(1)
+		success = xbmcfvs.mkdir(path)
+	"""
+	print 'Creating directory {}'.format(path)
+	if path.startswith('/') and not path.startswith(os.path.join(os.getcwd(), 'kodiplugins', xbmc.Container.plugin.id)):
+		return
+	if exists(path):
+		return True
+	return os.mkdir(path)
 
 
 def mkdirs(path):
-    """
-    Create folder(s) - it will create all folders in the path.
+	"""
+	Create folder(s) - it will create all folders in the path.
 
-    :param path: folder
+	:param path: folder
 
-    example::
+	example::
 
-        success = xbmcvfs.mkdirs(path)
-    """
-    return bool(1)
+		success = xbmcvfs.mkdirs(path)
+	"""
+	if path.startswith('/') and not path.startswith(os.path.join(os.getcwd(), 'kodiplugins', xbmc.Container.plugin.id)):
+		return
+	return os.makedirs(path)
 
 
 def rmdir(path, force=False):
-    """Remove a folder.
+	"""Remove a folder.
 
-    :param path: folder
+	:param path: folder
 
-    Example::
+	Example::
 
-        success = xbmcfvs.rmdir(path)
-    """
-    return bool(1)
+		success = xbmcfvs.rmdir(path)
+	"""
+	if path.startswith('/') and not path.startswith(os.path.join(os.getcwd(), 'kodiplugins', xbmc.Container.plugin.id)):
+		return
+	return os.rmdir(path)
 
 
 def exists(path):
-    """Checks for a file or folder existance, mimics Pythons os.path.exists()
+	"""Checks for a file or folder existance, mimics Pythons os.path.exists()
 
-    :param path: string - file or folder
+	:param path: string - file or folder
 
-    Example::
+	Example::
 
-        success = xbmcvfs.exists(path)
-    """
-    return bool(1)
+		success = xbmcvfs.exists(path)
+	"""
+	if path.startswith('/') and not path.startswith(os.path.join(os.getcwd(), 'kodiplugins', xbmc.Container.plugin.id)):
+		return False
+	return os.path.exists(path)
 
 
 def listdir(path):
-    """
-    listdir(path) -- lists content of a folder.
+	"""
+	listdir(path) -- lists content of a folder.
 
-    :param path: folder
+	:param path: folder
 
-    example::
+	example::
 
-        dirs, files = xbmcvfs.listdir(path)
-    """
-    return tuple()
+		dirs, files = xbmcvfs.listdir(path)
+	"""
+	if path.startswith('/') and not path.startswith(os.path.join(os.getcwd(), 'kodiplugins', xbmc.Container.plugin.id)):
+		return None
+	return os.listdir(path)
 
 
 class Stat(object):
-    """
-    Stat(path)
+	"""
+	Stat(path)
 
-    Get file or file system status.
+	Get file or file system status.
 
-    :param path: file or folder
+	:param path: file or folder
 
-    example::
+	example::
 
-        print xbmcvfs.Stat(path).st_mtime()
-    """
-    def __init__(self, path):
-        """
-        Stat(path) -- get file or file system status.
+		print xbmcvfs.Stat(path).st_mtime()
+	"""
+	def __init__(self, path):
+		"""
+		Stat(path) -- get file or file system status.
 
-        :param path: file or folder
+		:param path: file or folder
 
-        example::
+		example::
 
-            print xbmcvfs.Stat(path).st_mtime()
-        """
+			print xbmcvfs.Stat(path).st_mtime()
+		"""
 
-    def st_mode(self):
-        return long()
+	def st_mode(self):
+		return long()
 
-    def st_ino(self):
-        return long()
+	def st_ino(self):
+		return long()
 
-    def st_nlink(self):
-        return long()
+	def st_nlink(self):
+		return long()
 
-    def st_uid(self):
-        return long()
+	def st_uid(self):
+		return long()
 
-    def st_gid(self):
-        return long()
+	def st_gid(self):
+		return long()
 
-    def st_size(self):
-        return long()
+	def st_size(self):
+		return long()
 
-    def st_atime(self):
-        return long()
+	def st_atime(self):
+		return long()
 
-    def st_mtime(self):
-        return long()
+	def st_mtime(self):
+		return long()
 
-    def st_ctime(self):
-        return long()
+	def st_ctime(self):
+		return long()

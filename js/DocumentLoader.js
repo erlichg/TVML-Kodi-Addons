@@ -57,6 +57,7 @@ DocumentLoader.prototype.fetch = function(options) {
     xhr.open("GET", docURL);
     xhr.responseType = "document";
     xhr.onload = function() {
+	    console.log('got status '+xhr.status);
 	    if (xhr.status == 202) {
 		    var msg = JSON.parse(xhr.responseText)
 		    console.log("got message: " + xhr.responseText);
@@ -152,6 +153,10 @@ DocumentLoader.prototype.fetch = function(options) {
 					this.fetch(options);
 				}.bind(this), 1000)				
 			}
+		} else if (xhr.status == 212) {
+			var msg = JSON.parse(xhr.responseText);
+			options.url = msg['url'];
+			this.fetch(options);
 	    } else {
         	const responseDoc = xhr.response;
         	if (typeof options.initial == "boolean" && options.initial) {

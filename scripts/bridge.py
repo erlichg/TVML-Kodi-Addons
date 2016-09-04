@@ -33,17 +33,17 @@ class bridge:
 		if not wait:
 			return
 		start = time.time()
-		while not self.thread.stop and time.time() - start < 3600: #wait for response at most 1 hour. This is meant to limit amount of threads on web server
-			print 'waiting for message to {}'.format(id)
+		print 'waiting for message to {}'.format(id)
+		while not self.thread.stop and time.time() - start < 3600: #wait for response at most 1 hour. This is meant to limit amount of threads on web server			
 			for r in self.thread.responses:
 				if r['id'] == id:
-					print 'received response while waiting: {}'.format(r['response'])
+					print 'received response to {}'.format(id)
 					self.thread.responses.remove(r)
 					self.app.remove_route(id)
 					return r['response']
 			time.sleep(0.1)
 		if self.thread.stop:
-			print 'finished waiting for response due to thread stop'
+			print 'finished waiting for response {} due to thread stop'.format(id)
 		else:
 			print 'Aborting response wait due to time out'
 		try:
@@ -86,9 +86,11 @@ class bridge:
 		"""Closes the progress dialog"""
 		return self._message({'type':'closeprogress'})
 		
-	def selectdialog(self, title, list_):
+	def selectdialog(self, title, text='', list_=[]):
 		"""Shows a selection dialog"""
-		return self._message({'type':'selectdialog', 'title':title, 'list':list_}, True)				
+		ans = self._message({'type':'selectdialog', 'title':title, 'text':text, 'list':list_}, True)				
+		time.sleep(1)
+		return ans
 		
 	def play(self, url, type_='video', title=None, description=None, image=None, subtitle_url=None, stop_completion=None):
 		"""Plays a url"""

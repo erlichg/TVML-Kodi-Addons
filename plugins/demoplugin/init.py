@@ -43,7 +43,7 @@ def main(bridge, url):
 		bridge.closeprogress()
 		return [Item('55', 'bah')]
 	if url == '33':
-		ans = bridge.selectdialog('select from list', [Item('41', 'item 1'), Item('42', 'item 2')])
+		ans = bridge.selectdialog('select from list', list_=[Item('41', 'item 1'), Item('42', 'item 2')])
 		bridge.alertdialog('select ended', 'user selected item {}'.format(ans))
 		return
 	if url == '34':

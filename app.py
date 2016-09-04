@@ -1,7 +1,7 @@
 from __future__ import division
 from flask import Flask, render_template, send_from_directory, request
 
-import sys, os, imp, urllib, json, time, traceback
+import sys, os, imp, urllib, json, time, traceback, re
 import urlparse
 import gevent.monkey
 gevent.monkey.patch_all()
@@ -124,8 +124,13 @@ bridges = {}
 @app.route('/catalog/<pluginid>')
 @app.route('/catalog/<pluginid>/<url>')
 @app.route('/catalog/<pluginid>/<url>/<response>')
-def catalog(pluginid, url=None, response=None):	
-	decoded_url = utils.b64decode(url) if url else ''
+def catalog(pluginid, url=None, response=None):
+	if not url:
+		decoded_url = ''
+	elif url == 'fake':
+		decoded_url = ''
+	else:
+		decoded_url = utils.b64decode(url)
 	decoded_id = utils.b64decode(pluginid)
 	#current_item = get_items('')[int(id)]
 	plugin = [p for p in PLUGINS if p.id == decoded_id][0]	
@@ -143,18 +148,33 @@ def catalog(pluginid, url=None, response=None):
 			print 'brfore stop {}'.format(bridges)
 			del bridges[str(id(b))]
 			print 'after stop {}'.format(bridges)
-		b.thread.onStop = stop
+		#b.thread.onStop = stop
 		b.thread.start()
 	while b.thread.is_alive():
 		if len(b.thread.messages)>0:
 			msg = b.thread.messages.pop(0)
 			method = getattr(messages, msg['type'])
-			return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, id(b)))
+			return_url = None
+			if response:
+				#return on same url for more
+				return_url = request.url
+			elif url:
+				#add response bridge
+				return_url = '{}/{}'.format(request.url, id(b))
+			else:
+				#No url and no response so add 'fake' url
+				return_url = '{}/{}/{}'.format(request.url, 'fake', id(b))
+			return method(plugin, msg, return_url)
 		time.sleep(0.1)
 	#Check for possible last message which could have appeared after the thread has died. This could happen if message was sent during time.sleep in while and loop exited immediately afterwards
 	while len(b.thread.messages)>0:
 		msg = b.thread.messages.pop(0)
 		method = getattr(messages, msg['type'])
+		if method == 'end':
+			global bridges
+			print 'brfore stop2 {}'.format(bridges)
+			del bridges[str(id(b))]
+			print 'after stop2 {}'.format(bridges)
 		return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, id(b)))	
 	
 	raise Exception('Should not get here')
@@ -179,7 +199,7 @@ def menu(pluginid, response=None):
 			print 'brfore stop {}'.format(bridges)
 			del bridges[str(id(b))]
 			print 'after stop {}'.format(bridges)
-		b.thread.onStop = stop
+		#b.thread.onStop = stop
 		b.thread.start()
 		
 	while b.thread.is_alive():
@@ -192,6 +212,11 @@ def menu(pluginid, response=None):
 	while len(b.thread.messages)>0:
 		msg = b.thread.messages.pop(0)
 		method = getattr(messages, msg['type'])
+		if method == 'end':
+			global bridges
+			print 'brfore stop2 {}'.format(bridges)
+			del bridges[str(id(b))]
+			print 'after stop2 {}'.format(bridges)
 		return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, id(b)))
 	raise Exception('Should not get here')
 
@@ -206,7 +231,6 @@ def main():
 
 def get_items(bridge, plugin, url):
 	print('Getting items for: {}'.format(url))
-	url = url.split('?')[1] if '?' in url else url
 	try:
 		items = plugin.run(bridge, url)
 	except:

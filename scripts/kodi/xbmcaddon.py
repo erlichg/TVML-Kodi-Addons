@@ -11,6 +11,7 @@ __version__ = '2.20.0'
 import os, sys, re, json, time
 import codecs
 import xml.etree.ElementTree as ET
+from xml.sax.saxutils import escape
 import xbmc
 from collections import OrderedDict
 import utils
@@ -39,6 +40,15 @@ class Addon(object):
 			self.Addon = xbmcaddon.Addon(id='script.recentlyadded')
 		"""
 		global ADDON_CACHE
+		if not id:
+			import traceback
+			stack = traceback.extract_stack()
+			file = stack[-2][0]
+			m = re.search('.*kodiplugins/([^/]+)/.*', file)
+			if m:
+				id = m.group(1)
+			else:
+				raise Exception('Could not find addon ID automatically')
 		self.id = id
 		self.strings = {}
 		strings_po = os.path.join('kodiplugins', self.id, 'resources', 'language', 'English', 'strings.po')
@@ -58,7 +68,10 @@ class Addon(object):
 				else :
 					self.strings[msgctxt] = msgid
 		elif os.path.isfile(strings_xml):
-			tree = ET.parse(strings_xml)
+			f = codecs.open(strings_xml, mode='r', encoding='UTF-8')
+			contents = f.read().replace('&', '&amp;')
+			f.close()
+			tree = ET.fromstring(contents)
 			for e in tree.iter('string'):
 				if 'id' in e.attrib:
 					id = e.attrib['id']
@@ -111,6 +124,9 @@ class Addon(object):
 
 			locstr = self.Addon.getLocalizedString(id=6)
 		"""
+		import traceback
+		print traceback.extract_stack()
+		print 'getLoclizedString {}'.format(id)
 		try:
 			return self.strings[str(id)]
 		except:
@@ -125,11 +141,12 @@ class Addon(object):
 
 			apikey = self.Addon.getSetting('apikey')
 		"""
+		print 'getSetting {}'.format(id)
 		for cat in self.settings:
 			for s in self.settings[cat]:
 				if 'id' in s and s['id'] == id:
 					return unicode(s['value'])				
-		return None
+		return ''
 
 	def setSetting(self, id, value):
 		"""Sets a script setting.
@@ -233,9 +250,11 @@ class Addon(object):
 			version = self.Addon.getAddonInfo('version')
 		"""
 		if id=='path':
-			return os.path.join('/kodiplugins', self.id)
+			return os.path.join('kodiplugins', self.id)
 		if id=='profile':
 			return os.path.join(os.getcwd(), 'kodiplugins', self.id)
 		if id=='name':
+			return self.id
+		if id=='id':
 			return self.id
 		return None

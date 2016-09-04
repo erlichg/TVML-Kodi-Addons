@@ -7,6 +7,7 @@ Various classes and functions to interact with Kodi.
 
 import xbmcgui as _xbmcgui
 import time, re, os
+import app, utils
 
 CAPTURE_FLAG_CONTINUOUS = 1
 CAPTURE_FLAG_IMMEDIATELY = 2
@@ -48,7 +49,6 @@ __platform__ = 'ALL'
 __version__ = '2.20.0'
 abortRequested = False
 bridge=None
-currentPlugin=None
 
 """Returns ``True`` if Kodi prepares to close itself"""
 
@@ -993,8 +993,19 @@ def executebuiltin(function, wait=False):
 		xbmc.executebuiltin('XBMC.RunXBE(c:\avalaunch.xbe)')
 	"""
 	print 'evaluating {}'.format(function)
-	if 'Container.Update' in function:
-		return currentPlugin.run(bridge, function.split('?')[1])
+	m = re.search('.*Container.Update\(plugin://([^/]*)(.*)\)', function)
+	if m:
+		bridge._message({'type':'load', 'url':'/catalog/{}/{}'.format(utils.b64encode(m.group(1)), utils.b64encode(m.group(2)))})
+	m = re.search('.*Container.Update\((.*)\)', function)
+	if m:
+		bridge._message({'type':'load', 'url':'/catalog/{}/{}'.format(utils.b64encode(Container.plugin.id), utils.b64encode(m.group(1)))})
+	m = re.search('Notification\((.*), (.*)(, (.*), (.*))*\)', function)
+	if m:
+		title = m.group(1)
+		message = m.group(2)
+		time = m.group(4)
+		icon = m.group(5)
+	#Need to implement
 	return str()
 
 
@@ -1149,7 +1160,7 @@ def getInfoLabel(cLine):
 		label = xbmc.getInfoLabel('Weather.Conditions')
 	"""
 	if cLine == 'Container.PluginName':
-		return currentPlugin.id
+		return Container.plugin.id
 	return str()
 
 
@@ -1396,6 +1407,10 @@ def translatePath(path):
 
 		fpath = xbmc.translatePath('special://masterprofile/script_data')
 	"""
+	if "special://home/addons" in path :
+		return path.replace("special://home/addons", 'kodiplugins')
+	if 'special://profile/addon_data/' in path:
+		return path.replace('special://profile/addon_data/', 'kodiplugins{}'.format(os.path.sep)) 
 	return path
 
 
