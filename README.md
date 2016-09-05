@@ -17,24 +17,20 @@ I've created a bridge from the kodi plugins to the server using the excellent [K
 ##How to use
 Simply run the app.py located in repository root directory and start accepting TVML connection from your apple TV using a TVML client like: TVML Explorer (available in TVOS appstore)
 
-##Plugins
-You can write plugins (in the plugins directory) which will serve content back to the apple tv.
-
-Just add a plugin dir with addon.xml, icon and main script.
-
-The script must have a main function which will be called with 2 parameters: bridge and url
-
-The script must return a list (may be empty) of Item objects
-
-The app in turn will translate the list of items into an XML template to be sent to the client TVML app
-
 ##Kodi plugins
-Simpley place the unzipped kodi addon under the kodiplugins folder
+What I've got working so far are:
+- Exodus
+- KIDSIL
+- Reshet
+- Channel10
+- and more
+
+Most (simple) addons should work immediately (Simply place the unzipped kodi addon under the kodiplugins folder).
 
 ###XML templates
 The main page of the app is the main.xml template which shows a grid view of all plugins available.
 
-One you select a plugin, the plugin will be called with an empty string and all consequent templates will be rendered based on plugin returns.
+Once you select a plugin, the plugin will be called with an empty string and all consequent templates will be rendered based on plugin returns.
 
 The app will transform the list of items to a template with this logic:
 - If items have title, subtitle, icon and details, it will render the richest template available (list.xml) which shows all these details
@@ -43,22 +39,28 @@ The app will transform the list of items to a template with this logic:
 
 
 ##Example
-Please check available plugin in the kodiplugins folder
+Please check available plugins in the kodiplugins folder
 
 ##What's working and what's not
-Currently working are simple addon actions like setResolvedURL, ListItem and addDirectoryItem
+The server is based on python flask and is relatively small scale.
 
-Also working are various dialogs like input, select, yesno, progress etc.
+The idea is to install the server (on your network) and access it locally (i.e. one user)
 
-Working executeBuiltin commands include Container.Update
+Currently working are most dialogs, simple actions like addDirectory and setResolvedURL
+
+executeBuiltin commands include Container.Update
 
 Addon settings can be accessed by long press on the addon icon in the main view
 
-Currently addon files (settings, cache, etc) are saved locally on server which means that all clients get the same settings.
+Addon settings are saved locally (on client) so will persist even if server restarts
+
+Addon data path (for saving local files) is currently on server so all clients will use the same files (might be a problem).
 
 ##What's next
-A lot more work to be done.
-- implement more elaborate bridge functions
+A lot more work to be done:
+- Implement more of kodi stubs to fit more addons
+- Modify the server to be able to accept many multiple connections. Think about the possibility to have multiple central servers on the web so everyone can connect to them without having to install anything locally!!
+- If your interested in coding (python/javascript), I'd love the help
 
 ## License
 
