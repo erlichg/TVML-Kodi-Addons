@@ -15,7 +15,11 @@ I've created a bridge from the kodi plugins to the server using the excellent [K
 ![alt tag](https://raw.githubusercontent.com/ggyeh/TVML-Kodi-Addons/master/images/screenshot4.png)
 
 ##How to use
-Simply run the app.py located in repository root directory and start accepting TVML connection from your apple TV using a TVML client like: TVML Explorer (available in TVOS appstore)
+1. Simply run the app.py located in repository root directory.
+2. This will run the server on port 5000.
+3. Fire up a TVML client on the apple TV like: TVML Explorer (available in TVOS appstore)
+4. Add your IP of the server
+5. Have fun
 
 ##Kodi plugins
 What I've got working so far are:
