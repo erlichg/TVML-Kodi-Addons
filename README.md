@@ -10,6 +10,9 @@ I've created a bridge from the kodi plugins to the server using the excellent [K
 
 ##Screenshots
 ![alt tag](https://raw.githubusercontent.com/ggyeh/TVML-Kodi-Addons/master/images/screenshot1.png)
+![alt tag](https://raw.githubusercontent.com/ggyeh/TVML-Kodi-Addons/master/images/screenshot2.png)
+![alt tag](https://raw.githubusercontent.com/ggyeh/TVML-Kodi-Addons/master/images/screenshot3.png)
+![alt tag](https://raw.githubusercontent.com/ggyeh/TVML-Kodi-Addons/master/images/screenshot4.png)
 
 ##How to use
 Simply run the app.py located in repository root directory and start accepting TVML connection from your apple TV using a TVML client like: TVML Explorer (available in TVOS appstore)
