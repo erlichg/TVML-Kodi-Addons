@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nickjr" name="ניקולודיאון ג׳וניור" version="1" provider-name="erlichg">
+<addon id="plugin.video.nickjr" name="ניקולודיאון ג׳וניור" version="1" provider-name="ggyeh">
     <requires>
         <import addon="xbmc.python" version="2.1.0"/>
         <import addon="repository.xbmc-israel" />
