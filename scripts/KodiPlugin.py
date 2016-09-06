@@ -25,7 +25,7 @@ class KodiPlugin:
 		for e2 in tree.iter('extension'):
 			if e2.attrib['point'] == 'xbmc.python.pluginsource':
 				self.script = e2.attrib['library']
-		self.icon = os.path.join(self.dir, 'icon.png')
+		self.icon = '{}/icon.png'.format(self.dir)
 		self.module = self.script[:-3]
 		self.menuurl = '/menu/{}'.format(utils.b64encode(self.id))
 		

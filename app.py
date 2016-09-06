@@ -22,7 +22,7 @@ import messages
 
 import threading
 
-
+bridges = {}
 
 class Thread(threading.Thread):
 	def __init__(self, target, *args):
@@ -120,7 +120,7 @@ def template(filename):
 	return send_from_directory('templates', filename)
 
 
-bridges = {}
+
 @app.route('/catalog/<pluginid>')
 @app.route('/catalog/<pluginid>/<url>')
 @app.route('/catalog/<pluginid>/<url>/<response>')
