@@ -44,7 +44,7 @@ class Addon(object):
 			import traceback
 			stack = traceback.extract_stack()
 			file = stack[-2][0]
-			m = re.search('.*kodiplugins/([^/]+)/.*', file)
+			m = re.search(os.path.join('.*kodiplugins', '([^{}]+)'.format(os.path.sep), '.*').encode('string-escape'), file)
 			if m:
 				id = m.group(1)
 			else:
