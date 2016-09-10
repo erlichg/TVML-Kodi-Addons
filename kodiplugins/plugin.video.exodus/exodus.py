@@ -25,8 +25,10 @@ import xbmcaddon, xbmc
 __settings__ = xbmcaddon.Addon(id='plugin.video.exodus')
 __PLUGIN_PATH__ = __settings__.getAddonInfo('path')
 LIB_PATH = xbmc.translatePath( os.path.join( __PLUGIN_PATH__, 'resources', 'lib' ) )
-print LIB_PATH
-sys.path.append (LIB_PATH)
+
+#sys.path.append (LIB_PATH)
+print sys.path
+print sys.modules
 
 params = dict(urlparse.parse_qsl(sys.argv[2].replace('?','')))
 

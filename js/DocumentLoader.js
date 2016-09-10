@@ -60,6 +60,14 @@ DocumentLoader.prototype.fetch = function(options) {
 	    console.log('got status '+xhr.status);
 	    if (xhr.status == 202) {
 		    var msg = JSON.parse(xhr.responseText)
+/*
+		    try {
+			    play(msg['url']);
+		    } catch (e) {
+			    console.log(e);
+		    }
+*/
+		    
 		    console.log("got message: " + xhr.responseText);
 		    var time;
 		    var playCache = localStorage.getItem('playCache');
@@ -126,7 +134,7 @@ DocumentLoader.prototype.fetch = function(options) {
 						}
 					});
 				}
-			}.bind(this), false);  			
+			}.bind(this), false);  					
 		} else if(xhr.status == 204) {
 			//no message
 		} else if(xhr.status == 205) {

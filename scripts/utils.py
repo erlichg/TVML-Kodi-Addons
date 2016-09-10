@@ -1,4 +1,4 @@
-import base64, random, string
+import base64, random, string, sys
 
 def b64decode(data):
 	"""Decode base64, padding being optional.

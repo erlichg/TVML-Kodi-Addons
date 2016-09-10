@@ -2,6 +2,7 @@ from __future__ import division
 from flask import Flask, render_template, send_from_directory, request
 
 import sys, os, imp, urllib, json, time, traceback, re
+from multiprocessing import Process, Queue
 import urlparse
 import gevent.monkey
 gevent.monkey.patch_all()
@@ -13,16 +14,13 @@ sys.path.append('scripts')
 sys.path.append(os.path.join('scripts', 'kodi'))
 sys.path.append('plugins')
 sys.path.append('kodiplugins')
+
 import utils
-from Plugin import Plugin, Item
-from KodiPlugin import *
-from bridge import bridge
-
-import messages
-
+app = Flask(__name__)
+app.jinja_env.filters['base64encode'] = utils.b64encode
+#app.jinja_env.add_extension('jinja2.ext.do')
+	
 import threading
-
-bridges = {}
 
 class Thread(threading.Thread):
 	def __init__(self, target, *args):
@@ -47,38 +45,7 @@ class Thread(threading.Thread):
 
 
 
-PLUGINS = []
-for plugin in os.listdir('plugins'):
-	try:
-		dir = os.path.join('plugins', plugin)
-		if not os.path.isdir(dir):
-			continue
-		print 'Loading plugin {}'.format(plugin)
-		p = Plugin.Plugin(dir)
-		PLUGINS.append(p)
-		print 'Successfully loaded plugin: {}'.format(p)
-	except Exception as e:
-		print 'Failed to load plugin {}. Error: {}'.format(plugin, e)
-for plugin in os.listdir('kodiplugins'):
-	try:
-		dir = os.path.join('kodiplugins', plugin)
-		if not os.path.isdir(dir):
-			continue
-		print 'Loading kodi plugin {}'.format(plugin)
-		p = KodiPlugin(dir)
-		PLUGINS.append(p)
-		print 'Successfully loaded plugin: {}'.format(p)
-	except Exception as e:
-		print 'Failed to load kodi plugin {}. Error: {}'.format(plugin, e)
-		
 
-
-
-app = Flask(__name__)
-app.jinja_env.filters['base64encode'] = utils.b64encode
-#app.jinja_env.add_extension('jinja2.ext.do')
-
-_routes = {}
 
 @app.route('/response/<id>', methods=['POST', 'GET'])
 @app.route('/response/<id>/<res>')
@@ -141,7 +108,9 @@ def catalog(pluginid, url=None, response=None):
 		b = bridge(__name__, plugin)		
 		print 'saving bridge id {}'.format(id(b))
 		bridges[str(id(b))] = b
-		b.thread = Thread(get_items, b, plugin, decoded_url)
+		#b.thread = Thread(get_items, b, plugin, decoded_url)
+		q = Queue()
+		b.thread = Process(target=get_items, args=(q, b, plugin, decoded_url))
 		def stop():
 			time.sleep(5) #close bridge after 10s
 			global bridges
@@ -260,4 +229,46 @@ def mmain():
 	#app.run(debug=True, host='0.0.0.0')
 		
 if __name__ == '__main__':
+	
+	from Plugin import Plugin, Item
+	from KodiPlugin import *
+	from bridge import bridge
+
+	import messages
+	
+
+	bridges = {}
+	
+	PLUGINS = []
+	for plugin in os.listdir('plugins'):
+		try:
+			dir = os.path.join('plugins', plugin)
+			if not os.path.isdir(dir):
+				continue
+			print 'Loading plugin {}'.format(plugin)
+			p = Plugin.Plugin(dir)
+			PLUGINS.append(p)
+			print 'Successfully loaded plugin: {}'.format(p)
+		except Exception as e:
+			print 'Failed to load plugin {}. Error: {}'.format(plugin, e)
+	for plugin in os.listdir('kodiplugins'):
+		try:
+			dir = os.path.join('kodiplugins', plugin)
+			if not os.path.isdir(dir):
+				continue
+			print 'Loading kodi plugin {}'.format(plugin)
+			p = KodiPlugin(dir)
+			PLUGINS.append(p)
+			print 'Successfully loaded plugin: {}'.format(p)
+		except Exception as e:
+			print 'Failed to load kodi plugin {}. Error: {}'.format(plugin, e)
+			
+	
+	
+	
+	
+	
+	_routes = {}
+	utils.SYS_PATH = sys.path
+	print 'original clean path: {}'.format(utils.SYS_PATH)
 	mmain()
