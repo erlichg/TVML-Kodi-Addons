@@ -2,10 +2,10 @@ from __future__ import division
 from flask import Flask, render_template, send_from_directory, request
 
 import sys, os, imp, urllib, json, time, traceback, re
-from multiprocessing import Process, Queue
+import multiprocessing
 import urlparse
-import gevent.monkey
-gevent.monkey.patch_all()
+#import gevent.monkey
+#gevent.monkey.patch_all()
 from gevent.pywsgi import WSGIServer
 
 reload(sys)
@@ -22,14 +22,15 @@ app.jinja_env.filters['base64encode'] = utils.b64encode
 	
 import threading
 
-class Thread(threading.Thread):
-	def __init__(self, target, *args):
+class Process(multiprocessing.Process):
+	def __init__(self, target, args):
+		multiprocessing.Process.__init__(self)
 		self._target = target
 		self._args = args
-		self.messages = []
-		self.responses = []
-		self.stop = False #can be used to indicate stop
-		threading.Thread.__init__(self)
+		manager = multiprocessing.Manager()
+		self.messages = manager.list()
+		self.responses = manager.list()
+		self.stop = False #can be used to indicate stop		
 	def run(self):
 		ans = self._target(*self._args)		
 		print 'Thread adding end message'
@@ -47,23 +48,17 @@ class Thread(threading.Thread):
 
 
 
-@app.route('/response/<id>', methods=['POST', 'GET'])
-@app.route('/response/<id>/<res>')
-def route(id, res=None):
+@app.route('/response/<bridge>/<id>', methods=['POST', 'GET'])
+@app.route('/response/<bridge>/<id>/<res>')
+def route(bridge, id, res=None):
 	if request.method == 'POST':
 		res = request.form.keys()[0]
-	handler = _routes.get(id, None)
-	if handler is not None:
-		return handler(res)
+	global bridges
+	b = bridges[bridge]
+	if b is not None:
+		b.thread.responses.append({'id':id, 'response':res})
+		return 'OK', 206
 	return render_template('alert.xml', title='Communication error', description="Failed to load page.\nThis could mean the server had a problem, or the request dialog timed-out\nPlease try again")
-
-def add_route(id, handler):
-	_routes[id] = handler
-	
-def remove_route(id):
-	del _routes[id]
-
-
 
 @app.route('/icon.png')
 def icon():
@@ -109,8 +104,7 @@ def catalog(pluginid, url=None, response=None):
 		print 'saving bridge id {}'.format(id(b))
 		bridges[str(id(b))] = b
 		#b.thread = Thread(get_items, b, plugin, decoded_url)
-		q = Queue()
-		b.thread = Process(target=get_items, args=(q, b, plugin, decoded_url))
+		b.thread = Process(target=get_items, args=(b, plugin, decoded_url))
 		def stop():
 			time.sleep(5) #close bridge after 10s
 			global bridges
@@ -161,7 +155,7 @@ def menu(pluginid, response=None):
 		b = bridge(__name__, plugin)		
 		print 'saving bridge id {}'.format(id(b))
 		bridges[str(id(b))] = b
-		b.thread = Thread(get_menu, b, plugin, '')
+		b.thread = Process(target=get_menu, args=(b, plugin, ''))
 		def stop():
 			time.sleep(5)
 			global bridges
@@ -262,13 +256,5 @@ if __name__ == '__main__':
 			print 'Successfully loaded plugin: {}'.format(p)
 		except Exception as e:
 			print 'Failed to load kodi plugin {}. Error: {}'.format(plugin, e)
-			
-	
-	
-	
-	
-	
-	_routes = {}
-	utils.SYS_PATH = sys.path
-	print 'original clean path: {}'.format(utils.SYS_PATH)
+				
 	mmain()

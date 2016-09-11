@@ -1,7 +1,5 @@
 import importlib, time, sys, json, utils
-
-
-	
+from multiprocessing import Process
    
 class bridge:
 	"""Bridge class which is created on every client request.
@@ -10,46 +8,32 @@ class bridge:
 	"""
 	def __init__(self, app, plugin):
 		self.app = importlib.import_module(app)
-		self.Thread = getattr(self.app, 'Thread')
 		self.thread = None
 		
-	def _message(self, msg, wait=False, id=None):			
+	def _message(self, msg, wait=False, _id=None):			
 		if not self.thread:
 			return None
-		if not id:
-			id = utils.randomword()
-			msg['id'] = id						
-		
-		if wait:
-			print 'configuring response/{}'.format(id)
-			def response(res):
-				print 'got response in thread {}'.format(res)
-				self.thread.responses.append({'id':id, 'response':res})
-				return 'OK', 206
-			self.app.add_route(id, response)
+		if not _id:
+			_id = utils.randomword()
+			msg['id'] = '{}/{}'.format(str(id(self)), _id)						
 		
 		print 'adding message: {}'.format(msg)
 		self.thread.message(msg)
 		if not wait:
 			return
-		start = time.time()
-		print 'waiting for message to {}'.format(id)
+		start = time.time()		
 		while not self.thread.stop and time.time() - start < 3600: #wait for response at most 1 hour. This is meant to limit amount of threads on web server			
 			for r in self.thread.responses:
-				if r['id'] == id:
-					print 'received response to {}'.format(id)
-					self.thread.responses.remove(r)
-					self.app.remove_route(id)
+				print 'found response for {}'.format(r['id'])
+				if r['id'] == _id:
+					print 'received response to {}'.format(_id)
+					self.thread.responses.remove(r)					
 					return r['response']
 			time.sleep(0.1)
 		if self.thread.stop:
-			print 'finished waiting for response {} due to thread stop'.format(id)
+			print 'finished waiting for response {} due to thread stop'.format(_id)
 		else:
 			print 'Aborting response wait due to time out'
-		try:
-			self.app.remove_route(id)
-		except:
-			pass
 		return None
 	
 	def alertdialog(self, title, description):
@@ -63,27 +47,35 @@ class bridge:
 		
 	def progressdialog(self, heading, text=''):
 		"""Shows a progress dialog to the user"""
-		id = utils.randomword()
-		self.progress={'title': heading, 'id': id}
-		def f():
-			self._message({'type':'progressdialog', 'title':heading, 'text':text, 'value':'0', 'id':id}, True, id)
-			print 'progress closed'
-			self.progress=None
-		t = self.Thread(f)
-		t.start()
+		_id = utils.randomword()
+		self.progress={'title': heading, 'id': _id}
+		def f(b):
+			while self.progress:
+				for r in b.thread.responses:
+					print 'found response for {}'.format(r['id'])
+					if r['id'] == _id:
+						print 'received response to {}'.format(_id)
+						b.thread.responses.remove(r)					
+						print 'progress closed'
+						b.progress=None				
+				time.sleep(1)			
+		Process(target=f, args=(self,)).start()
+		self._message({'type':'progressdialog', 'title':heading, 'text':text, 'value':'0', 'id':'{}/{}'.format(str(id(self)), _id)})
 		
 	def updateprogressdialog(self, value, text=''):
 		"""Updates the progress dialog"""
 		if self.progress:
 			print 'updating progress with {}, {}'.format(value, text)
-			return self._message({'type':'progressdialog', 'title':self.progress['title'], 'text':text, 'value':value, 'id':self.progress['id']}, False, self.progress['id'])
+			return self._message({'type':'progressdialog', 'title':self.progress['title'], 'text':text, 'value':value, 'id':'{}/{}'.format(str(id(self)), self.progress['id'])}, False, self.progress['id'])
 	
 	def isprogresscanceled(self):
 		"""Returns whether the progress dialog is still showing or canceled by user"""
+		print 'isprogresscanceled {}'.format(not self.progress)
 		return not self.progress
 	
 	def closeprogress(self):
 		"""Closes the progress dialog"""
+		self.progress = None
 		return self._message({'type':'closeprogress'})
 		
 	def selectdialog(self, title, text='', list_=[]):
@@ -96,15 +88,27 @@ class bridge:
 		"""Plays a url"""
 		print 'Playing {}'.format(url)
 		self.play = url
-		def stop(res):
+		_id = utils.randomword()
+		def f(b, _id, stop_completion):
+			res = None
+			while True:
+				for r in b.thread.responses:
+					print 'found response for {}'.format(r['id'])
+					if r['id'] == _id:
+						print 'received response to {}'.format(_id)
+						b.thread.responses.remove(r)					
+						res = r['response']
+						break
+				if res:
+					break
+				time.sleep(1)
 			self.play = None
 			print 'detected player stop at time {}'.format(utils.b64decode(res))
 			if stop_completion:
 				stop_completion(utils.b64decode(res))
-			return 'OK', 206
-		id = utils.randomword()
-		self.app.add_route(id, stop)
-		return self._message({'type':'play', 'url':url, 'stop':'/response/{}'.format(id), 'playtype': type_, 'subtitle':subtitle_url, 'title':title, 'description':description, 'image':image})
+		Process(target=f, args=(self, _id, stop_completion)).start()	
+		self._message({'type':'play', 'url':url, 'stop':'/response/{}/{}'.format(str(id(self)), _id), 'playtype': type_, 'subtitle':subtitle_url, 'title':title, 'description':description, 'image':image})
+		return 
 	
 	def isplaying(self):
 		"""Returns whether the player is still showing or has been cancelled"""

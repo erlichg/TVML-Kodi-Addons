@@ -9,7 +9,10 @@ def main(bridge, url):
 	if url == '2':
 		return [Item('21', 'tv1', 'sub-title of tv1', 'https://pixabay.com/static/uploads/photo/2016/07/24/23/35/blackberries-1539540_960_720.jpg', 'A lot of details about tv1', {})]
 	if url == '11':
-		bridge.play("https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8")
+		def f(time):
+			print 'in addon, player stop at {}'.format(time)
+		
+		bridge.play("https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8", stop_completion=f)
 		return
 	if url == '21':
 		def f(time):

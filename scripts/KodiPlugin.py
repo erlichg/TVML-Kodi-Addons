@@ -40,13 +40,7 @@ class KodiPlugin:
 		if url.startswith('http') or url.startswith('https'):
 			bridge.play(url, type_='video')
 			return
-		OLD_SYS_PATH=list(sys.path)
-		print 'orig path: {}'.format(OLD_SYS_PATH)
-		sys.path = list(utils.SYS_PATH)
-		print 'clean path: {}'.format(sys.path)
-		sys.path.insert(0, self.dir)
-		print 'plugin path: {}'.format(sys.path)
-		sys.modules = utils.SYS_MODULES.copy()
+		sys.path.append(self.dir)
 		import xbmc
 		xbmc.bridge = bridge
 		import Container
@@ -86,7 +80,6 @@ class KodiPlugin:
 			print 'Failure in plugin run'
 			traceback.print_exc(file=sys.stdout)
 		fp.close()
-		sys.path = list(OLD_SYS_PATH)
 		#sys.argv = old_sys_argv
 		items = xbmcplugin.items
 		print 'Plugin {} ended with: {}'.format(self.name, items)

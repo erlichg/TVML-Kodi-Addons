@@ -242,7 +242,7 @@ DocumentLoader.prototype.prepareDocument = function(document) {
 					} catch (err) {
 						this.post({
 							url: "/response/" + id,
-							data: ""
+							data: "blah"
 						});
 					}
 				}.bind(this),
@@ -255,7 +255,7 @@ DocumentLoader.prototype.prepareDocument = function(document) {
 					} catch (err) {
 						this.post({
 							url: "/response/" + id,
-							data: ""
+							data: "blah"
 						});
 					}
 				}.bind(this)
