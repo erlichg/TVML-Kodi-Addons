@@ -136,7 +136,6 @@ def catalog(pluginid, url=None, response=None):
 				del bridges[str(id(b))]
 				b.thread.join()
 				b.thread.terminate()
-				print 'after join'
 			return_url = None
 			if response:
 				#return on same url for more
@@ -161,7 +160,6 @@ def catalog(pluginid, url=None, response=None):
 				del bridges[str(id(b))]
 				b.thread.join()
 				b.thread.terminate()
-				print 'after join'
 			return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, id(b)))	
 		except:
 			time.sleep(0.1)
@@ -191,24 +189,30 @@ def menu(pluginid, response=None):
 		b.thread.start()
 		
 	while b.thread.is_alive():
-		if len(b.thread.messages)>0:
-			msg = b.thread.messages.pop(0)
+		try:
+			msg = b.thread.messages.get(False)
 			method = getattr(messages, msg['type'])
 			if msg['type'] == 'end':
 				global bridges
 				del bridges[str(id(b))]
 				b.thread.join()
+				b.thread.terminate()
 			return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, id(b)))
-		time.sleep(0.1)
+		except:
+			time.sleep(0.1)
 	#Check for possible last message which could have appeared after the thread has died. This could happen if message was sent during time.sleep in while and loop exited immediately afterwards	
-	while len(b.thread.messages)>0:
-		msg = b.thread.messages.pop(0)
-		method = getattr(messages, msg['type'])
-		if msg['type'] == 'end':
-			global bridges
-			del bridges[str(id(b))]
-			b.thread.join()
-		return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, id(b)))
+	while True:
+		try:
+			msg = b.thread.messages.get(False)
+			method = getattr(messages, msg['type'])
+			if msg['type'] == 'end':
+				global bridges
+				del bridges[str(id(b))]
+				b.thread.join()
+				b.thread.terminate()
+			return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, id(b)))
+		except:
+			time.sleep(0.1)
 	raise Exception('Should not get here')
 
 @app.route('/helloworld')
