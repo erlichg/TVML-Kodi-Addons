@@ -22,29 +22,41 @@ app.jinja_env.filters['base64encode'] = utils.b64encode
 	
 import threading
 
-class Process(multiprocessing.Process):
-	def __init__(self, target, args):
-		multiprocessing.Process.__init__(self)
-		self._target = target
-		self._args = args
-		manager = multiprocessing.Manager()
-		self.messages = manager.list()
-		self.responses = manager.list()
-		self.stop = False #can be used to indicate stop		
-	def run(self):
-		ans = self._target(*self._args)		
+def Process(group=None, target=None, name=None, args=(), kwargs={}):
+	ans = multiprocessing.Queue()
+	args = (ans,)+args
+	p = multiprocessing.Process(group, target, name, args, kwargs)
+	#manager = multiprocessing.Manager()
+	p.messages = multiprocessing.Queue()
+	p.responses = multiprocessing.Queue()
+	p.stop = False #can be used to indicate stop
+	
+	orig_run = p.run
+	
+	def run():
+		orig_run()		
 		print 'Thread adding end message'
-		self.message({'type':'end', 'ans':ans})		
-		self.onStop()
-		self.stop = True
-	def response(self, id, response):
-		self.responses.append({'id':id, 'response':response})
-	def message(self, msg):
-		self.messages.append(msg)
-	def onStop(self):
-		pass
-
-
+		try:
+			ans2 = ans.get(True, 5)
+		except:
+			ans2 = None
+		p.message({'type':'end', 'ans':ans2})		
+		p.onStop()
+		p.stop = True
+	p.run = run
+	def response(id, response):
+		p.responses.put({'id':id, 'response':response})
+	p.response = response
+	
+	def message(msg):
+		p.messages.put(msg)
+	p.message = message
+	
+ 	def onStop():
+ 		pass
+ 	p.onStop = onStop
+	
+	return p
 
 
 
@@ -56,7 +68,7 @@ def route(bridge, id, res=None):
 	global bridges
 	b = bridges[bridge]
 	if b is not None:
-		b.thread.responses.append({'id':id, 'response':res})
+		b.thread.responses.put({'id':id, 'response':res})
 		return 'OK', 206
 	return render_template('alert.xml', title='Communication error', description="Failed to load page.\nThis could mean the server had a problem, or the request dialog timed-out\nPlease try again")
 
@@ -94,6 +106,7 @@ def catalog(pluginid, url=None, response=None):
 	else:
 		decoded_url = utils.b64decode(url)
 	decoded_id = utils.b64decode(pluginid)
+	print 'catalog {}, {}, {}'.format(decoded_id, decoded_url, response)
 	#current_item = get_items('')[int(id)]
 	plugin = [p for p in PLUGINS if p.id == decoded_id][0]	
 	global bridges
@@ -114,9 +127,16 @@ def catalog(pluginid, url=None, response=None):
 		#b.thread.onStop = stop
 		b.thread.start()
 	while b.thread.is_alive():
-		if len(b.thread.messages)>0:
-			msg = b.thread.messages.pop(0)
+		try:
+			msg = b.thread.messages.get(False)
+			print 'got message {}'.format(msg)
 			method = getattr(messages, msg['type'])
+			if msg['type'] == 'end':
+				global bridges
+				del bridges[str(id(b))]
+				b.thread.join()
+				b.thread.terminate()
+				print 'after join'
 			return_url = None
 			if response:
 				#return on same url for more
@@ -128,18 +148,23 @@ def catalog(pluginid, url=None, response=None):
 				#No url and no response so add 'fake' url
 				return_url = '{}/{}/{}'.format(request.url, 'fake', id(b))
 			return method(plugin, msg, return_url)
-		time.sleep(0.1)
+		except:
+			time.sleep(0.1)
 	#Check for possible last message which could have appeared after the thread has died. This could happen if message was sent during time.sleep in while and loop exited immediately afterwards
-	while len(b.thread.messages)>0:
-		msg = b.thread.messages.pop(0)
-		method = getattr(messages, msg['type'])
-		if method == 'end':
-			global bridges
-			print 'brfore stop2 {}'.format(bridges)
-			del bridges[str(id(b))]
-			print 'after stop2 {}'.format(bridges)
-		return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, id(b)))	
-	
+	while True:
+		try:
+			msg = b.thread.messages.get(False)
+			print 'got message {}'.format(msg)
+			method = getattr(messages, msg['type'])
+			if msg['type'] == 'end':
+				global bridges
+				del bridges[str(id(b))]
+				b.thread.join()
+				b.thread.terminate()
+				print 'after join'
+			return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, id(b)))	
+		except:
+			time.sleep(0.1)
 	raise Exception('Should not get here')
 
 @app.route('/menu/<pluginid>')
@@ -169,17 +194,20 @@ def menu(pluginid, response=None):
 		if len(b.thread.messages)>0:
 			msg = b.thread.messages.pop(0)
 			method = getattr(messages, msg['type'])
+			if msg['type'] == 'end':
+				global bridges
+				del bridges[str(id(b))]
+				b.thread.join()
 			return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, id(b)))
 		time.sleep(0.1)
-	#Check for possible last message which could have appeared after the thread has died. This could happen if message was sent during time.sleep in while and loop exited immediately afterwards
+	#Check for possible last message which could have appeared after the thread has died. This could happen if message was sent during time.sleep in while and loop exited immediately afterwards	
 	while len(b.thread.messages)>0:
 		msg = b.thread.messages.pop(0)
 		method = getattr(messages, msg['type'])
-		if method == 'end':
+		if msg['type'] == 'end':
 			global bridges
-			print 'brfore stop2 {}'.format(bridges)
 			del bridges[str(id(b))]
-			print 'after stop2 {}'.format(bridges)
+			b.thread.join()
 		return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, id(b)))
 	raise Exception('Should not get here')
 
@@ -192,7 +220,7 @@ def main():
 	return render_template('main.xml', menu=PLUGINS)
 	
 
-def get_items(bridge, plugin, url):
+def get_items(ans, bridge, plugin, url):
 	print('Getting items for: {}'.format(url))
 	try:
 		items = plugin.run(bridge, url)
@@ -200,9 +228,9 @@ def get_items(bridge, plugin, url):
 		print 'Encountered error in plugin: {}'.format(plugin.name)
 		traceback.print_exc(file=sys.stdout)
 		items = None
-	return items
+	ans.put(items)
 	
-def get_menu(bridge, plugin, url):
+def get_menu(ans, bridge, plugin, url):
 	print('Getting menu for: {}'.format(url))
 	url = url.split('?')[1] if '?' in url else url
 	try:
@@ -211,7 +239,7 @@ def get_menu(bridge, plugin, url):
 		print 'Encountered error in plugin: {}'.format(plugin.name)
 		traceback.print_exc(file=sys.stdout)
 		items = None
-	return items
+	ans.put(items)
 
 def is_ascii(s):
 	return all(ord(c) < 128 for c in s)

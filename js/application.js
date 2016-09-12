@@ -95,7 +95,7 @@ App.onExit = function(options) {
 }
 
 /*
-	This is called when the app gois to background
+	This is called when the app goes to background
 */
 App.onSuspend = function(options) {
 
@@ -108,7 +108,7 @@ App.onResume = function(options) {
 }
 
 /*
-	This is called when app receives memory warning. If ignored, the app will be exited forcefully
+	This is called when app receives memory warning. If ignored for some time, the app will be exited forcefully
 */
 App.onMemoryWarning = function(options) {
 	
@@ -124,6 +124,9 @@ function createLoadingDocument(title) {
     const template = `<?xml version="1.0" encoding="UTF-8" ?>
         <document>
             <loadingTemplate>
+            	<background>
+					<img src="/templates/background.png"/>
+				</background>
             	<activityIndicator>
                     <title style="color:rgb(241,241,241)">${title}</title>
                 </activityIndicator>

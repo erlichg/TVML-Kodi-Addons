@@ -23,13 +23,16 @@ class bridge:
 			return
 		start = time.time()		
 		while not self.thread.stop and time.time() - start < 3600: #wait for response at most 1 hour. This is meant to limit amount of threads on web server			
-			for r in self.thread.responses:
+			try:
+				r = self.thread.responses.get(False)
 				print 'found response for {}'.format(r['id'])
 				if r['id'] == _id:
 					print 'received response to {}'.format(_id)
-					self.thread.responses.remove(r)					
 					return r['response']
-			time.sleep(0.1)
+				else:
+					self.thread.responses.put(r)
+			except:
+				time.sleep(0.1)
 		if self.thread.stop:
 			print 'finished waiting for response {} due to thread stop'.format(_id)
 		else:
@@ -50,17 +53,20 @@ class bridge:
 		_id = utils.randomword()
 		self.progress={'title': heading, 'id': _id}
 		def f(b):
-			while self.progress:
-				for r in b.thread.responses:
+			while b.progress and b.thread.is_alive():
+				try:
+					r = b.thread.responses.get(False)
 					print 'found response for {}'.format(r['id'])
 					if r['id'] == _id:
 						print 'received response to {}'.format(_id)
-						b.thread.responses.remove(r)					
 						print 'progress closed'
-						b.progress=None				
-				time.sleep(1)			
+						b.progress=None
+					else:
+						b.thread.responses.put(r)					
+				except:			
+					time.sleep(1)			
 		Process(target=f, args=(self,)).start()
-		self._message({'type':'progressdialog', 'title':heading, 'text':text, 'value':'0', 'id':'{}/{}'.format(str(id(self)), _id)})
+		self._message({'type':'progressdialog', 'title':heading, 'text':text, 'value':'0', 'id':'{}/{}'.format(str(id(self)), _id)}, False, _id)
 		
 	def updateprogressdialog(self, value, text=''):
 		"""Updates the progress dialog"""
@@ -91,17 +97,18 @@ class bridge:
 		_id = utils.randomword()
 		def f(b, _id, stop_completion):
 			res = None
-			while True:
-				for r in b.thread.responses:
+			while b.thread.is_alive():
+				try:
+					r = b.thread.responses.get(False)
 					print 'found response for {}'.format(r['id'])
 					if r['id'] == _id:
 						print 'received response to {}'.format(_id)
-						b.thread.responses.remove(r)					
 						res = r['response']
 						break
-				if res:
-					break
-				time.sleep(1)
+					else:
+						b.thread.responses.put(r)					
+				except:
+					time.sleep(1)
 			self.play = None
 			print 'detected player stop at time {}'.format(utils.b64decode(res))
 			if stop_completion:
