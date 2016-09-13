@@ -112,7 +112,7 @@ class bridge:
 			print 'detected player stop at time {}'.format(utils.b64decode(res))
 			if stop_completion:
 				stop_completion(utils.b64decode(res))
-		multiprocessing.Process(target=f, args=(self, _id, stop_completion)).start()	
+		#multiprocessing.Process(target=f, args=(self, _id, stop_completion)).start()	
 		self._message({'type':'play', 'url':url, 'stop':'/response/{}/{}'.format(self.thread.id, _id), 'playtype': type_, 'subtitle':subtitle_url, 'title':title, 'description':description, 'image':image})
 		return 
 	
