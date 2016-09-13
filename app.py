@@ -55,42 +55,63 @@ for plugin in os.listdir('kodiplugins'):
 	except Exception as e:
 		print 'Failed to load kodi plugin {}. Error: {}'.format(plugin, e)
 			
+class Process(multiprocessing.Process):
+	def __init__(self, group=None, target=None, name=None, args=(), kwargs={}):
+		multiprocessing.Process.__init__(self, group, target, name, args, kwargs)
+		self.messages = multiprocessing.Queue()
+		self.responses = multiprocessing.Queue()
+		self.stop = False #can be used to indicate stop
 
-def Process(group=None, target=None, name=None, args=(), kwargs={}):
-	ans = multiprocessing.Queue()
-	args = (ans,)+args
-	p = multiprocessing.Process(group, target, name, args, kwargs)
-	#manager = multiprocessing.Manager()
-	p.messages = multiprocessing.Queue()
-	p.responses = multiprocessing.Queue()
-	p.stop = False #can be used to indicate stop
-	
-	orig_run = p.run
-	
-	def run():
-		orig_run()		
+	def run(self):
+		ans = self._target(*self._args, **self._kwargs)
 		print 'Thread adding end message'
-		try:
-			ans2 = ans.get(True, 5)
-		except:
-			ans2 = None
-		p.message({'type':'end', 'ans':ans2})		
-		p.onStop()
-		p.stop = True
-	p.run = run
-	def response(id, response):
-		p.responses.put({'id':id, 'response':response})
-	p.response = response
+		self.message({'type':'end', 'ans':ans})		
+		self.onStop()
+		self.stop = True
 	
-	def message(msg):
-		p.messages.put(msg)
-	p.message = message
+	def response(self, id, response):
+		self.responses.put({'id':id, 'response':response})
+		
+	def message(self, msg):
+		self.messages.put(msg)
 	
- 	def onStop():
+	def onStop(self):
  		pass
- 	p.onStop = onStop
-	
-	return p
+		
+# def Process(group=None, target=None, name=None, args=(), kwargs={}):
+# 	ans = multiprocessing.Queue()
+# 	args = (ans,)+args
+# 	p = multiprocessing.Process(group, target, name, args, kwargs)
+# 	p.messages = multiprocessing.Queue()
+# 	p.responses = multiprocessing.Queue()
+# 	p.stop = False #can be used to indicate stop
+# 	
+# 	orig_run = p.run
+# 	
+# 	def run():
+# 		orig_run()		
+# 		print 'Thread adding end message'
+# 		try:
+# 			ans2 = ans.get(True, 5)
+# 		except:
+# 			ans2 = None
+# 		p.message({'type':'end', 'ans':ans2})		
+# 		p.onStop()
+# 		p.stop = True
+# 	p.run = run
+# 	def response(id, response):
+# 		p.responses.put({'id':id, 'response':response})
+# 	p.response = response
+# 	
+# 	def message(msg):
+# 		p.messages.put(msg)
+# 	p.message = message
+# 	
+#  	def onStop():
+#  		pass
+#  	p.onStop = onStop
+# 	
+# 	return p
 
 
 
@@ -258,7 +279,7 @@ def main():
 	return render_template('main.xml', menu=PLUGINS)
 	
 
-def get_items(ans, bridge, plugin, url):
+def get_items(bridge, plugin, url):
 	print('Getting items for: {}'.format(url))
 	try:
 		items = plugin.run(bridge, url)
@@ -266,9 +287,9 @@ def get_items(ans, bridge, plugin, url):
 		print 'Encountered error in plugin: {}'.format(plugin.name)
 		traceback.print_exc(file=sys.stdout)
 		items = None
-	ans.put(items)
+	return items
 	
-def get_menu(ans, bridge, plugin, url):
+def get_menu(bridge, plugin, url):
 	print('Getting menu for: {}'.format(url))
 	url = url.split('?')[1] if '?' in url else url
 	try:
@@ -277,7 +298,7 @@ def get_menu(ans, bridge, plugin, url):
 		print 'Encountered error in plugin: {}'.format(plugin.name)
 		traceback.print_exc(file=sys.stdout)
 		items = None
-	ans.put(items)
+	return items
 
 def is_ascii(s):
 	return all(ord(c) < 128 for c in s)

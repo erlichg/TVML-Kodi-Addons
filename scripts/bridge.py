@@ -53,7 +53,7 @@ class bridge:
 		_id = utils.randomword()
 		self.progress={'title': heading, 'id': _id}
 		def f(b):
-			while b.progress and b.thread.is_alive():
+			while b.progress and not b.thread.stop:
 				try:
 					r = b.thread.responses.get(False)
 					print 'found response for {}'.format(r['id'])
@@ -97,7 +97,7 @@ class bridge:
 		_id = utils.randomword()
 		def f(b, _id, stop_completion):
 			res = None
-			while b.thread.is_alive():
+			while not b.thread.stop:
 				try:
 					r = b.thread.responses.get(False)
 					print 'found response for {}'.format(r['id'])
