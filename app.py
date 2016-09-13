@@ -256,8 +256,10 @@ def mmain():
 	import messages
 	
 
+	global bridges
 	bridges = {}
 	
+	global PLUGINS
 	PLUGINS = []
 	for plugin in os.listdir('plugins'):
 		try:
