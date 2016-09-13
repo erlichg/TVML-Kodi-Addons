@@ -56,13 +56,10 @@ for plugin in os.listdir('kodiplugins'):
 		print 'Failed to load kodi plugin {}. Error: {}'.format(plugin, e)
 			
 class Process(multiprocessing.Process):
-	def __init__(self, group=None, target=None, name=None, args=(), kwargs={}):
-		multiprocessing.Process.__init__(self, group, target, name, args, kwargs)
+	def run(self):
 		self.messages = multiprocessing.Queue()
 		self.responses = multiprocessing.Queue()
 		self.stop = False #can be used to indicate stop
-
-	def run(self):
 		ans = self._target(*self._args, **self._kwargs)
 		print 'Thread adding end message'
 		self.message({'type':'end', 'ans':ans})		
