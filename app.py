@@ -217,8 +217,8 @@ def get_items(plugin_id, url):
 		b = bridge()
 		items = plugin.run(b, url)
 	except:
-		print 'Encountered error in plugin: {}'.format(plugin.name)
 		traceback.print_exc(file=sys.stdout)
+		print 'Encountered error in plugin: {}'.format(plugin.name)		
 		items = None
 	print 'get_items finished with {}'.format(items)
 	return items
