@@ -29,25 +29,24 @@ from bridge import bridge
 import messages
 
 
-
-			
-def Process(group=None, target=None, name=None, args=(), kwargs={}):
-	class MyProcess(multiprocessing.Process):
-		def run(self):		
-			ans = self._target(*self._args, **self._kwargs)
-			print 'Thread adding end message'
-			self.message({'type':'end', 'ans':ans})		
-			self.onStop()
-			self.stop = True
+class MyProcess(multiprocessing.Process):
+	def run(self):		
+		ans = self._target(*self._args, **self._kwargs)
+		print 'Thread adding end message'
+		self.message({'type':'end', 'ans':ans})		
+		self.onStop()
+		self.stop = True
+	
+	def response(self, id, response):
+		self.responses.put({'id':id, 'response':response})
 		
-		def response(self, id, response):
-			self.responses.put({'id':id, 'response':response})
+	def message(self, msg):
+		self.messages.put(msg)
+	
+	def onStop(self):
+ 		pass
 			
-		def message(self, msg):
-			self.messages.put(msg)
-		
-		def onStop(self):
- 			pass
+def Process(group=None, target=None, name=None, args=(), kwargs={}):	
  	p = MyProcess(group, target, name, args, kwargs)
  	p.messages = multiprocessing.Queue()
 	p.responses = multiprocessing.Queue()
