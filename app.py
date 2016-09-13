@@ -51,6 +51,7 @@ def Process(group=None, target=None, name=None, args=(), kwargs={}):
  	p.messages = multiprocessing.Queue()
 	p.responses = multiprocessing.Queue()
 	p.stop = False #can be used to indicate stop
+	p.id = str(id(p))
 	return p
 		
 # def Process(group=None, target=None, name=None, args=(), kwargs={}):
@@ -155,12 +156,12 @@ def catalog(pluginid, url=None, response=None):
 			p = Process(target=get_items, args=(plugin.id, decoded_url))
 		else:
 			p = Process(target=get_menu, args=(plugin.id, decoded_url))	
-		print 'saving process id {}'.format(id(p))		
-		PROCESSES[str(id(p))] = p
+		print 'saving process id {}'.format(p.id)		
+		PROCESSES[p.id] = p
 		def stop():
 			time.sleep(5) #close bridge after 10s
 			global PROCESSES
-			del PROCESSES[str(id(p))]
+			del PROCESSES[p.id]
 		#b.thread.onStop = stop
 		p.start()
 	while p.is_alive():
@@ -169,7 +170,7 @@ def catalog(pluginid, url=None, response=None):
 			method = getattr(messages, msg['type'])
 			if msg['type'] == 'end':
 				global PROCESSES
-				del PROCESSES[str(id(p))]
+				del PROCESSES[p.id]
 				p.join()
 				p.terminate()
 			return_url = None
@@ -178,10 +179,10 @@ def catalog(pluginid, url=None, response=None):
 				return_url = request.url
 			elif url or request.full_path.startswith('/menu'):
 				#add response bridge
-				return_url = '{}/{}'.format(request.url, id(p))
+				return_url = '{}/{}'.format(request.url, p.id)
 			else:
 				#No url and no response so add 'fake' url
-				return_url = '{}/{}/{}'.format(request.url, 'fake', id(p))
+				return_url = '{}/{}/{}'.format(request.url, 'fake', p.id)
 			return method(plugin, msg, return_url)
 		except:
 			time.sleep(0.1)
@@ -192,10 +193,10 @@ def catalog(pluginid, url=None, response=None):
 			method = getattr(messages, msg['type'])
 			if msg['type'] == 'end':
 				global PROCESSES
-				del PROCESSES[str(id(p))]
+				del PROCESSES[p.id]
 				p.join()
 				p.terminate()
-			return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, id(p)))	
+			return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, p.id))	
 		except:
 			time.sleep(0.1)
 	raise Exception('Should not get here')

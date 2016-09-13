@@ -14,7 +14,7 @@ class bridge:
 			return None
 		if not _id:
 			_id = utils.randomword()
-			msg['id'] = '{}/{}'.format(str(id(self.thread)), _id)						
+			msg['id'] = '{}/{}'.format(self.thread.id, _id)						
 		
 		print 'adding message: {}'.format(msg)
 		self.thread.message(msg)
@@ -65,13 +65,13 @@ class bridge:
 				except:			
 					time.sleep(1)			
 		multiprocessing.Process(target=f, args=(self,)).start()
-		self._message({'type':'progressdialog', 'title':heading, 'text':text, 'value':'0', 'id':'{}/{}'.format(str(id(self.thread)), _id)}, False, _id)
+		self._message({'type':'progressdialog', 'title':heading, 'text':text, 'value':'0', 'id':'{}/{}'.format(self.thread.id, _id)}, False, _id)
 		
 	def updateprogressdialog(self, value, text=''):
 		"""Updates the progress dialog"""
 		if self.progress:
 			print 'updating progress with {}, {}'.format(value, text)
-			return self._message({'type':'progressdialog', 'title':self.progress['title'], 'text':text, 'value':value, 'id':'{}/{}'.format(str(id(self.thread)), self.progress['id'])}, False, self.progress['id'])
+			return self._message({'type':'progressdialog', 'title':self.progress['title'], 'text':text, 'value':value, 'id':'{}/{}'.format(self.thread.id, self.progress['id'])}, False, self.progress['id'])
 	
 	def isprogresscanceled(self):
 		"""Returns whether the progress dialog is still showing or canceled by user"""
@@ -113,7 +113,7 @@ class bridge:
 			if stop_completion:
 				stop_completion(utils.b64decode(res))
 		multiprocessing.Process(target=f, args=(self, _id, stop_completion)).start()	
-		self._message({'type':'play', 'url':url, 'stop':'/response/{}/{}'.format(str(id(self.thread)), _id), 'playtype': type_, 'subtitle':subtitle_url, 'title':title, 'description':description, 'image':image})
+		self._message({'type':'play', 'url':url, 'stop':'/response/{}/{}'.format(self.thread.id, _id), 'playtype': type_, 'subtitle':subtitle_url, 'title':title, 'description':description, 'image':image})
 		return 
 	
 	def isplaying(self):
