@@ -125,8 +125,6 @@ class Addon(object):
 			locstr = self.Addon.getLocalizedString(id=6)
 		"""
 		import traceback
-		print traceback.extract_stack()
-		print 'getLoclizedString {}'.format(id)
 		try:
 			return self.strings[str(id)]
 		except:
