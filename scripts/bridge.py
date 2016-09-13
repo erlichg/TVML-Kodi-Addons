@@ -1,21 +1,20 @@
 import importlib, time, sys, json, utils
-from multiprocessing import Process
+import multiprocessing
    
 class bridge:
 	"""Bridge class which is created on every client request.
 	It is passed to the plugin run method and used to communicate between the plugin and the server.
 	For example: pop dialog, request input from user and so on.
 	"""
-	def __init__(self, app, plugin):
-		self.app = importlib.import_module(app)
-		self.thread = None
+	def __init__(self):
+		self.thread = multiprocessing.current_process()
 		
 	def _message(self, msg, wait=False, _id=None):			
 		if not self.thread:
 			return None
 		if not _id:
 			_id = utils.randomword()
-			msg['id'] = '{}/{}'.format(str(id(self)), _id)						
+			msg['id'] = '{}/{}'.format(str(id(self.thread)), _id)						
 		
 		print 'adding message: {}'.format(msg)
 		self.thread.message(msg)
@@ -65,14 +64,14 @@ class bridge:
 						b.thread.responses.put(r)					
 				except:			
 					time.sleep(1)			
-		Process(target=f, args=(self,)).start()
-		self._message({'type':'progressdialog', 'title':heading, 'text':text, 'value':'0', 'id':'{}/{}'.format(str(id(self)), _id)}, False, _id)
+		multiprocessing.Process(target=f, args=(self,)).start()
+		self._message({'type':'progressdialog', 'title':heading, 'text':text, 'value':'0', 'id':'{}/{}'.format(str(id(self.thread)), _id)}, False, _id)
 		
 	def updateprogressdialog(self, value, text=''):
 		"""Updates the progress dialog"""
 		if self.progress:
 			print 'updating progress with {}, {}'.format(value, text)
-			return self._message({'type':'progressdialog', 'title':self.progress['title'], 'text':text, 'value':value, 'id':'{}/{}'.format(str(id(self)), self.progress['id'])}, False, self.progress['id'])
+			return self._message({'type':'progressdialog', 'title':self.progress['title'], 'text':text, 'value':value, 'id':'{}/{}'.format(str(id(self.thread)), self.progress['id'])}, False, self.progress['id'])
 	
 	def isprogresscanceled(self):
 		"""Returns whether the progress dialog is still showing or canceled by user"""
@@ -113,8 +112,8 @@ class bridge:
 			print 'detected player stop at time {}'.format(utils.b64decode(res))
 			if stop_completion:
 				stop_completion(utils.b64decode(res))
-		Process(target=f, args=(self, _id, stop_completion)).start()	
-		self._message({'type':'play', 'url':url, 'stop':'/response/{}/{}'.format(str(id(self)), _id), 'playtype': type_, 'subtitle':subtitle_url, 'title':title, 'description':description, 'image':image})
+		multiprocessing.Process(target=f, args=(self, _id, stop_completion)).start()	
+		self._message({'type':'play', 'url':url, 'stop':'/response/{}/{}'.format(str(id(self.thread)), _id), 'playtype': type_, 'subtitle':subtitle_url, 'title':title, 'description':description, 'image':image})
 		return 
 	
 	def isplaying(self):

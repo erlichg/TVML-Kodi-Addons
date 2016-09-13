@@ -29,51 +29,30 @@ from bridge import bridge
 import messages
 
 
-bridges = {}
 
-PLUGINS = []
-for plugin in os.listdir('plugins'):
-	try:
-		dir = os.path.join('plugins', plugin)
-		if not os.path.isdir(dir):
-			continue
-		print 'Loading plugin {}'.format(plugin)
-		p = Plugin.Plugin(dir)
-		PLUGINS.append(p)
-		print 'Successfully loaded plugin: {}'.format(p)
-	except Exception as e:
-		print 'Failed to load plugin {}. Error: {}'.format(plugin, e)
-for plugin in os.listdir('kodiplugins'):
-	try:
-		dir = os.path.join('kodiplugins', plugin)
-		if not os.path.isdir(dir):
-			continue
-		print 'Loading kodi plugin {}'.format(plugin)
-		p = KodiPlugin(dir)
-		PLUGINS.append(p)
-		print 'Successfully loaded plugin: {}'.format(p)
-	except Exception as e:
-		print 'Failed to load kodi plugin {}. Error: {}'.format(plugin, e)
 			
-class Process(multiprocessing.Process):
-	def run(self):
-		self.messages = multiprocessing.Queue()
-		self.responses = multiprocessing.Queue()
-		self.stop = False #can be used to indicate stop
-		ans = self._target(*self._args, **self._kwargs)
-		print 'Thread adding end message'
-		self.message({'type':'end', 'ans':ans})		
-		self.onStop()
-		self.stop = True
-	
-	def response(self, id, response):
-		self.responses.put({'id':id, 'response':response})
+def Process(group=None, target=None, name=None, args=(), kwargs={}):
+	class MyProcess(multiprocessing.Process):
+		def run(self):		
+			ans = self._target(*self._args, **self._kwargs)
+			print 'Thread adding end message'
+			self.message({'type':'end', 'ans':ans})		
+			self.onStop()
+			self.stop = True
 		
-	def message(self, msg):
-		self.messages.put(msg)
-	
-	def onStop(self):
- 		pass
+		def response(self, id, response):
+			self.responses.put({'id':id, 'response':response})
+			
+		def message(self, msg):
+			self.messages.put(msg)
+		
+		def onStop(self):
+ 			pass
+ 	p = MyProcess(group, target, name, args, kwargs)
+ 	p.messages = multiprocessing.Queue()
+	p.responses = multiprocessing.Queue()
+	p.stop = False #can be used to indicate stop
+	return p
 		
 # def Process(group=None, target=None, name=None, args=(), kwargs={}):
 # 	ans = multiprocessing.Queue()
@@ -112,15 +91,15 @@ class Process(multiprocessing.Process):
 
 
 
-@app.route('/response/<bridge>/<id>', methods=['POST', 'GET'])
-@app.route('/response/<bridge>/<id>/<res>')
-def route(bridge, id, res=None):
+@app.route('/response/<pid>/<id>', methods=['POST', 'GET'])
+@app.route('/response/<pid>/<id>/<res>')
+def route(pid, id, res=None):
 	if request.method == 'POST':
 		res = request.form.keys()[0]
-	global bridges
-	b = bridges[bridge]
-	if b is not None:
-		b.thread.responses.put({'id':id, 'response':res})
+	global PROCESSES
+	p = PROCESSES[pid]
+	if p is not None:
+		p.responses.put({'id':id, 'response':res})
 		return 'OK', 206
 	return render_template('alert.xml', title='Communication error', description="Failed to load page.\nThis could mean the server had a problem, or the request dialog timed-out\nPlease try again")
 
@@ -146,7 +125,8 @@ def template(filename):
 	return send_from_directory('templates', filename)
 
 
-
+@app.route('/menu/<pluginid>')
+@app.route('/menu/<pluginid>/<response>')
 @app.route('/catalog/<pluginid>')
 @app.route('/catalog/<pluginid>/<url>')
 @app.route('/catalog/<pluginid>/<url>/<response>')
@@ -158,111 +138,65 @@ def catalog(pluginid, url=None, response=None):
 	else:
 		decoded_url = utils.b64decode(url)
 	decoded_id = utils.b64decode(pluginid)
-	print 'catalog {}, {}, {}'.format(decoded_id, decoded_url, response)
-	#current_item = get_items('')[int(id)]
-	plugin = [p for p in PLUGINS if p.id == decoded_id][0]	
-	global bridges
-	if response:
-		b = bridges[response]
+	if request.full_path.startswith('/catalog'):
+		print 'catalog {}, {}, {}'.format(decoded_id, decoded_url, response)
 	else:
-		b = bridge(__name__, plugin)		
-		print 'saving bridge id {}'.format(id(b))
-		bridges[str(id(b))] = b
-		#b.thread = Thread(get_items, b, plugin, decoded_url)
-		b.thread = Process(target=get_items, args=(b, plugin, decoded_url))
+		print 'menu {}, {}'.format(decoded_id, response)
+	#current_item = get_items('')[int(id)]
+	try:
+		plugin = [p for p in PLUGINS if p.id == decoded_id][0]	
+	except:
+		return render_template('alert.xml', title='Communication error', description="Failed to load page.\nThis could mean the server had a problem, or the request dialog timed-out\nPlease try again")
+	
+	global PROCESSES
+	if response:
+		p = PROCESSES[response]
+	else:
+		if request.full_path.startswith('/catalog'):
+			p = Process(target=get_items, args=(plugin.id, decoded_url))
+		else:
+			p = Process(target=get_menu, args=(plugin.id, decoded_url))	
+		print 'saving process id {}'.format(id(p))		
+		PROCESSES[str(id(p))] = p
 		def stop():
 			time.sleep(5) #close bridge after 10s
-			global bridges
-			print 'brfore stop {}'.format(bridges)
-			del bridges[str(id(b))]
-			print 'after stop {}'.format(bridges)
+			global PROCESSES
+			del PROCESSES[str(id(p))]
 		#b.thread.onStop = stop
-		b.thread.start()
-	while b.thread.is_alive():
+		p.start()
+	while p.is_alive():
 		try:
-			msg = b.thread.messages.get(False)
-			print 'got message {}'.format(msg)
+			msg = p.messages.get(False)
 			method = getattr(messages, msg['type'])
 			if msg['type'] == 'end':
-				global bridges
-				del bridges[str(id(b))]
-				b.thread.join()
-				b.thread.terminate()
+				global PROCESSES
+				del PROCESSES[str(id(p))]
+				p.join()
+				p.terminate()
 			return_url = None
 			if response:
 				#return on same url for more
 				return_url = request.url
-			elif url:
+			elif url or request.full_path.startswith('/menu'):
 				#add response bridge
-				return_url = '{}/{}'.format(request.url, id(b))
+				return_url = '{}/{}'.format(request.url, id(p))
 			else:
 				#No url and no response so add 'fake' url
-				return_url = '{}/{}/{}'.format(request.url, 'fake', id(b))
+				return_url = '{}/{}/{}'.format(request.url, 'fake', id(p))
 			return method(plugin, msg, return_url)
 		except:
 			time.sleep(0.1)
 	#Check for possible last message which could have appeared after the thread has died. This could happen if message was sent during time.sleep in while and loop exited immediately afterwards
 	while True:
 		try:
-			msg = b.thread.messages.get(False)
-			print 'got message {}'.format(msg)
+			msg = p.messages.get(False)
 			method = getattr(messages, msg['type'])
 			if msg['type'] == 'end':
-				global bridges
-				del bridges[str(id(b))]
-				b.thread.join()
-				b.thread.terminate()
-			return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, id(b)))	
-		except:
-			time.sleep(0.1)
-	raise Exception('Should not get here')
-
-@app.route('/menu/<pluginid>')
-@app.route('/menu/<pluginid>/<response>')
-def menu(pluginid, response=None):
-	decoded_id = utils.b64decode(pluginid)
-	#current_item = get_items('')[int(id)]
-	plugin = [p for p in PLUGINS if p.id == decoded_id][0]
-	global bridges
-	if response:
-		b = bridges[response]
-	else:
-		b = bridge(__name__, plugin)		
-		print 'saving bridge id {}'.format(id(b))
-		bridges[str(id(b))] = b
-		b.thread = Process(target=get_menu, args=(b, plugin, ''))
-		def stop():
-			time.sleep(5)
-			global bridges
-			print 'brfore stop {}'.format(bridges)
-			del bridges[str(id(b))]
-			print 'after stop {}'.format(bridges)
-		#b.thread.onStop = stop
-		b.thread.start()
-		
-	while b.thread.is_alive():
-		try:
-			msg = b.thread.messages.get(False)
-			method = getattr(messages, msg['type'])
-			if msg['type'] == 'end':
-				global bridges
-				del bridges[str(id(b))]
-				b.thread.join()
-				b.thread.terminate()
-			return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, id(b)))
-		except:
-			time.sleep(0.1)
-	#Check for possible last message which could have appeared after the thread has died. This could happen if message was sent during time.sleep in while and loop exited immediately afterwards	
-	while True:
-		try:
-			msg = b.thread.messages.get(False)
-			method = getattr(messages, msg['type'])
-			if msg['type'] == 'end':
-				global bridges
-				del bridges[str(id(b))]
-				b.thread.join()
-				b.thread.terminate()
-			return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, id(b)))
+				global PROCESSES
+				del PROCESSES[str(id(p))]
+				p.join()
+				p.terminate()
+			return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, id(p)))	
 		except:
 			time.sleep(0.1)
 	raise Exception('Should not get here')
@@ -276,21 +210,28 @@ def main():
 	return render_template('main.xml', menu=PLUGINS)
 	
 
-def get_items(bridge, plugin, url):
+def get_items(plugin_id, url):
 	print('Getting items for: {}'.format(url))
 	try:
-		items = plugin.run(bridge, url)
+		global PLUGINS
+		plugin = [p for p in PLUGINS if p.id == plugin_id][0]
+		b = bridge()
+		items = plugin.run(b, url)
 	except:
 		print 'Encountered error in plugin: {}'.format(plugin.name)
 		traceback.print_exc(file=sys.stdout)
 		items = None
+	print 'get_items finished with {}'.format(items)
 	return items
 	
-def get_menu(bridge, plugin, url):
+def get_menu(plugin_id, url):
 	print('Getting menu for: {}'.format(url))
 	url = url.split('?')[1] if '?' in url else url
 	try:
-		items = plugin.settings(bridge, url)
+		global PLUGINS
+		plugin = [p for p in PLUGINS if p.id == plugin_id][0]
+		b = bridge()
+		items = plugin.settings(b, url)
 	except:
 		print 'Encountered error in plugin: {}'.format(plugin.name)
 		traceback.print_exc(file=sys.stdout)
@@ -301,6 +242,33 @@ def is_ascii(s):
 	return all(ord(c) < 128 for c in s)
 
 def mmain():
+	global PROCESSES
+	PROCESSES = {}
+
+	global PLUGINS
+	PLUGINS = []
+	for plugin in os.listdir('plugins'):
+		try:
+			dir = os.path.join('plugins', plugin)
+			if not os.path.isdir(dir):
+				continue
+			print 'Loading plugin {}'.format(plugin)
+			p = Plugin.Plugin(dir)
+			PLUGINS.append(p)
+			print 'Successfully loaded plugin: {}'.format(p)
+		except Exception as e:
+			print 'Failed to load plugin {}. Error: {}'.format(plugin, e)
+	for plugin in os.listdir('kodiplugins'):
+		try:
+			dir = os.path.join('kodiplugins', plugin)
+			if not os.path.isdir(dir):
+				continue
+			print 'Loading kodi plugin {}'.format(plugin)
+			p = KodiPlugin(dir)
+			PLUGINS.append(p)
+			print 'Successfully loaded plugin: {}'.format(p)
+		except Exception as e:
+			print 'Failed to load kodi plugin {}. Error: {}'.format(plugin, e)
 	http_server = WSGIServer(('',5000), app)
 	#http_server.log = open('http.log', 'w')
 	http_server.serve_forever()
