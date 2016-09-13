@@ -22,6 +22,40 @@ app.jinja_env.filters['base64encode'] = utils.b64encode
 	
 import threading
 
+from Plugin import Plugin, Item
+from KodiPlugin import *
+from bridge import bridge
+
+import messages
+
+
+bridges = {}
+
+PLUGINS = []
+for plugin in os.listdir('plugins'):
+	try:
+		dir = os.path.join('plugins', plugin)
+		if not os.path.isdir(dir):
+			continue
+		print 'Loading plugin {}'.format(plugin)
+		p = Plugin.Plugin(dir)
+		PLUGINS.append(p)
+		print 'Successfully loaded plugin: {}'.format(p)
+	except Exception as e:
+		print 'Failed to load plugin {}. Error: {}'.format(plugin, e)
+for plugin in os.listdir('kodiplugins'):
+	try:
+		dir = os.path.join('kodiplugins', plugin)
+		if not os.path.isdir(dir):
+			continue
+		print 'Loading kodi plugin {}'.format(plugin)
+		p = KodiPlugin(dir)
+		PLUGINS.append(p)
+		print 'Successfully loaded plugin: {}'.format(p)
+	except Exception as e:
+		print 'Failed to load kodi plugin {}. Error: {}'.format(plugin, e)
+			
+
 def Process(group=None, target=None, name=None, args=(), kwargs={}):
 	ans = multiprocessing.Queue()
 	args = (ans,)+args
@@ -249,40 +283,6 @@ def is_ascii(s):
 	return all(ord(c) < 128 for c in s)
 
 def mmain():
-	from Plugin import Plugin, Item
-	from KodiPlugin import *
-	from bridge import bridge
-
-	import messages
-	
-
-	global bridges
-	bridges = {}
-	
-	global PLUGINS
-	PLUGINS = []
-	for plugin in os.listdir('plugins'):
-		try:
-			dir = os.path.join('plugins', plugin)
-			if not os.path.isdir(dir):
-				continue
-			print 'Loading plugin {}'.format(plugin)
-			p = Plugin.Plugin(dir)
-			PLUGINS.append(p)
-			print 'Successfully loaded plugin: {}'.format(p)
-		except Exception as e:
-			print 'Failed to load plugin {}. Error: {}'.format(plugin, e)
-	for plugin in os.listdir('kodiplugins'):
-		try:
-			dir = os.path.join('kodiplugins', plugin)
-			if not os.path.isdir(dir):
-				continue
-			print 'Loading kodi plugin {}'.format(plugin)
-			p = KodiPlugin(dir)
-			PLUGINS.append(p)
-			print 'Successfully loaded plugin: {}'.format(p)
-		except Exception as e:
-			print 'Failed to load kodi plugin {}. Error: {}'.format(plugin, e)
 	http_server = WSGIServer(('',5000), app)
 	#http_server.log = open('http.log', 'w')
 	http_server.serve_forever()
