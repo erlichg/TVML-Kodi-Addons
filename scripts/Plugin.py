@@ -19,7 +19,7 @@ class Item:
 
 class Plugin:
 	def __init__(self, dir):
-		self.id = dir		
+		self.id = dir.split('/')[1]			
 		self.dir = dir
 		tree = ET.parse(os.path.join(dir, 'addon.xml'))
 		for e in tree.iter('addon'):

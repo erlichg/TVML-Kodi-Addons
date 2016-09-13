@@ -212,13 +212,14 @@ def main():
 def get_items(plugin_id, url):
 	print('Getting items for: {}'.format(url))
 	try:
-		global PLUGINS
-		plugin = [p for p in PLUGINS if p.id == plugin_id][0]
+		plugin = load_plugin(plugin_id)
+		if not plugin:
+			raise Exception('could not load plugin')
 		b = bridge()
 		items = plugin.run(b, url)
 	except:
 		traceback.print_exc(file=sys.stdout)
-		print 'Encountered error in plugin: {}'.format(plugin.name)		
+		print 'Encountered error in plugin: {}'.format(plugin_id)		
 		items = None
 	print 'get_items finished with {}'.format(items)
 	return items
@@ -227,18 +228,47 @@ def get_menu(plugin_id, url):
 	print('Getting menu for: {}'.format(url))
 	url = url.split('?')[1] if '?' in url else url
 	try:
-		global PLUGINS
-		plugin = [p for p in PLUGINS if p.id == plugin_id][0]
+		plugin = load_plugin(plugin_id)
+		if not plugin:
+			raise Exception('could not load plugin')
 		b = bridge()
 		items = plugin.settings(b, url)
 	except:
-		print 'Encountered error in plugin: {}'.format(plugin.name)
 		traceback.print_exc(file=sys.stdout)
+		print 'Encountered error in plugin: {}'.format(plugin_id)		
 		items = None
 	return items
 
 def is_ascii(s):
 	return all(ord(c) < 128 for c in s)
+	
+def load_plugin(id):
+	for plugin in os.listdir('plugins'):
+		try:
+			dir = os.path.join('plugins', plugin)
+			if not os.path.isdir(dir):
+				continue
+			if id == plugin:
+				print 'Loading plugin {}'.format(plugin)
+				p = Plugin.Plugin(dir)
+				print 'Successfully loaded plugin: {}'.format(p)
+				return p
+		except Exception as e:
+			print 'Failed to load plugin {}. Error: {}'.format(plugin, e)
+	for plugin in os.listdir('kodiplugins'):
+		try:
+			dir = os.path.join('kodiplugins', plugin)
+			if not os.path.isdir(dir):
+				continue
+			if id == plugin:
+				print 'Loading kodi plugin {}'.format(plugin)
+				p = KodiPlugin(dir)
+				print 'Successfully loaded kodi plugin: {}'.format(p)
+				return p
+		except Exception as e:
+			print 'Failed to load kodi plugin {}. Error: {}'.format(plugin, e)
+	print 'Failed to find plugin id {}'.format(id)
+	return None
 
 def mmain():
 	global PROCESSES
@@ -268,6 +298,7 @@ def mmain():
 			print 'Successfully loaded plugin: {}'.format(p)
 		except Exception as e:
 			print 'Failed to load kodi plugin {}. Error: {}'.format(plugin, e)
+				
 	http_server = WSGIServer(('',5000), app)
 	#http_server.log = open('http.log', 'w')
 	http_server.serve_forever()
