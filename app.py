@@ -249,13 +249,6 @@ def is_ascii(s):
 	return all(ord(c) < 128 for c in s)
 
 def mmain():
-	http_server = WSGIServer(('',5000), app)
-	#http_server.log = open('http.log', 'w')
-	http_server.serve_forever()
-	#app.run(debug=True, host='0.0.0.0')
-		
-if __name__ == '__main__':
-	
 	from Plugin import Plugin, Item
 	from KodiPlugin import *
 	from bridge import bridge
@@ -288,5 +281,11 @@ if __name__ == '__main__':
 			print 'Successfully loaded plugin: {}'.format(p)
 		except Exception as e:
 			print 'Failed to load kodi plugin {}. Error: {}'.format(plugin, e)
+	http_server = WSGIServer(('',5000), app)
+	#http_server.log = open('http.log', 'w')
+	http_server.serve_forever()
+	#app.run(debug=True, host='0.0.0.0')
+		
+if __name__ == '__main__':
 				
 	mmain()
