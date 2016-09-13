@@ -996,9 +996,11 @@ def executebuiltin(function, wait=False):
 	m = re.search('.*Container.Update\(plugin://([^/]*)(.*)\)', function)
 	if m:
 		bridge._message({'type':'load', 'url':'/catalog/{}/{}'.format(utils.b64encode(m.group(1)), utils.b64encode(m.group(2)))})
+		return str()
 	m = re.search('.*Container.Update\((.*)\)', function)
 	if m:
 		bridge._message({'type':'load', 'url':'/catalog/{}/{}'.format(utils.b64encode(Container.plugin.id), utils.b64encode(m.group(1)))})
+		return str()
 	m = re.search('Notification\((.*), (.*)(, (.*), (.*))*\)', function)
 	if m:
 		title = m.group(1)
