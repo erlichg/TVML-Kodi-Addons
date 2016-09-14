@@ -101,22 +101,25 @@ DocumentLoader.prototype.fetch = function(options) {
 			myPlayer.play();
 			var currenttime = 0;
 			var duration;
+			console.log("media item duration: "+myPlayer.currentMediaItemDuration);
 			if (myPlayer.currentMediaItemDuration == null) { //pre tvos 10
 				duration = 0;
 				myPlayer.addEventListener("shouldHandleStateChange", function(e) {
 					duration = e.duration;
 				});
-			} else {
-				duration = myPlayer.currentMediaItemDuration;
 			}
 			myPlayer.addEventListener("timeDidChange", function(info) {
-				currenttime = info.time;
+				currenttime = info.time;				
 				//hack for duration
 				if (duration == 0) {
-					myPlayer.pause(); //this will trigger "shouldHandleStateChange"
-					setTimeout(function(){
-						myPlayer.play();
-					},100);
+					if (myPlayer.currentMediaItemDuration != null && myPlayer.currentMediaItemDuration != 0) {
+						duration = myPlayer.currentMediaItemDuration;
+					} else {
+						myPlayer.pause(); //this will trigger "shouldHandleStateChange"
+						setTimeout(function(){
+							myPlayer.play();
+						},100);
+					}
 				}
 				//subtitle.textContent = "timeDidChange "+info.time;
 			}, {"interval":1});			
