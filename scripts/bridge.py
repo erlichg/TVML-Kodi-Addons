@@ -1,5 +1,38 @@
 import importlib, time, sys, json, utils
 import multiprocessing
+
+def play_stop(b, _id, stop_completion):
+	res = None
+	while not b.thread.stop:
+		try:
+			r = b.thread.responses.get(False)
+			print 'found response for {}'.format(r['id'])
+			if r['id'] == _id:
+				print 'received response to {}'.format(_id)
+				res = r['response']
+				break
+			else:
+				b.thread.responses.put(r)					
+		except:
+			time.sleep(1)
+	b.play = None
+	print 'detected player stop at time {}'.format(utils.b64decode(res))
+	if stop_completion:
+		stop_completion(utils.b64decode(res))
+		
+def progress_stop(b):
+	while b.progress and not b.thread.stop:
+		try:
+			r = b.thread.responses.get(False)
+			print 'found response for {}'.format(r['id'])
+			if r['id'] == _id:
+				print 'received response to {}'.format(_id)
+				print 'progress closed'
+				b.progress=None
+			else:
+				b.thread.responses.put(r)					
+		except:			
+			time.sleep(1)
    
 class bridge:
 	"""Bridge class which is created on every client request.
@@ -50,21 +83,8 @@ class bridge:
 	def progressdialog(self, heading, text=''):
 		"""Shows a progress dialog to the user"""
 		_id = utils.randomword()
-		self.progress={'title': heading, 'id': _id}
-		def f(b):
-			while b.progress and not b.thread.stop:
-				try:
-					r = b.thread.responses.get(False)
-					print 'found response for {}'.format(r['id'])
-					if r['id'] == _id:
-						print 'received response to {}'.format(_id)
-						print 'progress closed'
-						b.progress=None
-					else:
-						b.thread.responses.put(r)					
-				except:			
-					time.sleep(1)			
-		multiprocessing.Process(target=f, args=(self,)).start()
+		self.progress={'title': heading, 'id': _id}					
+		multiprocessing.Process(target=progress_stop, args=(self,)).start()
 		self._message({'type':'progressdialog', 'title':heading, 'text':text, 'value':'0', 'id':'{}/{}'.format(self.thread.id, _id)}, False, _id)
 		
 	def updateprogressdialog(self, value, text=''):
@@ -93,26 +113,8 @@ class bridge:
 		"""Plays a url"""
 		print 'Playing {}'.format(url)
 		self.play = url
-		_id = utils.randomword()
-		def f(b, _id, stop_completion):
-			res = None
-			while not b.thread.stop:
-				try:
-					r = b.thread.responses.get(False)
-					print 'found response for {}'.format(r['id'])
-					if r['id'] == _id:
-						print 'received response to {}'.format(_id)
-						res = r['response']
-						break
-					else:
-						b.thread.responses.put(r)					
-				except:
-					time.sleep(1)
-			self.play = None
-			print 'detected player stop at time {}'.format(utils.b64decode(res))
-			if stop_completion:
-				stop_completion(utils.b64decode(res))
-		#multiprocessing.Process(target=f, args=(self, _id, stop_completion)).start()	
+		_id = utils.randomword()		
+		multiprocessing.Process(target=play_stop, args=(self, _id, stop_completion)).start()	
 		self._message({'type':'play', 'url':url, 'stop':'/response/{}/{}'.format(self.thread.id, _id), 'playtype': type_, 'subtitle':subtitle_url, 'title':title, 'description':description, 'image':image})
 		return 
 	
