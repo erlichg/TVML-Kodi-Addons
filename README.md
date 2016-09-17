@@ -50,6 +50,8 @@ The server is based on python flask and is relatively small scale.
 
 The idea is to install the server (on your network) and access it locally (i.e. one user)
 
+To create a large scale server serving multiple clients will probably require some work
+
 Currently working are most dialogs, simple actions like addDirectory and setResolvedURL
 
 executeBuiltin commands include Container.Update
@@ -63,6 +65,7 @@ Addon data path (for saving local files) is currently on server so all clients w
 ##What's next
 A lot more work to be done:
 - Implement more of kodi stubs to fit more addons
+- Make use of VLC as a player to support streams that Apple built-in player does not. This will require AppStore app support off course 
 - Modify the server to be able to accept many multiple connections. Think about the possibility to have multiple central servers on the web so everyone can connect to them without having to install anything locally!!
 - If your interested in coding (python/javascript), I'd love the help
 
