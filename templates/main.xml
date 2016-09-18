@@ -9,10 +9,15 @@ See LICENSE.txt for this sample’s licensing information
 	  <style>
 	  </style>
 	</head>
-	<stackTemplate>
+	<stackTemplate>		
 		<background>
 			<img src="/templates/background.png"/>
 		</background>
+		<!--<banner>
+			<buttonLockup onselect="load('/settings')">
+				<badge src="/templates/settings.png" width="50" height="50"/>
+			</buttonLockup>
+		</banner>-->
 	  <collectionList>
 		  <grid>
 		  <section>

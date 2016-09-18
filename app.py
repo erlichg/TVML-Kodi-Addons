@@ -201,6 +201,56 @@ def catalog(pluginid, url=None, response=None):
 			time.sleep(0.1)
 	raise Exception('Should not get here')
 
+@app.route('/settings')
+@app.route('/settings/<response>')
+def settings(response=None):
+	global PROCESSES
+	if response:
+		p = PROCESSES[response]
+	else:
+		p = Process(target=get_settings)
+		print 'saving process id {}'.format(p.id)		
+		PROCESSES[p.id] = p
+		def stop():
+			time.sleep(5) #close bridge after 10s
+			global PROCESSES
+			del PROCESSES[p.id]
+		#b.thread.onStop = stop
+		p.start()
+	while p.is_alive():
+		try:
+			msg = p.messages.get(False)
+			method = getattr(messages, msg['type'])
+			if msg['type'] == 'end':
+				global PROCESSES
+				del PROCESSES[p.id]
+				p.join()
+				p.terminate()
+			return_url = None
+			if response:
+				#return on same url for more
+				return_url = request.url
+			else:
+				#add response bridge
+				return_url = '{}/{}'.format(request.url, p.id)			
+			return method(plugin, msg, return_url)
+		except:
+			time.sleep(0.1)
+	#Check for possible last message which could have appeared after the thread has died. This could happen if message was sent during time.sleep in while and loop exited immediately afterwards
+	while True:
+		try:
+			msg = p.messages.get(False)
+			method = getattr(messages, msg['type'])
+			if msg['type'] == 'end':
+				global PROCESSES
+				del PROCESSES[p.id]
+				p.join()
+				p.terminate()
+			return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, p.id))	
+		except:
+			time.sleep(0.1)
+	raise Exception('Should not get here')
+
 @app.route('/helloworld')
 def helloworld():
 	return render_template('helloworld.xml')
@@ -239,6 +289,15 @@ def get_menu(plugin_id, url):
 		print 'Encountered error in plugin: {}'.format(plugin_id)		
 		items = None
 	return items
+	
+def get_settings():
+	print 'getting settings'
+	try:
+		b = bridge()
+	except:
+		traceback.print_exc(file=sys.stdout)
+		print 'Encountered error in settings'
+
 
 def is_ascii(s):
 	return all(ord(c) < 128 for c in s)
