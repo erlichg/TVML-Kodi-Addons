@@ -1,6 +1,9 @@
 from __future__ import division
 from flask import Flask, render_template, send_from_directory, request
-import setproctitle
+try:
+	import setproctitle
+except:
+	pass
 
 import sys, os, imp, urllib, json, time, traceback, re
 import multiprocessing
@@ -276,7 +279,8 @@ def main():
 	
 
 def get_items(plugin_id, url, context):
-	setproctitle.setproctitle('python TVMLServer ({}:{})'.format(plugin_id, url))
+	if setproctitle:
+		setproctitle.setproctitle('python TVMLServer ({}:{})'.format(plugin_id, url))
 	print('Getting items for: {}'.format(url))
 	try:
 		plugin = [p for p in PLUGINS if p.id == plugin_id][0]

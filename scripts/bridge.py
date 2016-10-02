@@ -1,10 +1,14 @@
 import importlib, time, sys, json, utils
 import multiprocessing
-import setproctitle
+try:
+	import setproctitle
+except:
+	pass
 
 def play_stop(b, _id, stop_completion):
 	res = None
-	setproctitle.setproctitle('python TVMLServer (play wait {})'.format(_id))
+	if setproctitle:
+		setproctitle.setproctitle('python TVMLServer (play wait {})'.format(_id))
 	while not b.thread.stop:
 		try:
 			r = b.thread.responses.get(False)
@@ -23,7 +27,8 @@ def play_stop(b, _id, stop_completion):
 		stop_completion(utils.b64decode(res))
 		
 def progress_stop(b, _id):
-	setproctitle.setproctitle('python TVMLServer (progress dialog {})'.format(_id))
+	if setproctitle:
+		setproctitle.setproctitle('python TVMLServer (progress dialog {})'.format(_id))
 	while b.progress and not b.thread.stop:
 		try:
 			r = b.thread.responses.get(False)
