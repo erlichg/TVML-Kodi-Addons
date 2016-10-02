@@ -1,0 +1,31 @@
+v2.7.1
+PLP has returned but Extras folder stays
+
+v2.7.0
+PLP removed for the time being and replaced with Extras Folder
+
+v2.6.9
+Fixed Search option on movies
+
+v2.6.8
+Fixed Audio Only Issue
+
+v2.6.7
+Calendar fixed
+Added ability to go direct to channel from calendar
+Added USA Calendar
+Updated Movies
+Added TV Shows Section
+Added Search Bar In Movies
+
+v1.1.1
+Added Genres
+
+V1.0.3
+Added Cache Channels
+
+v1.0.2
+Added Option Just to Show HD
+
+v1.0.0
+Initial Release

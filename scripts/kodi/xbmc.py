@@ -108,7 +108,7 @@ class Keyboard(object):
 			kb.doModal(30000)
 		"""
 		print 'Showing inputdialog'
-		self.ans = bridge.inputdialog(self.heading, self.line, self.placeholder, secure=self.hidden)
+		self.ans = bridge.inputdialog(self.heading, description=self.line, placeholder=self.placeholder, secure=self.hidden)
 
 	def setDefault(self, line=''):
 		"""Set the default text entry.
@@ -292,11 +292,11 @@ class Player(object):
 
 	def isPlayingAudio(self):
 		"""Returns ``True`` is xbmc is playing an audio file."""
-		return bool(1)
+		return self.isPlaying()
 
 	def isPlayingVideo(self):
 		"""Returns ``True`` if xbmc is playing a video."""
-		return bool(1)
+		return self.isPlaying()
 
 	def getPlayingFile(self):
 		"""

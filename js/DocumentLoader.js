@@ -59,16 +59,7 @@ DocumentLoader.prototype.fetch = function(options) {
     xhr.onload = function() {
 	    console.log('got status '+xhr.status);
 	    if (xhr.status == 202) {
-		    var msg = JSON.parse(xhr.responseText)
-/*
-		    try {
-			    play(msg['url']);
-		    } catch (e) {
-			    console.log(e);
-		    }
-*/
-		    
-
+		    var msg = JSON.parse(xhr.responseText)		   
 		    console.log("got message: " + xhr.responseText);
 		    var time;
 		    var playCache = localStorage.getItem('playCache');
@@ -81,6 +72,40 @@ DocumentLoader.prototype.fetch = function(options) {
 		    } else {
 			    time = 0;
 		    }
+		    
+		    //VLC player
+		    try {
+			    var player = VLCPlayer.createPlayerWithUrlTimeImageDescriptionTitleCallback(msg['url'], time, msg['image'], msg['description'], msg['title'], function(time) {
+				    try {
+				    	var total = player.getDuration();
+				    	console.log("player ended with "+time+"ms out of "+total+"ms");
+				    	if ((total - time) * 100/total <=3) { //if we've stopped at more than 97% play time, don't resume
+							time = 0;
+						}
+						console.log("calculated time is "+time);
+				    	playCache[msg['url']] = time;
+						localStorage.setItem('playCache', JSON.stringify(playCache)); //save this url's stop time for future playback
+						var url = this.prepareURL(msg['stop']+"/"+btoa(time.toString()));
+						console.log("notifying "+url);
+						VLCPlayer.notify(url);
+					} catch (e) {
+					    console.log(e);
+				    }
+			    }.bind(this));
+			    player.subtitles = function() {
+				    console.log("hurray!!");
+			    }
+			    console.log("after create player: "+player);
+			    VLCPlayer.present(player);
+			    options.abort(); //remove the loading document
+			    return;
+		    } catch (e) {
+			    console.log(e);
+		    }
+			
+			
+			
+		    //Built-in player
 		    var singleVideo = new MediaItem(msg['type'], msg['url']);
 		    if(msg['image'] != null) {
 		    	singleVideo.artworkImageURL = msg['image'];
@@ -94,11 +119,31 @@ DocumentLoader.prototype.fetch = function(options) {
 			singleVideo.resumeTime = time;
 			var videoList = new Playlist();
 			videoList.push(singleVideo);
-			var myPlayer = new Player();			
-			myPlayer.playlist = videoList;
+/*
+			try {
+				var playerDocument = createPlayerDocument(msg['image']);
+				playerDocument.addEventListener("load", function() {
+					var myPlayer = playerDocument.getElementsByTagName("mediaContent").item(0).getFeature("Player");
+					myPlayer.playlist = videoList;
+					console.log("presented new player");
+				});
+				
+				navigationDocument.pushDocument(playerDocument);				
+				//myPlayer.present();				
+			} catch (err) {
+*/
+				var myPlayer = new Player();
+				console.log("old player");
+				myPlayer.playlist = videoList;
+				myPlayer.play();
+// 			}
+						
+			
 			//var overlayDocument = createSubtitleDocument();
+			//myPlayer.overlay = overlayDocument;
 			//var subtitle = overlayDocument.getElementsByTagName("text").item(0);
-			myPlayer.play();
+			options.abort(); //remove the loading document
+						
 			var currenttime = 0;
 			var duration;
 			console.log("media item duration: "+myPlayer.currentMediaItemDuration);
@@ -125,7 +170,6 @@ DocumentLoader.prototype.fetch = function(options) {
 			}, {"interval":1});			
 			myPlayer.addEventListener("stateDidChange", function(e) {  
 				if(e.state == "end") {
-					options.abort();
 					if ((duration - currenttime) * 100/duration <=3) { //if we've stopped at more than 97% play time, don't resume
 						currenttime = 0;
 					}
@@ -254,45 +298,70 @@ DocumentLoader.prototype.prepareDocument = function(document) {
 				abort: function() {
 					try {
 						console.log("Removing progress dialog");
+						this.post({
+							url: "/response/" + id,
+							data: "blah"
+						});						
 						var loadingDocument = createLoadingDocument();
 						navigationDocument.replaceDocument(loadingDocument, document);
 						new DocumentController(this, url, loadingDocument);
 					} catch (err) {
-						this.post({
-							url: "/response/" + id,
-							data: "blah"
-						});
-					}
+					}					
+					
 				}.bind(this)
 			});
 		}.bind(this), 1000);	    
     } else if (typeof document.getElementById("player")!="undefined") { //player
+	    console.log("in new player");
 	    var m = document.getElementById("player");
 	    var singleVideo = new MediaItem(m.getAttribute('type'), m.getAttribute('url'));
 		var videoList = new Playlist();
 		videoList.push(singleVideo);
-		var myPlayer = m.getFeature('Player');			
+		var myPlayer = m.getFeature('Player');
+		console.log("found player "+myPlayer);		
 		myPlayer.playlist = videoList;
-		var subtitle = m.getElementsByTagName("text").item(0);
-		myPlayer.play();
+		//var subtitle = m.getElementsByTagName("text").item(0);
+		myPlayer.present();
+		var currenttime = 0;
+		var duration;
+		console.log("media item duration: "+myPlayer.currentMediaItemDuration);
+		if (myPlayer.currentMediaItemDuration == null) { //pre tvos 10
+			duration = 0;
+			myPlayer.addEventListener("shouldHandleStateChange", function(e) {
+				duration = e.duration;
+			});
+		}
 		myPlayer.addEventListener("timeDidChange", function(info) {
-			console.log("timeDidChange");
-			subtitle.textContent = "timeDidChange "+info.time;
-		}, {"interval":1});
+			currenttime = info.time;				
+			//hack for duration
+			if (duration == 0) {
+				if (myPlayer.currentMediaItemDuration != null && myPlayer.currentMediaItemDuration != 0) {
+					duration = myPlayer.currentMediaItemDuration;
+				} else {
+					myPlayer.pause(); //this will trigger "shouldHandleStateChange"
+					setTimeout(function(){
+						myPlayer.play();
+					},100);
+				}
+			}
+			//subtitle.textContent = "timeDidChange "+info.time;
+		}, {"interval":1});			
 		myPlayer.addEventListener("stateDidChange", function(e) {  
 			if(e.state == "end") {
 				options.abort();
+				if ((duration - currenttime) * 100/duration <=3) { //if we've stopped at more than 97% play time, don't resume
+					currenttime = 0;
+				}
+				playCache[msg['url']] = currenttime;
+				localStorage.setItem('playCache', JSON.stringify(playCache)); //save this url's stop time for future playback
 				this.fetch({
-					url:msg['stop'],
+					url:msg['stop']+"/"+btoa(currenttime.toString()),
 					abort: function() {
 						//do nothing
 					}
 				});
-      		} else if(e.state == "playing") {
-	    		console.log("attaching overlay");
-	    		myPlayer.overlayDocument = overlayDocument;	      			
-      		}
-    	}.bind(this), false);
+			}
+		}.bind(this), false); 
     }
     traverseElements(document.documentElement, function(elem) {
 	   if (elem.hasAttribute("notify")) {

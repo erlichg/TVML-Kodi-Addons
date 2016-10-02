@@ -1,5 +1,6 @@
 from __future__ import division
 from flask import Flask, render_template, send_from_directory, request
+import setproctitle
 
 import sys, os, imp, urllib, json, time, traceback, re
 import multiprocessing
@@ -14,6 +15,10 @@ sys.path.append('scripts')
 sys.path.append(os.path.join('scripts', 'kodi'))
 sys.path.append('plugins')
 sys.path.append('kodiplugins')
+sys.path.append(os.path.join('subtitles', 'python-opensubtitles'))
+#from pythonopensubtitles.opensubtitles import OpenSubtitles
+#os = OpenSubtitles()
+#os.login('gerlich', 'hercules')
 
 import utils
 app = Flask(__name__)
@@ -28,14 +33,17 @@ from bridge import bridge
 
 import messages
 
+CONTEXT = multiprocessing.Manager().dict()
+
 
 class MyProcess(multiprocessing.Process):
 	def run(self):		
-		ans = self._target(*self._args, **self._kwargs)
+		ans = self._target(*self._args, **self._kwargs)		
 		print 'Thread adding end message'
-		self.message({'type':'end', 'ans':ans})		
+		self.message({'type':'end', 'ans':ans})			
 		self.onStop()
 		self.stop = True
+		
 	
 	def response(self, id, response):
 		self.responses.put({'id':id, 'response':response})
@@ -98,6 +106,7 @@ def route(pid, id, res=None):
 		res = request.form.keys()[0]
 	global PROCESSES
 	p = PROCESSES[pid]
+	print 'received response on process {}'.format(pid)
 	if p is not None:
 		p.responses.put({'id':id, 'response':res})
 		return 'OK', 206
@@ -142,10 +151,8 @@ def catalog(pluginid, url=None, response=None):
 		print 'catalog {}, {}, {}'.format(decoded_id, decoded_url, response)
 	else:
 		print 'menu {}, {}'.format(decoded_id, response)
-	#current_item = get_items('')[int(id)]
-	try:
-		plugin = [p for p in PLUGINS if p.id == decoded_id][0]	
-	except:
+	plugin = [p for p in PLUGINS if p.id == decoded_id][0]
+	if not plugin:
 		return render_template('alert.xml', title='Communication error', description="Failed to load page.\nThis could mean the server had a problem, or the request dialog timed-out\nPlease try again")
 	
 	global PROCESSES
@@ -153,7 +160,7 @@ def catalog(pluginid, url=None, response=None):
 		p = PROCESSES[response]
 	else:
 		if request.full_path.startswith('/catalog'):
-			p = Process(target=get_items, args=(plugin.id, decoded_url))
+			p = Process(target=get_items, args=(plugin.id, decoded_url, CONTEXT))
 		else:
 			p = Process(target=get_menu, args=(plugin.id, decoded_url))	
 		print 'saving process id {}'.format(p.id)		
@@ -166,13 +173,14 @@ def catalog(pluginid, url=None, response=None):
 		p.start()
 	while p.is_alive():
 		try:
-			msg = p.messages.get(False)
+			msg = p.messages.get(False)			
 			method = getattr(messages, msg['type'])
 			if msg['type'] == 'end':
 				global PROCESSES
 				del PROCESSES[p.id]
 				p.join()
 				p.terminate()
+				print 'PROCESS {} TERMINATED'.format(p.id)
 			return_url = None
 			if response:
 				#return on same url for more
@@ -191,11 +199,12 @@ def catalog(pluginid, url=None, response=None):
 		try:
 			msg = p.messages.get(False)
 			method = getattr(messages, msg['type'])
-			if msg['type'] == 'end':
+			if msg['type'] == 'end':				
 				global PROCESSES
 				del PROCESSES[p.id]
 				p.join()
 				p.terminate()
+				print 'PROCESS {} TERMINATED'.format(p.id)
 			return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, p.id))	
 		except:
 			time.sleep(0.1)
@@ -221,7 +230,7 @@ def settings(response=None):
 		try:
 			msg = p.messages.get(False)
 			method = getattr(messages, msg['type'])
-			if msg['type'] == 'end':
+			if msg['type'] == 'end' or msg['type'] == 'load':
 				global PROCESSES
 				del PROCESSES[p.id]
 				p.join()
@@ -241,7 +250,7 @@ def settings(response=None):
 		try:
 			msg = p.messages.get(False)
 			method = getattr(messages, msg['type'])
-			if msg['type'] == 'end':
+			if msg['type'] == 'end' or msg['type'] == 'load':
 				global PROCESSES
 				del PROCESSES[p.id]
 				p.join()
@@ -250,6 +259,12 @@ def settings(response=None):
 		except:
 			time.sleep(0.1)
 	raise Exception('Should not get here')
+	
+@app.route('/subtitles/<msg>')
+def subtitles(msg):
+	msg = utils.b64decode(msg)
+	print msg
+
 
 @app.route('/helloworld')
 def helloworld():
@@ -260,13 +275,15 @@ def main():
 	return render_template('main.xml', menu=PLUGINS)
 	
 
-def get_items(plugin_id, url):
+def get_items(plugin_id, url, context):
+	setproctitle.setproctitle('python TVMLServer ({}:{})'.format(plugin_id, url))
 	print('Getting items for: {}'.format(url))
 	try:
-		plugin = load_plugin(plugin_id)
+		plugin = [p for p in PLUGINS if p.id == plugin_id][0]
 		if not plugin:
 			raise Exception('could not load plugin')
 		b = bridge()
+		b.context = context
 		items = plugin.run(b, url)
 	except:
 		traceback.print_exc(file=sys.stdout)
@@ -303,6 +320,9 @@ def is_ascii(s):
 	return all(ord(c) < 128 for c in s)
 	
 def load_plugin(id):
+	p = [p for p in PLUGINS if p.id == id][0]
+	print 'returning plugin {}'.format(p)
+	return p
 	for plugin in os.listdir('plugins'):
 		try:
 			dir = os.path.join('plugins', plugin)
@@ -335,7 +355,8 @@ def mmain():
 	PROCESSES = {}
 
 	global PLUGINS
-	PLUGINS = []
+	PLUGINS = []	
+	
 	for plugin in os.listdir('plugins'):
 		try:
 			dir = os.path.join('plugins', plugin)

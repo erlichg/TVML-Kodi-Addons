@@ -244,6 +244,18 @@ function createLoadErrorAlertDocument(url, xhr, isModal) {
 	return new DOMParser().parseFromString(template, "application/xml");
  }
  
+ function createPlayerDocument(image) {
+	 var template = `<?xml version="1.0" encoding="UTF-8" ?>
+	 <document>
+	 	<divTemplate>
+			<mediaContent playbackMode="always">
+				<img src="${image}" aspectFill="true" width="845" height="475"/>
+			</mediaContent>
+		</divTemplate>
+	</document>`;
+	return new DOMParser().parseFromString(template, "application/xml");
+ }
+ 
  function createSubtitleDocument() {
 	 var template = `<?xml version="1.0" encoding="UTF-8" ?>
 <!--

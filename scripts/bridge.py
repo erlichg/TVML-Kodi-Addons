@@ -1,8 +1,10 @@
 import importlib, time, sys, json, utils
 import multiprocessing
+import setproctitle
 
 def play_stop(b, _id, stop_completion):
 	res = None
+	setproctitle.setproctitle('python TVMLServer (play wait {})'.format(_id))
 	while not b.thread.stop:
 		try:
 			r = b.thread.responses.get(False)
@@ -20,12 +22,14 @@ def play_stop(b, _id, stop_completion):
 	if stop_completion:
 		stop_completion(utils.b64decode(res))
 		
-def progress_stop(b):
+def progress_stop(b, _id):
+	setproctitle.setproctitle('python TVMLServer (progress dialog {})'.format(_id))
 	while b.progress and not b.thread.stop:
 		try:
 			r = b.thread.responses.get(False)
 			print 'found response for {}'.format(r['id'])
 			if r['id'] == _id:
+				print 'received progress close'
 				print 'received response to {}'.format(_id)
 				print 'progress closed'
 				b.progress=None
@@ -74,7 +78,7 @@ class bridge:
 	def alertdialog(self, title, description):
 		"""Show an alert dialog with title and description. Returns immediately"""
 		return self._message({'type':'alertdialog', 'title':title, 'description':description})
-		
+				
 	def inputdialog(self, title, description='', placeholder='', button='OK', secure=False):
 		"""Shows an input dialog to the user with text field. Returns the text the user typed or None if user aborted"""
 		s = self._message({'type':'inputdialog', 'title':title, 'description':description, 'placeholder':placeholder, 'button':button, 'secure':secure}, True)
@@ -84,7 +88,7 @@ class bridge:
 		"""Shows a progress dialog to the user"""
 		_id = utils.randomword()
 		self.progress={'title': heading, 'id': _id}					
-		multiprocessing.Process(target=progress_stop, args=(self,)).start()
+		multiprocessing.Process(target=progress_stop, args=(self, _id)).start()
 		self._message({'type':'progressdialog', 'title':heading, 'text':text, 'value':'0', 'id':'{}/{}'.format(self.thread.id, _id)}, False, _id)
 		
 	def updateprogressdialog(self, value, text=''):

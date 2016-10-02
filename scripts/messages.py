@@ -53,6 +53,7 @@ def selectdialog(plugin, msg, url=None):
 
 def closeprogress(plugin, msg, url=None):
 	"""Close the progress dialog"""
+	print 'close progress message'
 	return '', 206
 	
 def formdialog(plugin, msg, url=None):

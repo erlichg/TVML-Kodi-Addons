@@ -1,0 +1,11 @@
+[B]Version 2.2.2[/B]
+
+-Added addon info
+
+[B]Version 2.2.1[/B]
+
+-Intial release
+
+[B]Version 1.0.0[/B]
+
+-Intial release

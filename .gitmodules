@@ -1,0 +1,3 @@
+[submodule "subtitles/python-opensubtitles"]
+	path = subtitles/python-opensubtitles
+	url = https://github.com/agonzalezro/python-opensubtitles.git

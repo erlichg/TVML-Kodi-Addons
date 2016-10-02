@@ -124,6 +124,7 @@ DocumentController.prototype.handleHoldSelect = function(event) {
 }
 
 function notify(url) {
+	console.log("notify: "+url);
 	documentLoader.fetch({
 		url:url,
 		abort: function() {

@@ -139,11 +139,14 @@ class Addon(object):
 
 			apikey = self.Addon.getSetting('apikey')
 		"""
-		print 'getSetting {}'.format(id)
+		
 		for cat in self.settings:
 			for s in self.settings[cat]:
 				if 'id' in s and s['id'] == id:
-					return unicode(s['value'])				
+					ans = unicode(s['value'])
+					print 'getSetting {}={}'.format(id, ans)
+					return ans
+		print 'getSetting {}='.format(id)
 		return ''
 
 	def setSetting(self, id, value):
@@ -156,6 +159,7 @@ class Addon(object):
 
 			self.Settings.setSetting(id='username', value='teamxbmc')
 		"""
+		print 'setSetting {}={}'.format(id, value)
 		for cat in self.settings:
 			for s in self.settings[cat]:
 				if 'id' in s and s['id'] == id:

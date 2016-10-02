@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<document>
+	<divTemplate>
+		<mediaContent id="player" url="{{url}}" type="{{type}}" playbackMode="always">
+			<img src="http://images.apple.com/apple-events/static/apple-events/apple-events-index/pastevents/june2015/hero_image_large.jpg" aspectFill="true" width="845" height="475"/>
+		</mediaContent>
+	</divTemplate>
+</document>

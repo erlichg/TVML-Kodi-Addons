@@ -353,9 +353,16 @@ class Window(object):
 		Deleting this window will activate the old window that was active
 		and resets (not delete) all controls that are associated with this window.
 		"""
-		self.properties = {}
-		_xbmc.Container.window = self
-
+		if existingWindowId==-1:
+			self.properties = {}
+		else:			
+			self.properties = _xbmc.bridge.context
+# 		else:
+# 			print 'creating new reusable window id {}'.format(existingWindowId)
+# 			self.properties = {}
+# 			_xbmc.bridge.context[existingWindowId] = self
+		self.id = existingWindowId
+			
 	def show(self):
 		"""Show this window.
 
@@ -623,7 +630,8 @@ class Window(object):
 			win = xbmcgui.Window(xbmcgui.getCurrentWindowId())
 			category = win.getProperty('Category')
 		"""
-		return self.properties[key] if key in self.properties else str()
+		ans = str(self.properties[key]) if key in self.properties else str()
+		return ans
 
 	def clearProperty(self, key):
 		"""Clears the specific window property.
@@ -651,6 +659,10 @@ class Window(object):
 			win.clearProperties()
 		"""
 		self.properties.clear()
+		
+	def __repr__(self):
+		return str(self.properties)
+	
 
 
 class WindowDialog(Window):
@@ -2700,7 +2712,7 @@ class Dialog(object):
 			dialog = xbmcgui.Dialog()
 			ok = dialog.ok('XBMC', 'There was an error.')
 		"""
-		return bool(1)
+		return _xbmc.bridge.selectdialog(striptags(heading), '{}\n{}\n{}'.format(line1, line2, line3), list_=[Item('1', 'OK')]) == '1'
 
 	def select(self, heading, list_, autoclose=0):
 		"""Show a select dialog.
