@@ -7,7 +7,7 @@ except:
 
 def play_stop(b, _id, stop_completion):
 	res = None
-	if setproctitle:
+	if 'setproctitle' in sys.modules:
 		setproctitle.setproctitle('python TVMLServer (play wait {})'.format(_id))
 	while not b.thread.stop:
 		try:
@@ -27,7 +27,7 @@ def play_stop(b, _id, stop_completion):
 		stop_completion(utils.b64decode(res))
 		
 def progress_stop(b, _id):
-	if setproctitle:
+	if 'setproctitle' in sys.modules:
 		setproctitle.setproctitle('python TVMLServer (progress dialog {})'.format(_id))
 	while b.progress and not b.thread.stop:
 		try:

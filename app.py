@@ -279,7 +279,7 @@ def main():
 	
 
 def get_items(plugin_id, url, context):
-	if setproctitle:
+	if 'setproctitle' in sys.modules:
 		setproctitle.setproctitle('python TVMLServer ({}:{})'.format(plugin_id, url))
 	print('Getting items for: {}'.format(url))
 	try:
