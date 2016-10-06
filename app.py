@@ -19,9 +19,7 @@ sys.path.append(os.path.join('scripts', 'kodi'))
 sys.path.append('plugins')
 sys.path.append('kodiplugins')
 sys.path.append(os.path.join('subtitles', 'python-opensubtitles'))
-#from pythonopensubtitles.opensubtitles import OpenSubtitles
-#os = OpenSubtitles()
-#os.login('gerlich', 'hercules')
+
 
 import utils
 app = Flask(__name__)
