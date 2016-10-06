@@ -18,7 +18,6 @@ sys.path.append('scripts')
 sys.path.append(os.path.join('scripts', 'kodi'))
 sys.path.append('plugins')
 sys.path.append('kodiplugins')
-sys.path.append(os.path.join('subtitles', 'python-opensubtitles'))
 
 
 import utils
