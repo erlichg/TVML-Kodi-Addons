@@ -54,7 +54,7 @@ To create a large scale server serving multiple clients will probably require so
 
 Currently working are most dialogs, simple actions like addDirectory and setResolvedURL
 
-executeBuiltin commands include Container.Update
+executeBuiltin commands including Container.Update
 
 Addon settings can be accessed by long press on the addon icon in the main view
 

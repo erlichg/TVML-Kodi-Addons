@@ -33,7 +33,7 @@ from bridge import bridge
 
 import messages
 
-CONTEXT = multiprocessing.Manager().dict()
+
 
 
 class MyProcess(multiprocessing.Process):
@@ -160,7 +160,7 @@ def catalog(pluginid, url=None, response=None):
 		p = PROCESSES[response]
 	else:
 		if request.full_path.startswith('/catalog'):
-			p = Process(target=get_items, args=(plugin.id, decoded_url, CONTEXT))
+			p = Process(target=get_items, args=(plugin.id, decoded_url, CONTEXT, PLUGINS))
 		else:
 			p = Process(target=get_menu, args=(plugin.id, decoded_url))	
 		print 'saving process id {}'.format(p.id)		
@@ -275,7 +275,7 @@ def main():
 	return render_template('main.xml', menu=PLUGINS)
 	
 
-def get_items(plugin_id, url, context):
+def get_items(plugin_id, url, context, PLUGINS):
 	if 'setproctitle' in sys.modules:
 		setproctitle.setproctitle('python TVMLServer ({}:{})'.format(plugin_id, url))
 	print('Getting items for: {}'.format(url))
@@ -352,11 +352,16 @@ def load_plugin(id):
 	return None
 
 def mmain():
+	manager = multiprocessing.Manager()
+	
 	global PROCESSES
 	PROCESSES = {}
 
 	global PLUGINS
-	PLUGINS = []	
+	PLUGINS = manager.list()	
+	
+	global CONTEXT
+	CONTEXT = manager.dict()
 	
 	for plugin in os.listdir('plugins'):
 		try:
@@ -387,5 +392,5 @@ def mmain():
 	#app.run(debug=True, host='0.0.0.0')
 		
 if __name__ == '__main__':
-				
+	multiprocessing.freeze_support()			
 	mmain()
