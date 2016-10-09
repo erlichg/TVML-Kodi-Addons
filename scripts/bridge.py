@@ -118,13 +118,13 @@ class bridge:
 		time.sleep(1)
 		return ans
 		
-	def play(self, url, type_='video', title=None, description=None, image=None, subtitle_url=None, stop_completion=None):
+	def play(self, url, type_='video', title=None, description=None, image=None, imdb=None, stop_completion=None):
 		"""Plays a url"""
 		print 'Playing {}'.format(url)
 		self.play = url
 		_id = utils.randomword()		
 		multiprocessing.Process(target=play_stop, args=(self, _id, stop_completion)).start()	
-		self._message({'type':'play', 'url':url, 'stop':'/response/{}/{}'.format(self.thread.id, _id), 'playtype': type_, 'subtitle':subtitle_url, 'title':title, 'description':description, 'image':image})
+		self._message({'type':'play', 'url':url, 'stop':'/response/{}/{}'.format(self.thread.id, _id), 'playtype': type_, 'title':title, 'description':description, 'image':image, 'imdb':imdb})
 		return 
 	
 	def isplaying(self):

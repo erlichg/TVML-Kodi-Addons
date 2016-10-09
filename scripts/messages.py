@@ -21,7 +21,7 @@ def play(plugin, msg, url=None):
 	"""Opens the player on msg url attribute"""
 	#since url paremeter is the original url that was called which resulted in a play message, we can save this url for time
 	#return render_template('player.xml', url=msg['url'], type=msg['playtype'])
-	return json.dumps({'url': msg['url'], 'stop': msg['stop'], 'type':msg['playtype'], 'subtitle':msg['subtitle'], 'title':msg['title'], 'description':msg['description'], 'image':msg['image']}), 202
+	return json.dumps({'url': msg['url'], 'stop': msg['stop'], 'type':msg['playtype'], 'imdb':msg['imdb'], 'title':msg['title'], 'description':msg['description'], 'image':msg['image']}), 202
 	
 def isplaying(plugin, msg, url=None):
 	pass

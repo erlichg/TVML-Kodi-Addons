@@ -26,7 +26,7 @@ DocumentLoader.prototype.post = function(options) {
     const docURL = this.prepareURL(options.url);
     const xhr = new XMLHttpRequest();    
     xhr.open("POST", docURL);
-    xhr.timeout = 0;
+    xhr.timeout = 30000;
     xhr.onload = function() {
 		if (typeof options.success != "undefined") {
 			options.success();
@@ -75,7 +75,7 @@ DocumentLoader.prototype.fetch = function(options) {
 		    
 		    //VLC player
 		    try {
-			    var player = VLCPlayer.createPlayerWithUrlTimeImageDescriptionTitleCallback(msg['url'], time, msg['image'], msg['description'], msg['title'], function(time) {
+			    var player = VLCPlayer.createPlayerWithUrlTimeImageDescriptionTitleImdbCallback(msg['url'], time, msg['image'], msg['description'], msg['title'], msg['imdb'], function(time) {
 				    try {
 				    	var total = player.getDuration();
 				    	console.log("player ended with "+time+"ms out of "+total+"ms");
@@ -241,7 +241,7 @@ DocumentLoader.prototype.fetch = function(options) {
             navigationDocument.presentModal(alertDocument);
         }
     };
-    xhr.timeout = 0;
+    xhr.timeout = 30000;
     xhr.send();
     // Preserve the request so it can be cancelled by the next fetch
     if (options.concurrent !== true) {
