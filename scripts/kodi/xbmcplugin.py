@@ -122,7 +122,7 @@ def setResolvedUrl(handle, succeeded, listitem):
 		xbmcplugin.setResolvedUrl(int(sys.argv[1]), True, listitem)
 	"""
 	print 'Resolving item {}'.format(listitem)
-	_xbmc.bridge.play(listitem.path, title=listitem.getProperty('title'), description=listitem.getProperty('plot'), image=listitem.thumbnailImage, imdb=listitem.getProperty('imdb'))
+	_xbmc.bridge.play(listitem.path, title=listitem.getProperty('title'), description=listitem.getProperty('plot'), image=listitem.thumbnailImage, imdb=listitem.getProperty('imdb'), season=listitem.getProperty('season'), episode=listitem.getProperty('episode'))
 	#global items
 	#items = [listitem]
 

@@ -75,7 +75,7 @@ DocumentLoader.prototype.fetch = function(options) {
 		    
 		    //VLC player
 		    try {
-			    var player = VLCPlayer.createPlayerWithUrlTimeImageDescriptionTitleImdbCallback(msg['url'], time, msg['image'], msg['description'], msg['title'], msg['imdb'], function(time) {
+			    var player = VLCPlayer.createPlayerWithUrlTimeImageDescriptionTitleImdbSeasonEpisodeCallback(msg['url'], time, msg['image'], msg['description'], msg['title'], msg['imdb'], msg['season'], msg['episode'], function(time) {
 				    try {
 				    	var total = player.getDuration();
 				    	console.log("player ended with "+time+"ms out of "+total+"ms");
