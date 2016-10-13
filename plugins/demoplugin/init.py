@@ -27,20 +27,20 @@ def main(bridge, url):
 			bridge.alertdialog('response', 'User entered: {}'.format(ans))
 		return
 	if url == '32':
-		bridge.progressdialog('progress title', 'progress text')
-		#time.sleep(1)
+		bridge.progressdialog('progress title', 'progress text \n second line')
+		time.sleep(0.5)
 		if bridge.isprogresscanceled():
 			return
-		bridge.updateprogressdialog('0.2', 'new progress text')
-		#time.sleep(1)
+		bridge.updateprogressdialog('0.2', 'new progress text \n new second line')
+		time.sleep(0.5)
 		if bridge.isprogresscanceled():
 			return
 		bridge.updateprogressdialog('0.5', 'new progress text')
-		#time.sleep(1)
+		time.sleep(0.5)
 		if bridge.isprogresscanceled():
 			return
 		bridge.updateprogressdialog('0.8', 'new progress text')
-		#time.sleep(1)
+		time.sleep(0.5)
 		if bridge.isprogresscanceled():
 			return
 		bridge.closeprogress()

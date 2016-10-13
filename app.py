@@ -372,8 +372,9 @@ def mmain():
 			p = Plugin.Plugin(dir)
 			PLUGINS.append(p)
 			print 'Successfully loaded plugin: {}'.format(p)
-		except Exception as e:
-			print 'Failed to load plugin {}. Error: {}'.format(plugin, e)
+		except Exception:
+			traceback.print_exc(file=sys.stdout)
+			print 'Failed to load plugin {}'.format(plugin)
 	for plugin in os.listdir('kodiplugins'):
 		try:
 			dir = os.path.join('kodiplugins', plugin)

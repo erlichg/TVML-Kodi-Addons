@@ -75,29 +75,22 @@ DocumentLoader.prototype.fetch = function(options) {
 		    
 		    //VLC player
 		    try {
-			    var player = VLCPlayer.createPlayerWithUrlTimeImageDescriptionTitleImdbSeasonEpisodeCallback(msg['url'], time, msg['image'], msg['description'], msg['title'], msg['imdb'], msg['season'], msg['episode'], function(time) {
-				    try {
-				    	var total = player.getDuration();
-				    	console.log("player ended with "+time+"ms out of "+total+"ms");
-				    	if ((total - time) * 100/total <=3) { //if we've stopped at more than 97% play time, don't resume
-							time = 0;
-						}
-						console.log("calculated time is "+time);
-				    	playCache[msg['url']] = time;
-						localStorage.setItem('playCache', JSON.stringify(playCache)); //save this url's stop time for future playback
-						var url = this.prepareURL(msg['stop']+"/"+btoa(time.toString()));
-						console.log("notifying "+url);
-						VLCPlayer.notify(url);
-					} catch (e) {
-					    console.log(e);
-				    }
-			    }.bind(this));
-			    player.subtitles = function() {
-				    console.log("hurray!!");
+			    if (time != 0) {
+				    var formattedTime = this.formatTime(Math.floor(time/1000)); //convert to fomatted time in seconds
+				    var resume = createResumeDocument(formattedTime);
+				    resume.getElementById("resume").addEventListener("select", function() {
+					    navigationDocument.removeDocument(resume);
+					    this.play(msg, time, playCache, options);
+				    }.bind(this));
+				    resume.getElementById("begin").addEventListener("select", function() {
+					    navigationDocument.removeDocument(resume);
+					    this.play(msg, 0, playCache, options);
+				    }.bind(this));
+				    navigationDocument.pushDocument(resume);
+			    } else {
+				    this.play(msg, time, playCache, options);
 			    }
-			    console.log("after create player: "+player);
-			    VLCPlayer.present(player);
-			    options.abort(); //remove the loading document
+			    
 			    return;
 		    } catch (e) {
 			    console.log(e);
@@ -278,16 +271,23 @@ DocumentLoader.prototype.prepareURL = function(url) {
 DocumentLoader.prototype.prepareDocument = function(document) {
     traverseElements(document.documentElement, this.prepareElement);   
     if (typeof document.getElementById("progress")!="undefined") { //progress dialog
-	    var progress = document.getElementById("progress");
+	    if (typeof this.progressDocument == "undefined") {
+		    this.progressDocument = document; //save progress
+	    }	    
+	    var progress = this.progressDocument.getElementById("progress")
 	    var url = progress.getAttribute("documentURL");
 	    var id = progress.getAttribute("msgid");
-	    setTimeout(function() {
+	    //setTimeout(function() {
 		    this.fetch({
 				url: url,
 				success: function(responseDoc) {
 					try {
 						console.log("updating progress dialog");
-						navigationDocument.replaceDocument(responseDoc, document);
+						var updated_progress = responseDoc.getElementById("progress");
+						progress.setAttribute('value', updated_progress.getAttribute('value'))
+						var updated_text = responseDoc.getElementById("text");
+						this.progressDocument.getElementById("text").textContent = updated_text.textContent;
+						//navigationDocument.replaceDocument(responseDoc, document);
 					} catch (err) {
 						this.post({
 							url: "/response/" + id,
@@ -297,20 +297,21 @@ DocumentLoader.prototype.prepareDocument = function(document) {
 				}.bind(this),
 				abort: function() {
 					try {
-						console.log("Removing progress dialog");
+						console.log("Removing progress dialog");						
 						this.post({
 							url: "/response/" + id,
 							data: "blah"
 						});						
 						var loadingDocument = createLoadingDocument();
-						navigationDocument.replaceDocument(loadingDocument, document);
+						navigationDocument.replaceDocument(loadingDocument, this.progressDocument);
+						delete this.progressDocument;						
 						new DocumentController(this, url, loadingDocument);
 					} catch (err) {
 					}					
 					
 				}.bind(this)
 			});
-		}.bind(this), 1000);	    
+		//}.bind(this), 1000);	    
     } else if (typeof document.getElementById("player")!="undefined") { //player
 	    console.log("in new player");
 	    var m = document.getElementById("player");
@@ -418,5 +419,40 @@ function traverseElements(elem, callback) {
     }
 }
 
+DocumentLoader.prototype.play = function(msg, time, playCache, options) {
+	var player = VLCPlayer.createPlayerWithUrlTimeImageDescriptionTitleImdbSeasonEpisodeCallback(msg['url'], time, msg['image'], msg['description'], msg['title'], msg['imdb'], msg['season'], msg['episode'], function(time) {
+		try {
+			var total = player.getDuration();
+			console.log("player ended with "+time+"ms out of "+total+"ms");
+			if ((total - time) * 100/total <=3) { //if we've stopped at more than 97% play time, don't resume
+				time = 0;
+			}
+			console.log("calculated time is "+time);
+			playCache[msg['url']] = time;
+			localStorage.setItem('playCache', JSON.stringify(playCache)); //save this url's stop time for future playback
+			var url = this.prepareURL(msg['stop']+"/"+btoa(time.toString()));
+			console.log("notifying "+url);
+			VLCPlayer.notify(url);
+		} catch (e) {
+			console.log(e);
+		}
+	}.bind(this));
+	console.log("after create player: "+player);
+	VLCPlayer.present(player);
+	options.abort(); //remove the loading document
+}
 
+DocumentLoader.prototype.formatTime = function(time) {
+	if (time < 60) { //less than a minute
+		var seconds = Number(time).toFixed(0);
+		return "00:"+("0" + seconds).slice(-2);
+	}
+	if (time < 3600) { //less than an hour
+		var minutes = Math.floor(time / 60);
+		var seconds = time%60;
+		return ("0" + minutes).slice(-2)+":"+("0" + seconds).slice(-2);
+	}
+	var hours = Math.floor(time / 3600);
+	return ("0" + hours).slice(-2)+":"+formatTime(time%3600);
+}
 

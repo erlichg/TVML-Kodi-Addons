@@ -7,7 +7,7 @@ import bridge
 class Item:
 	def __init__(self, url, title, subtitle=None, icon=None, details=None, menuurl='', info={}):
 		self.url = url
-		self.title = title #'[COLOR green] >>  Move to next page[/COLOR]'
+		self.title = title #'[COLOR green] >>	 Move to next page[/COLOR]'
 		self.subtitle = escape(subtitle) if subtitle else None
 		self.icon = icon
 		self.details = escape(details) if details else None
@@ -27,7 +27,7 @@ class Plugin:
 			self.script = e.attrib['script']
 			self.icon = os.path.join(self.dir, e.attrib['icon'])			
 		sys.path.append(os.path.join(os.getcwd(), self.dir))
-		self.module = importlib.import_module(self.script[:-3]) #remove the .py
+		self.module = self.script[:-3] #remove the .py
 		self.menuurl = ''
 		
 	
@@ -35,11 +35,12 @@ class Plugin:
 		"""Run the plugin on a url argument and expect a list of Item
 
 		:param url: a url if the last item that was selected. Initially it will be an empty string
-       
+	   
 		Example::
 
-        plugin.run('')"""
-		return self.module.main(bridge, url)	
+		plugin.run('')"""
+		m = importlib.import_module(self.module)
+		return m.main(bridge, url)	
 		
 	def __repr__(self):
 		return str({'name':self.name, 'dir':self.dir, 'script':self.script, 'icon':self.icon, 'module':self.module})

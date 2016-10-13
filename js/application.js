@@ -114,6 +114,13 @@ App.onMemoryWarning = function(options) {
 	
 }
 
+/*
+	This is called when app is terminated
+*/
+App.onTerminate = function(options) {
+		
+}
+
 /**
  * Convenience function to create a TVML loading document with a specified title.
  */
@@ -287,5 +294,27 @@ function createLoadErrorAlertDocument(url, xhr, isModal) {
 	</stackTemplate>
 </document>`;
 	return new DOMParser().parseFromString(template, "application/xml");
+ }
+ 
+ function createResumeDocument(time) {
+	 var template = `<?xml version="1.0" encoding="UTF-8" ?>
+	 <document>
+   <alertTemplate>
+   		<background>
+			<img src="${documentLoader.baseURL}templates/background.png"/>
+		</background>
+      <title style="color:rgb(241,241,241);">Resume playback</title>
+      <description></description>
+      <button id="resume">
+         <text style="color:rgb(241,241,241); tv-highlight-color:rgb(0,0,0);">Resume at ${time}</text>
+      </button>
+      <button id="begin">
+         <text style="color:rgb(241,241,241); tv-highlight-color:rgb(0,0,0);">Play from beginning</text>
+      </button>
+   </alertTemplate>
+</document>
+	 
+	 `;
+	return new DOMParser().parseFromString(template, "application/xml"); 
  }
  

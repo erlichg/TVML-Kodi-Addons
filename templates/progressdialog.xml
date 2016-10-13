@@ -12,9 +12,7 @@
           <overlay>
 	        <text style="tv-position: top; margin: 10; text-align: center; font-size: 50; color: rgb(0,0,0);">{{title}}</text>           
             <progressBar style="tv-position: center;" id="progress" msgid="{{msgid}}" documentURL="{{url}}" value="{{value}}" />
-            {% for text in lines %}
-            <text style="margin: 10; text-align: center; font-size: 30; color: rgb(0,0,0);">{{text}}</text>
-            {% endfor %}
+            <text id="text" style="tv-text-max-lines: 3; margin: 10; text-align: center; font-size: 30; color: rgb(0,0,0);">{{text}}</text>
           </overlay>
         </lockup>
       </section>
