@@ -1,5 +1,11 @@
 from flask import Flask, render_template, send_from_directory, request
 import json
+import imageCache
+
+import gevent
+
+
+CACHE=imageCache.imageCache('cache', limit=31457280) #30MB
 
 def end(plugin, msg, url=None):
 	"""Called on plugin end (i.e. when run function returns). 
@@ -9,13 +15,30 @@ def end(plugin, msg, url=None):
 	print items
 	if not items or len(items) == 0:
 		return '', 206
+	template = None
+	
+	threads = []
+	
+	def work(item):	
+		item.icon = CACHE.get(item.icon)
+		print 'thread done'				
+	
 	for item in items:
-		if item.title and item.subtitle and item.icon and item.details:
-			return render_template('list.xml', menu=items, plugin=plugin)
-	for item in items:
-		if item.title and item.icon:
-			return render_template('grid.xml', menu=items, plugin=plugin)	
-	return render_template('nakedlist.xml', menu=items, plugin = plugin)
+		if item.icon:
+			t = gevent.spawn(work, item)
+			threads.append(t)
+		if item.title and item.subtitle and item.icon and item.details and not template:
+			template = 'list.xml'
+		elif item.title and item.icon and (not item.subtitle or not item.details) and (not template or template == 'list.xml'):
+			template = 'grid.xml'
+		elif not item.icon and not template:
+			template = 'nakedlist.xml'
+		else:
+			pass
+	gevent.joinall(threads, timeout=30)
+		
+	print items
+	return render_template(template, menu=items, plugin = plugin)
 
 def play(plugin, msg, url=None):
 	"""Opens the player on msg url attribute"""

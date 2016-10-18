@@ -3,3 +3,4 @@
 kodiplugins/*c
 !kodiplugins/*c/
 kodiplugins/*/*.db
+cache/*

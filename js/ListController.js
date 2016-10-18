@@ -29,12 +29,16 @@ ListController.prototype.setupDocument = function(document) {
     function selectItem(selectedElem) {
         clearResults();
         const sectionElem = document.createElement('section');
-        const newItemsCount = selectedElem.getAttribute("numberOfItemsToCreate");
-        for (var i = 1, lockupElem; i <= newItemsCount; i++) {
-            lockupElem = createResultLockup(i);
-            sectionElem.appendChild(lockupElem);
-        }
-        listElem.appendChild(sectionElem);
+        const cls = selectedElem.className
+        var x = document.getElementsByTagName('listItemLockup');
+		var i;
+		for (i = 0; i < x.length; i++) {
+			if (x[i].className == cls) {
+				x[i].style.display = "block";
+			} else {
+				x[i].style.display = "none";
+			}
+		}
     }
     function clearResults() {
         const sectionElems = document.getElementsByTagName('section');

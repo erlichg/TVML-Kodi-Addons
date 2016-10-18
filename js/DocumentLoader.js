@@ -77,16 +77,20 @@ DocumentLoader.prototype.fetch = function(options) {
 		    try {
 			    if (time != 0) {
 				    var formattedTime = this.formatTime(Math.floor(time/1000)); //convert to fomatted time in seconds
-				    var resume = createResumeDocument(formattedTime);
-				    resume.getElementById("resume").addEventListener("select", function() {
-					    navigationDocument.removeDocument(resume);
-					    this.play(msg, time, playCache, options);
-				    }.bind(this));
-				    resume.getElementById("begin").addEventListener("select", function() {
-					    navigationDocument.removeDocument(resume);
+				    if (formattedTime == "00:00") {
 					    this.play(msg, 0, playCache, options);
-				    }.bind(this));
-				    navigationDocument.pushDocument(resume);
+				    } else {
+				    	var resume = createResumeDocument(formattedTime);
+				    	resume.getElementById("resume").addEventListener("select", function() {
+						    navigationDocument.removeDocument(resume);
+						    this.play(msg, time, playCache, options);
+				    	}.bind(this));
+				    	resume.getElementById("begin").addEventListener("select", function() {
+						    navigationDocument.removeDocument(resume);
+						    this.play(msg, 0, playCache, options);
+				    	}.bind(this));
+				    	navigationDocument.pushDocument(resume);
+				    }
 			    } else {
 				    this.play(msg, time, playCache, options);
 			    }
@@ -363,6 +367,29 @@ DocumentLoader.prototype.prepareDocument = function(document) {
 				});
 			}
 		}.bind(this), false); 
+    } else if (typeof document.getElementsByTagName("segmentBar").length != 0) {
+		const selectorElem = document.getElementsByTagName("segmentBar").item(0);
+		var selectItem = function(selectedElem) {
+		    const cls = selectedElem.getAttribute("class");
+		    var x = document.getElementsByTagName('listItemLockup');
+			var i;
+			for (i = 0; i < x.length; i++) {
+				if (x.item(i).getAttribute("class") == cls) {
+					//x.item(i).setAttribute("class", cls);
+				} else {
+					x.item(i).setAttribute("class", "hidden");
+				}
+			}
+		}
+		
+		if (selectorElem) {
+        	selectItem(selectorElem.firstChild);
+			selectorElem.addEventListener('highlight', function(event) {
+            	selectItem(event.target);
+        	});
+    	}
+
+		
     }
     traverseElements(document.documentElement, function(elem) {
 	   if (elem.hasAttribute("notify")) {

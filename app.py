@@ -119,6 +119,10 @@ def icon():
 @app.route('/plugins/<path:filename>')
 def plugin_icon(filename):
 	return send_from_directory('plugins', filename)
+
+@app.route('/cache/<path:filename>')
+def cache(filename):
+	return send_from_directory('cache', filename)
 	
 @app.route('/kodiplugins/<path:filename>')
 def kodiplugin_icon(filename):

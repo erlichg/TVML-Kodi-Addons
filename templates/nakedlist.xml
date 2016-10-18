@@ -6,9 +6,15 @@ See LICENSE.txt for this sample’s licensing information
   <document>
 	<head>
 	  <style>
-	  </style>
+	  @media tv-template and (tv-theme:light) {
+      	.foo { color:rgb(0, 0, 0); }
+	  }
+	  @media tv-template and (tv-theme:dark) {
+      	.foo { color:rgb(255, 255, 255); }
+	  }
+</style>
 	</head>
-	<listTemplate>
+	<listTemplate theme="dark">
 		<banner>
 			<title>{{title}}</title>
 			{% if text is defined %}
@@ -21,10 +27,7 @@ See LICENSE.txt for this sample’s licensing information
 			</infoList>
 			{% endif %}
 		</banner>		
-		<background>
-			<img src="/templates/background.png"/>
-		</background>
-	  <list style="width: 1000">
+	  <list style="width: 1000">		  
 		  <section>
 				{% for item in menu %}
 				{% if msgid is defined %}
@@ -32,7 +35,7 @@ See LICENSE.txt for this sample’s licensing information
 				{% else %}
 				<listItemLockup menuURL="{{item.menuurl}}" onselect="load('/catalog/{{plugin.id | base64encode}}/{{item.url | base64encode}}')">								
 				{% endif %}							
-				 	<title style="color:rgb(241,241,241); tv-highlight-color:rgb(0,0,0);">{{item.title}}</title>				 					 	
+				 	<title>{{item.title}}</title>				 					 	
 				</listItemLockup>
 				{% endfor %}
 			</section>
