@@ -2,7 +2,20 @@ from flask import Flask, render_template, send_from_directory, request
 import json
 import imageCache
 
-import gevent
+import time
+import threading
+import Queue
+
+# utility - spawn a thread to execute target for each args
+def run_parallel_in_threads(target, args_list):
+	# wrapper to collect return value in a Queue
+	def task_wrapper(*args):
+		target(*args)
+	threads = [threading.Thread(target=task_wrapper, args=(args,)) for args in args_list]
+	for t in threads:
+		t.start()
+	for t in threads:
+		t.join()
 
 
 CACHE=imageCache.imageCache('cache', limit=31457280) #30MB
@@ -16,17 +29,15 @@ def end(plugin, msg, url=None):
 	if not items or len(items) == 0:
 		return '', 206
 	template = None
-	
-	threads = []
-	
-	def work(item):	
-		item.icon = CACHE.get(item.icon)
-		print 'thread done'				
-	
-	for item in items:
+		
+	def work(item):
 		if item.icon:
-			t = gevent.spawn(work, item)
-			threads.append(t)
+			print 'thread start'
+			item.icon = CACHE.get(item.icon)
+			print 'thread done'				
+	
+	run_parallel_in_threads(work, items)
+	for item in items:
 		if item.title and item.subtitle and item.icon and item.details and not template:
 			template = 'list.xml'
 		elif item.title and item.icon and (not item.subtitle or not item.details) and (not template or template == 'list.xml'):
@@ -34,11 +45,9 @@ def end(plugin, msg, url=None):
 		elif not item.icon and not template:
 			template = 'nakedlist.xml'
 		else:
-			pass
-	gevent.joinall(threads, timeout=30)
-		
+			pass		
 	print items
-	return render_template(template, menu=items, plugin = plugin)
+	return render_template("dynamic.xml", menu=items, plugin = plugin)
 
 def play(plugin, msg, url=None):
 	"""Opens the player on msg url attribute"""

@@ -7,12 +7,15 @@ See LICENSE.txt for this sample’s licensing information
 <document>
 	<head>
 	  <style>
-	  </style>
+	  @media tv-template and (tv-theme:light) {
+      	.foo { color:rgb(0, 0, 0); tv-highlight-color:rgb(0, 0, 0);}
+	  }
+	  @media tv-template and (tv-theme:dark) {
+      	.foo { color:rgb(255, 255, 255); tv-highlight-color:rgb(255,255,255);}
+	  }
+	</style>
 	</head>
 	<stackTemplate>		
-		<background>
-			<img src="/templates/background.png"/>
-		</background>
 		<!--<banner>
 			<buttonLockup onselect="load('/settings')">
 				<badge src="/templates/settings.png" width="50" height="50"/>
@@ -24,7 +27,7 @@ See LICENSE.txt for this sample’s licensing information
 				{% for plugin in menu %}
 				<lockup menuURL="{{plugin.menuurl}}" onselect="load('/catalog/{{plugin.id | base64encode}}')">
 					<img src="/{{plugin.icon}}" width="256" height="256"/>
-				 	<title style="color:rgb(241,241,241)">{{plugin.name}}</title>				 					 	
+				 	<title class="foo">{{plugin.name}}</title>				 					 	
 				</lockup>
 				{% endfor %}
 			</section>

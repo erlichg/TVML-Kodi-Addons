@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+Copyright (C) 2016 Apple Inc. All Rights Reserved.
+See LICENSE.txt for this sample’s licensing information
+-->
+  <document>
+	<head>
+	  <style>
+	  @media tv-template and (tv-theme:light) {
+      	.foo { color:rgb(0, 0, 0); tv-highlight-color:rgb(255, 255, 255); tv-text-max-lines:15; }
+      	.foo2 { color:rgb(0, 0, 0); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; }
+	  }
+	  @media tv-template and (tv-theme:dark) {
+      	.foo { color:rgb(255, 255, 255); tv-highlight-color:rgb(0,0,0); tv-text-max-lines:15;}
+      	.foo2 { color:rgb(255, 255, 255); tv-highlight-color:rgb(255, 255, 255); tv-text-max-lines:15; }
+	  }
+	</style>
+	</head>
+	<catalogTemplate id="list">
+	  <list style="width: 1000">
+		  <placeholder></placeholder>		  
+		  <section>
+				{% for item in menu %}
+				{% if msgid is defined %}
+				<listItemLockup menuURL="{{item.menuurl}}" onselect="notify('/response/{{msgid}}/{{loop.index}}'); load('{{url}}')">
+				{% else %}
+				<listItemLockup menuURL="{{item.menuurl}}" onselect="load('/catalog/{{plugin.id | base64encode}}/{{item.url | base64encode}}')">								
+				{% endif %}
+				 	<title class="foo">{{item.title}}</title>
+				 	<relatedContent>
+					 	<lockup style="margin: 10">
+						 	<img src="{{item.icon}}" width="857" height="842"/>
+						 	<description class="foo">{{item.details}}</description>
+					 	</lockup>
+				 	</relatedContent>			 					 	
+				</listItemLockup>
+				{% endfor %}
+			</section>
+	  </list>
+	</catalogTemplate>
+	<listTemplate id="nakedlist">		
+	  <list style="width: 1000">
+		  <placeholder></placeholder>	  
+		  <section>
+				{% for item in menu %}
+				{% if msgid is defined %}
+				<listItemLockup menuURL="{{item.menuurl}}" onselect="notify('/response/{{msgid}}/{{loop.index}}'); load('{{url}}')">
+				{% else %}
+				<listItemLockup menuURL="{{item.menuurl}}" onselect="load('/catalog/{{plugin.id | base64encode}}/{{item.url | base64encode}}')">								
+				{% endif %}							
+				 	<title class="foo">{{item.title}}</title>				 					 	
+				</listItemLockup>
+				{% endfor %}
+			</section>
+	  </list>
+	</listTemplate>
+	<stackTemplate id="grid">
+		<banner style="tv-align:center;">
+			  <placeholder></placeholder>
+			  </banner>
+	  <collectionList>
+		  <grid>
+			  
+			  <section>
+		  {% for item in menu %}		  
+				
+				{% if msgid is defined %}
+				<lockup onselect="notify('/response/{{msgid}}/{{loop.index}}'); load('{{url}}')" menuURL="{{item.menuurl}}">
+				{% else %}
+				<lockup menuURL="{{item.menuurl}}" onselect="load('/catalog/{{plugin.id | base64encode}}/{{item.url | base64encode}}')">								
+				{% endif %}							
+					<img src="{{item.icon}}" width="{{item.width}}" height="{{item.height}}"/>
+				 	<title class="foo2">{{item.title}}</title>			 					 	
+				</lockup>
+										
+		  {% endfor %}
+		  </section>
+		  </grid>
+	  </collectionList>
+	</stackTemplate>
+  </document>

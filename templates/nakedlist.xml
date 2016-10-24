@@ -7,16 +7,16 @@ See LICENSE.txt for this sample’s licensing information
 	<head>
 	  <style>
 	  @media tv-template and (tv-theme:light) {
-      	.foo { color:rgb(0, 0, 0); }
+      	.foo { color:rgb(0, 0, 0); tv-highlight-color:rgb(255, 255, 255);}
 	  }
 	  @media tv-template and (tv-theme:dark) {
-      	.foo { color:rgb(255, 255, 255); }
+      	.foo { color:rgb(255, 255, 255); tv-highlight-color:rgb(0,0,0);}
 	  }
-</style>
+	</style>
 	</head>
-	<listTemplate theme="dark">
+	<listTemplate>
 		<banner>
-			<title>{{title}}</title>
+			<title class="foo">{{title}}</title>
 			{% if text is defined %}
 			<infoList>
 				<info>
@@ -35,7 +35,7 @@ See LICENSE.txt for this sample’s licensing information
 				{% else %}
 				<listItemLockup menuURL="{{item.menuurl}}" onselect="load('/catalog/{{plugin.id | base64encode}}/{{item.url | base64encode}}')">								
 				{% endif %}							
-				 	<title>{{item.title}}</title>				 					 	
+				 	<title class="foo">{{item.title}}</title>				 					 	
 				</listItemLockup>
 				{% endfor %}
 			</section>

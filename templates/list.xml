@@ -6,12 +6,15 @@ See LICENSE.txt for this sample’s licensing information
   <document>
 	<head>
 	  <style>
-	  </style>
+	  @media tv-template and (tv-theme:light) {
+      	.foo { color:rgb(0, 0, 0); tv-highlight-color:rgb(255, 255, 255);}
+	  }
+	  @media tv-template and (tv-theme:dark) {
+      	.foo { color:rgb(255, 255, 255); tv-highlight-color:rgb(0,0,0);}
+	  }
+	</style>
 	</head>
 	<listTemplate>
-		<background>
-			<img src="/templates/background.png"/>
-		</background>
 	  <list style="width: 1000">
 		  <section>
 				{% for item in menu %}
@@ -20,12 +23,12 @@ See LICENSE.txt for this sample’s licensing information
 				{% else %}
 				<listItemLockup menuURL="{{item.menuurl}}" onselect="load('/catalog/{{plugin.id | base64encode}}/{{item.url | base64encode}}')">								
 				{% endif %}
-				 	<title style="color:rgb(241,241,241); tv-highlight-color:rgb(0,0,0);">{{item.title}}</title>
+				 	<title class="foo">{{item.title}}</title>
 				 	<relatedContent>
 					 	<lockup>
 						 	<img src="{{item.icon}}" width="857" height="842"/>
-						 	<title style="color:rgb(241,241,241)">{{item.subtitle}}</title>
-						 	<description style="color:rgb(241,241,241)">{{item.details}}</description>
+						 	<title class="foo">{{item.subtitle}}</title>
+						 	<description class="foo">{{item.details}}</description>
 					 	</lockup>
 				 	</relatedContent>			 					 	
 				</listItemLockup>

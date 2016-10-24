@@ -2,17 +2,25 @@
 <document>
   <head>
     <style>
+	    @media tv-template and (tv-theme:light) {
+      	.title { tv-position: top; margin: 10; text-align: center; font-size: 50; color: rgb(0,0,0); }
+      	.text { tv-text-max-lines: 3; margin: 10; text-align: center; font-size: 30; color: rgb(0,0,0); }
+	  	}
+	  	@media tv-template and (tv-theme:dark) {
+      	.title { tv-position: top; margin: 10; text-align: center; font-size: 50; color:rgb(255, 255, 255); }
+      	.text { tv-text-max-lines: 3; margin: 10; text-align: center; font-size: 30; color: rgb(255,255,255); }
+	  	}
     </style>
   </head>
   <productBundleTemplate>
     <shelf centered="true">
       <section>
         <lockup disabled="true">
-          <img src="" width="1200" height="600" />
+          <img src="" width="1800" height="900" />
           <overlay>
-	        <text style="tv-position: top; margin: 10; text-align: center; font-size: 50; color: rgb(0,0,0);">{{title}}</text>           
+	        <text class="title">{{title}}</text>           
             <progressBar style="tv-position: center;" id="progress" msgid="{{msgid}}" documentURL="{{url}}" value="{{value}}" />
-            <text id="text" style="tv-text-max-lines: 3; margin: 10; text-align: center; font-size: 30; color: rgb(0,0,0);">{{text}}</text>
+            <text id="text" class="text">{{text}}</text>
           </overlay>
         </lockup>
       </section>

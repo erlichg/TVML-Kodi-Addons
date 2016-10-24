@@ -61,42 +61,6 @@ def Process(group=None, target=None, name=None, args=(), kwargs={}):
 	p.stop = False #can be used to indicate stop
 	p.id = str(id(p))
 	return p
-		
-# def Process(group=None, target=None, name=None, args=(), kwargs={}):
-# 	ans = multiprocessing.Queue()
-# 	args = (ans,)+args
-# 	p = multiprocessing.Process(group, target, name, args, kwargs)
-# 	p.messages = multiprocessing.Queue()
-# 	p.responses = multiprocessing.Queue()
-# 	p.stop = False #can be used to indicate stop
-# 	
-# 	orig_run = p.run
-# 	
-# 	def run():
-# 		orig_run()		
-# 		print 'Thread adding end message'
-# 		try:
-# 			ans2 = ans.get(True, 5)
-# 		except:
-# 			ans2 = None
-# 		p.message({'type':'end', 'ans':ans2})		
-# 		p.onStop()
-# 		p.stop = True
-# 	p.run = run
-# 	def response(id, response):
-# 		p.responses.put({'id':id, 'response':response})
-# 	p.response = response
-# 	
-# 	def message(msg):
-# 		p.messages.put(msg)
-# 	p.message = message
-# 	
-#  	def onStop():
-#  		pass
-#  	p.onStop = onStop
-# 	
-# 	return p
-
 
 
 @app.route('/response/<pid>/<id>', methods=['POST', 'GET'])

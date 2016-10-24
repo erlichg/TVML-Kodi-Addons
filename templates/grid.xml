@@ -6,12 +6,15 @@ See LICENSE.txt for this sample’s licensing information
   <document>
 	<head>
 	  <style>
-	  </style>
+	  @media tv-template and (tv-theme:light) {
+      	.foo { color:rgb(0, 0, 0); tv-highlight-color:rgb(255, 255, 255);}
+	  }
+	  @media tv-template and (tv-theme:dark) {
+      	.foo { color:rgb(255, 255, 255); tv-highlight-color:rgb(0,0,0);}
+	  }
+	</style>
 	</head>
 	<stackTemplate>
-		<background>
-			<img src="/templates/background.png"/>
-		</background>
 	  <collectionList>
 		  <grid>
 			  <section>
@@ -23,7 +26,7 @@ See LICENSE.txt for this sample’s licensing information
 				<lockup menuURL="{{item.menuurl}}" onselect="load('/catalog/{{plugin.id | base64encode}}/{{item.url | base64encode}}')">								
 				{% endif %}							
 					<img src="{{item.icon}}" width="390" height="216"/>
-				 	<title style="color:rgb(241,241,241); tv-highlight-color:rgb(241,241,241);">{{item.title}}</title>				 					 	
+				 	<title class="foo">{{item.title}}</title>				 					 	
 				</lockup>
 										
 		  {% endfor %}

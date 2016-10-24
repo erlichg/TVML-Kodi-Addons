@@ -367,29 +367,60 @@ DocumentLoader.prototype.prepareDocument = function(document) {
 				});
 			}
 		}.bind(this), false); 
-    } else if (typeof document.getElementsByTagName("segmentBar").length != 0) {
-		const selectorElem = document.getElementsByTagName("segmentBar").item(0);
-		var selectItem = function(selectedElem) {
-		    const cls = selectedElem.getAttribute("class");
-		    var x = document.getElementsByTagName('listItemLockup');
-			var i;
-			for (i = 0; i < x.length; i++) {
-				if (x.item(i).getAttribute("class") == cls) {
-					//x.item(i).setAttribute("class", cls);
-				} else {
-					x.item(i).setAttribute("class", "hidden");
-				}
+    } else if (document.getElementsByTagName("placeholder").length != 0) {
+		var i;
+		const templates = {};
+		for (i=0; i<document.documentElement.children.length;i++) {
+			if (document.documentElement.children.item(i).tagName.indexOf("Template")!=-1) {			
+				templates[document.documentElement.children.item(i).getAttribute("id")] = document.documentElement.children.item(i);
 			}
 		}
+		const items = {};
+		const segmentBar = document.createElement("segmentBarHeader");
+		segmentBar.setAttribute("autoHighlight", "true");
+		segmentBar.appendChild(document.createElement("segmentBar"));
+		segmentBar.firstChild.setAttribute("autoHighlight", "true");
+		var item = document.createElement("segmentBarItem");
+		item.setAttribute("class", "list");
+		item.appendChild(document.createElement("title"));
+		item.firstChild.textContent = "Details";
+		segmentBar.firstChild.appendChild(item);
+		items["list"] = item;
 		
-		if (selectorElem) {
-        	selectItem(selectorElem.firstChild);
-			selectorElem.addEventListener('highlight', function(event) {
-            	selectItem(event.target);
-        	});
-    	}
-
+		item = document.createElement("segmentBarItem");
+		item.setAttribute("class", "nakedlist");
+		item.appendChild(document.createElement("title"));
+		item.firstChild.textContent = "List";
+		segmentBar.firstChild.appendChild(item);
+		items["nakedlist"] = item;
 		
+		item = document.createElement("segmentBarItem");
+		item.setAttribute("class", "grid");
+		item.appendChild(document.createElement("title"));
+		item.firstChild.textContent = "Grid";
+		segmentBar.firstChild.appendChild(item);
+		items["grid"] = item;
+		
+		segmentBar.firstChild.addEventListener('highlight', function(event) {
+            selectItem(event.target);
+        }); 
+		var selectItem = function(selectedElem) {			
+		    const cls = selectedElem.getAttribute("class");
+		    for (key in templates) {
+			    if (templates[key].parentNode == document.documentElement) {
+			    	document.documentElement.removeChild(templates[key]);
+			    }
+		    }
+		    var placeholder = templates[cls].getElementsByTagName("placeholder").item(0);
+		    for (item in items) {
+			    items[item].removeAttribute("autoHighlight");
+		    }
+		    items[cls].setAttribute("autoHighlight", "true");
+		    placeholder.parentNode.insertBefore(segmentBar, placeholder);
+		    document.documentElement.appendChild(templates[cls]);	    
+		}
+		
+		selectItem(segmentBar.firstChild.firstChild);		   			                		
     }
     traverseElements(document.documentElement, function(elem) {
 	   if (elem.hasAttribute("notify")) {

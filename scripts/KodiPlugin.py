@@ -97,6 +97,6 @@ class KodiPlugin:
 			if 'plot' in infos:
 				i.details = infos['plot']
 			if 'year' in infos:
-				i.subtitle = infos['year']
+				i.year = infos['year']
 			ans.append(i)
 		return ans
