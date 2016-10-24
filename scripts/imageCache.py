@@ -20,22 +20,28 @@ class imageCache:
 		self.dir = dir
 		self.limit = limit
 		for f in os.listdir(self.dir):
-			self.add(utils.b64decode(f), os.path.join(self.dir, f))
+			try:
+				self.add(utils.b64decode(f), os.path.join(self.dir, f))
+			except:
+				continue
 			
 			
-	def add(self, url, f):		
-		self.cache[url] = self.fileCache(f)
-		self.size += self.cache[url].size
-		while self.limit != 0 and self.size > self.limit:
-			to_remove = None			
-			for key in self.cache:
-				if not to_remove or self.cache[key].time < self.cache[to_remove].time:
-					to_remove = key
-			print 'removing {}'.format(self.cache[to_remove])
-			os.remove(self.cache[to_remove].file)
-			self.size -= self.cache[to_remove].size
-			print 'size after removal {}'.format(self.size)
-			del self.cache[to_remove]
+	def add(self, url, f):
+		try:	
+			self.cache[url] = self.fileCache(f)
+			self.size += self.cache[url].size
+			while self.limit != 0 and self.size > self.limit:
+				to_remove = None			
+				for key in self.cache:
+					if not to_remove or self.cache[key].time < self.cache[to_remove].time:
+						to_remove = key
+				print 'removing {}'.format(self.cache[to_remove])
+				os.remove(self.cache[to_remove].file)
+				self.size -= self.cache[to_remove].size
+				print 'size after removal {}'.format(self.size)
+				del self.cache[to_remove]
+		except:
+			del self.cache[url]
 			
 	def get(self, url):
 		if url in self.cache:

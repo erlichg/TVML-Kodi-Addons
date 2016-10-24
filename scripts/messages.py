@@ -1,6 +1,8 @@
 from flask import Flask, render_template, send_from_directory, request
 import json
 import imageCache
+import utils
+import traceback, sys
 
 import time
 import threading
@@ -34,6 +36,15 @@ def end(plugin, msg, url=None):
 		if item.icon:
 			print 'thread start'
 			item.icon = CACHE.get(item.icon)
+			try:
+				item.width, item.height = utils.get_image_size('.{}'.format(item.icon))
+				if item.width > 600 or item.height > 600:
+					item.width = item.width / 2
+					item.height = item.height / 2
+			except:
+				traceback.print_exc(file=sys.stdout)
+				item.width = 300
+				item.height = 300
 			print 'thread done'				
 	
 	run_parallel_in_threads(work, items)
