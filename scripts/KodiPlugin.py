@@ -7,6 +7,8 @@ import Plugin
 import traceback
 
 
+
+
 def convert_kodi_tags_to_html_tags(s):
 	s = s.replace('[B]', '<b>')
 	s = s.replace('[/B]', '</b>')
@@ -73,7 +75,16 @@ class KodiPlugin:
 			print 'Calling plugin {} with {}'.format(self.name, sys.argv)
 			import xbmcplugin
 			import imp
-			import urlparse
+			import urllib
+			quote_plus_orig = urllib.quote_plus
+			def quote_plus_patch(s, safe=''):
+				if type(s) == unicode:
+					print 'decoding into utf-8'
+					s = s.encode('utf-8')
+				return quote_plus_orig(s, safe)
+			urllib.quote_plus = quote_plus_patch
+			
+			
 			xbmcplugin.items = []
 			imp.load_module(self.module, fp, self.dir, ('.py', 'rb', imp.PY_SOURCE))
 		except:

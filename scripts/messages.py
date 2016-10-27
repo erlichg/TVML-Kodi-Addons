@@ -20,7 +20,7 @@ def run_parallel_in_threads(target, args_list):
 		t.join()
 
 
-CACHE=imageCache.imageCache('cache', limit=31457280) #30MB
+CACHE=imageCache.imageCache('cache', limit=314572800) #30MB
 
 def end(plugin, msg, url=None):
 	"""Called on plugin end (i.e. when run function returns). 
@@ -41,13 +41,17 @@ def end(plugin, msg, url=None):
 				if item.width > 600 or item.height > 600:
 					item.width = item.width / 2
 					item.height = item.height / 2
+				if item.width < 200 or item.height < 200:
+					item.width = item.width * 2
+					item.height = item.height * 2
 			except:
 				traceback.print_exc(file=sys.stdout)
 				item.width = 300
 				item.height = 300
 			print 'thread done'				
-	
+	print 'parallel start'
 	run_parallel_in_threads(work, items)
+	print 'parallel end'
 	for item in items:
 		if item.title and item.subtitle and item.icon and item.details and not template:
 			template = 'list.xml'

@@ -67,12 +67,31 @@ DocumentLoader.prototype.fetch = function(options) {
 			    playCache = '{}';
 		    }
 		    playCache = JSON.parse(playCache);
-		    if (playCache[msg['url']] != null) { //if we've played this url before, retrieve it's stop time
-			    time = playCache[msg['url']];
+		    var imdb = msg['imdb'];
+		    var season = msg['season'];
+		    var episode = msg['episode'];
+		    if (imdb != null) {
+			    var search = imdb;
+			    if (season != null) {
+				    search += "S"+season;
+			    }
+			    if (episode != null) {
+				    search += "E"+episode;
+			    }
+			    if (playCache[search] != null) { //if we've played this item before, retrieve it's stop time
+					time = playCache[search];
+				} else if (playCache[msg['url']] != null) { //if we've played this url before, retrieve it's stop time
+			    	time = playCache[msg['url']];
+		    	} else {
+			    	time = 0;
+		    	}
 		    } else {
-			    time = 0;
+		    	if (playCache[msg['url']] != null) { //if we've played this url before, retrieve it's stop time
+			    	time = playCache[msg['url']];
+		    	} else {
+			    	time = 0;
+		    	}
 		    }
-		    
 		    //VLC player
 		    try {
 			    if (time != 0) {
@@ -316,7 +335,8 @@ DocumentLoader.prototype.prepareDocument = function(document) {
 				}.bind(this)
 			});
 		//}.bind(this), 1000);	    
-    } else if (typeof document.getElementById("player")!="undefined") { //player
+    }
+    if (typeof document.getElementById("player")!="undefined") { //player
 	    console.log("in new player");
 	    var m = document.getElementById("player");
 	    var singleVideo = new MediaItem(m.getAttribute('type'), m.getAttribute('url'));
@@ -367,14 +387,15 @@ DocumentLoader.prototype.prepareDocument = function(document) {
 				});
 			}
 		}.bind(this), false); 
-    } else if (document.getElementsByTagName("placeholder").length != 0) {
-		var i;
-		const templates = {};
-		for (i=0; i<document.documentElement.children.length;i++) {
-			if (document.documentElement.children.item(i).tagName.indexOf("Template")!=-1) {			
-				templates[document.documentElement.children.item(i).getAttribute("id")] = document.documentElement.children.item(i);
-			}
+    }
+    const templates = {};
+    var i;
+    for (i=0; i<document.documentElement.children.length;i++) {
+		if (document.documentElement.children.item(i).tagName.indexOf("Template")!=-1) {			
+			templates[document.documentElement.children.item(i).getAttribute("id")] = document.documentElement.children.item(i);
 		}
+	}
+    if (Object.keys(templates).length > 1) {
 		const items = {};
 		const segmentBar = document.createElement("segmentBarHeader");
 		segmentBar.setAttribute("autoHighlight", "true");
@@ -486,7 +507,21 @@ DocumentLoader.prototype.play = function(msg, time, playCache, options) {
 				time = 0;
 			}
 			console.log("calculated time is "+time);
-			playCache[msg['url']] = time;
+			var imdb = msg['imdb'];
+		    var season = msg['season'];
+		    var episode = msg['episode'];
+		    if (imdb != null) {
+			    var search = imdb;
+			    if (season != null) {
+				    search += "S"+season;
+			    }
+			    if (episode != null) {
+				    search += "E"+episode;
+			    }
+			    playCache[search] = time;
+		    } else {
+		    	playCache[msg['url']] = time;
+		    }			
 			localStorage.setItem('playCache', JSON.stringify(playCache)); //save this url's stop time for future playback
 			var url = this.prepareURL(msg['stop']+"/"+btoa(time.toString()));
 			console.log("notifying "+url);

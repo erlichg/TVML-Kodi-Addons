@@ -8,7 +8,7 @@ __date__ = 'Fri May 01 16:22:23 BST 2015'
 __platform__ = 'ALL'
 __version__ = '2.20.0'
 
-import os
+import os, traceback
 import xbmc
 
 class File(object):
@@ -169,11 +169,12 @@ def mkdir(path):
 
 		success = xbmcfvs.mkdir(path)
 	"""
-	print 'Creating directory {}'.format(path)
+	
 	if path.startswith('/') and not path.startswith(os.path.join(os.getcwd(), 'kodiplugins', xbmc.Container.plugin.id)):
 		return
 	if exists(path):
 		return True
+	print 'Creating directory {}'.format(path)
 	return os.mkdir(path)
 
 

@@ -1149,9 +1149,10 @@ class ListItem(object):
 		self.thumbnailImage = thumbnailImage
 		self.path = path
 		self.infos = {}
+		self.context = {}
 		
 	def __repr__(self):
-		return str({'label':self.label, 'label2':self.label2, 'iconImage':self.iconImage, 'thumbnailImage':self.thumbnailImage, 'path':self.path, 'infos':self.infos})
+		return str({'label':self.label, 'label2':self.label2, 'iconImage':self.iconImage, 'thumbnailImage':self.thumbnailImage, 'path':self.path, 'infos':self.infos, 'context':self.context})
 	
 
 	def addStreamInfo(self, cType, dictionary):
@@ -1377,7 +1378,11 @@ class ListItem(object):
 			listitem.addContextMenuItems([('Theater Showtimes',
 					'XBMC.RunScript(special://home/scripts/showtimes/default.py,Iron Man)')])
 		"""
-		pass
+		print 'adding contextmenus {}'.format(items)
+		if replaceItems:
+			self.context = items
+		else:
+			self.context.update(items)
 
 	def setPath(self, path):
 		"""

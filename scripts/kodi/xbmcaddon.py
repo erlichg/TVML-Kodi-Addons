@@ -86,7 +86,10 @@ class Addon(object):
 			self.settings = OrderedDict()
 			settings_xml = os.path.join('kodiplugins', self.id, 'resources', 'settings.xml')
 			if os.path.isfile(settings_xml):
-				tree = ET.parse(settings_xml)
+				f = codecs.open(settings_xml, mode='r', encoding='UTF-8')
+				contents = f.read().replace('&', '&amp;')
+				f.close()
+				tree = ET.fromstring(contents)
 				iter = tree.iter('category')
 				if sum(1 for _ in iter) == 0:
 					self.settings['General'] = []

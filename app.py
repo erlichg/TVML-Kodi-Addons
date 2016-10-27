@@ -1,11 +1,22 @@
 from __future__ import division
-from flask import Flask, render_template, send_from_directory, request
+import sys, os, imp, urllib, json, time, traceback, re
+try:
+	from flask import Flask, render_template, send_from_directory, request
+except:
+	print 'TVML Server requires flask module.\nPlease install it via "pip install flask"'
+	sys.exit(1)
 try:
 	import setproctitle
 except:
 	pass
 
-import sys, os, imp, urllib, json, time, traceback, re
+try:
+	import faulthandler
+	faulthandler.enable()
+except:
+	print 'TVML Server requires faulthandler module.\nPlease install it via "pip install faulthandler"'
+	sys.exit(1)
+
 import multiprocessing
 import urlparse
 #import gevent.monkey
@@ -18,6 +29,8 @@ sys.path.append('scripts')
 sys.path.append(os.path.join('scripts', 'kodi'))
 sys.path.append('plugins')
 sys.path.append('kodiplugins')
+
+
 
 
 import utils
@@ -108,75 +121,90 @@ def template(filename):
 @app.route('/catalog/<pluginid>/<url>')
 @app.route('/catalog/<pluginid>/<url>/<response>')
 def catalog(pluginid, url=None, response=None):
-	if not url:
-		decoded_url = ''
-	elif url == 'fake':
-		decoded_url = ''
-	else:
-		decoded_url = utils.b64decode(url)
-	decoded_id = utils.b64decode(pluginid)
-	if request.full_path.startswith('/catalog'):
-		print 'catalog {}, {}, {}'.format(decoded_id, decoded_url, response)
-	else:
-		print 'menu {}, {}'.format(decoded_id, response)
-	plugin = [p for p in PLUGINS if p.id == decoded_id][0]
-	if not plugin:
-		return render_template('alert.xml', title='Communication error', description="Failed to load page.\nThis could mean the server had a problem, or the request dialog timed-out\nPlease try again")
-	
-	global PROCESSES
-	if response:
-		p = PROCESSES[response]
-	else:
-		if request.full_path.startswith('/catalog'):
-			p = Process(target=get_items, args=(plugin.id, decoded_url, CONTEXT, PLUGINS))
+	try:
+		if not url:
+			decoded_url = ''
+		elif url == 'fake':
+			decoded_url = ''
 		else:
-			p = Process(target=get_menu, args=(plugin.id, decoded_url))	
-		print 'saving process id {}'.format(p.id)		
-		PROCESSES[p.id] = p
-		def stop():
-			time.sleep(5) #close bridge after 10s
-			global PROCESSES
-			del PROCESSES[p.id]
-		#b.thread.onStop = stop
-		p.start()
-	while p.is_alive():
-		try:
-			msg = p.messages.get(False)			
-			method = getattr(messages, msg['type'])
-			if msg['type'] == 'end':
-				global PROCESSES
-				del PROCESSES[p.id]
-				p.join()
-				p.terminate()
-				print 'PROCESS {} TERMINATED'.format(p.id)
-			return_url = None
-			if response:
-				#return on same url for more
-				return_url = request.url
-			elif url or request.full_path.startswith('/menu'):
-				#add response bridge
-				return_url = '{}/{}'.format(request.url, p.id)
+			decoded_url = utils.b64decode(url)
+		decoded_id = utils.b64decode(pluginid)
+		if request.full_path.startswith('/catalog'):
+			print 'catalog {}, {}, {}'.format(decoded_id, decoded_url, response)
+		else:
+			print 'menu {}, {}'.format(decoded_id, response)
+		plugin = [p for p in PLUGINS if p.id == decoded_id][0]
+		if not plugin:
+			return render_template('alert.xml', title='Communication error', description="Failed to load page.\nThis could mean the server had a problem, or the request dialog timed-out\nPlease try again")
+		
+		global PROCESSES
+		if response:
+			p = PROCESSES[response]
+		else:
+			if request.full_path.startswith('/catalog'):
+				p = Process(target=get_items, args=(plugin.id, decoded_url, CONTEXT, PLUGINS))
 			else:
-				#No url and no response so add 'fake' url
-				return_url = '{}/{}/{}'.format(request.url, 'fake', p.id)
-			return method(plugin, msg, return_url)
-		except:
-			time.sleep(0.1)
-	#Check for possible last message which could have appeared after the thread has died. This could happen if message was sent during time.sleep in while and loop exited immediately afterwards
-	while True:
-		try:
-			msg = p.messages.get(False)
-			method = getattr(messages, msg['type'])
-			if msg['type'] == 'end':				
+				p = Process(target=get_menu, args=(plugin.id, decoded_url))	
+			print 'saving process id {}'.format(p.id)		
+			PROCESSES[p.id] = p
+			def stop():
+				time.sleep(5) #close bridge after 10s
 				global PROCESSES
 				del PROCESSES[p.id]
-				p.join()
-				p.terminate()
-				print 'PROCESS {} TERMINATED'.format(p.id)
-			return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, p.id))	
-		except:
-			time.sleep(0.1)
-	raise Exception('Should not get here')
+			#b.thread.onStop = stop
+			p.start()
+		print 'entering while alive'
+		while p.is_alive():
+			try:
+				msg = p.messages.get(False)			
+				method = getattr(messages, msg['type'])
+				if msg['type'] == 'end':
+					global PROCESSES
+					del PROCESSES[p.id]
+					p.join()
+					p.terminate()
+					print 'PROCESS {} TERMINATED'.format(p.id)
+				return_url = None
+				if response:
+					#return on same url for more
+					return_url = request.url
+				elif url or request.full_path.startswith('/menu'):
+					#add response bridge
+					return_url = '{}/{}'.format(request.url, p.id)
+				else:
+					#No url and no response so add 'fake' url
+					return_url = '{}/{}/{}'.format(request.url, 'fake', p.id)
+				return method(plugin, msg, return_url)
+			except:
+				time.sleep(0.1)
+		print 'exiting while alive and entering 2s wait'
+		#Check for possible last message which could have appeared after the thread has died. This could happen if message was sent during time.sleep in while and loop exited immediately afterwards
+		start = 0
+		while start < 2: #wait at most 2 seconds
+			try:
+				msg = p.messages.get(False)
+				method = getattr(messages, msg['type'])
+				if msg['type'] == 'end':				
+					global PROCESSES
+					del PROCESSES[p.id]
+					p.join()
+					p.terminate()
+					print 'PROCESS {} TERMINATED'.format(p.id)
+				return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, p.id))	
+			except:
+				time.sleep(0.1)
+				start+=0.1
+		print 'finished 2 sec wait. Restarting process'
+		#if we got here, this means thread has probably crashed.
+		global PROCESSES
+		del PROCESSES[p.id]
+		p.join()
+		p.terminate()
+		print 'PROCESS {} CRASHED'.format(p.id)
+		return render_template('alert.xml', title='Communication error', description="Failed to load page.\nThis could mean the server had a problem, or the request dialog timed-out\nPlease try again")
+	except:
+		traceback.print_exc(file=sys.stdout)
+		return render_template('alert.xml', title='Communication error', description="Failed to load page.\nThis could mean the server had a problem, or the request dialog timed-out\nPlease try again")
 
 @app.route('/settings')
 @app.route('/settings/<response>')
@@ -246,7 +274,8 @@ def main():
 def get_items(plugin_id, url, context, PLUGINS):
 	if 'setproctitle' in sys.modules:
 		setproctitle.setproctitle('python TVMLServer ({}:{})'.format(plugin_id, url))
-	print('Getting items for: {}'.format(url))
+	print('Getting items for: {}'.format(url))	
+	
 	try:
 		plugin = [p for p in PLUGINS if p.id == plugin_id][0]
 		if not plugin:

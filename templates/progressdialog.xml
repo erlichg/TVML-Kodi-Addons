@@ -16,7 +16,7 @@
     <shelf centered="true">
       <section>
         <lockup disabled="true">
-          <img src="" width="1800" height="900" />
+          <img src="" width="1750" height="1000" />
           <overlay>
 	        <text class="title">{{title}}</text>           
             <progressBar style="tv-position: center;" id="progress" msgid="{{msgid}}" documentURL="{{url}}" value="{{value}}" />
