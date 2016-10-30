@@ -48,7 +48,10 @@ def end(plugin, msg, url=None):
 				traceback.print_exc(file=sys.stdout)
 				item.width = 300
 				item.height = 300
-			print 'thread done'				
+			print 'thread done'
+		else:
+			item.width = 300
+			item.height = 300			
 	print 'parallel start'
 	run_parallel_in_threads(work, items)
 	print 'parallel end'
