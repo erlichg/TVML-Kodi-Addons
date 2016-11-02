@@ -25,7 +25,7 @@ See LICENSE.txt for this sample’s licensing information
 		  <grid>
 		  <section>
 				{% for plugin in menu %}
-				<lockup menuURL="{{plugin.menuurl}}" onselect="load('/catalog/{{plugin.id | base64encode}}')">
+				<lockup onholdselect="load('{{plugin.menuurl}}')" onselect="load('/catalog/{{plugin.id | base64encode}}')">
 					<img src="/{{plugin.icon}}" width="256" height="256"/>
 				 	<title class="foo">{{plugin.name}}</title>				 					 	
 				</lockup>

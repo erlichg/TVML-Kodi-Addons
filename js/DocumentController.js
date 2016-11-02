@@ -109,7 +109,9 @@ DocumentController.prototype.handleEvent = function(event) {
 
 DocumentController.prototype.handleHoldSelect = function(event) {
 	const target = event.target;
-	if (target.hasAttribute("menuURL")) {
+	if (target.getAttribute("onholdselect") != "") {
+		eval(target.getAttribute("onholdselect"));
+/*
 		const documentURL = target.getAttribute("menuURL");
 		if (documentURL != "") {
 			var loadingDocument;
@@ -120,6 +122,7 @@ DocumentController.prototype.handleHoldSelect = function(event) {
         	// Create the subsequent controller based on the atribute and its value. Controller would handle its presentation.
 			new DocumentController(this._documentLoader, documentURL, loadingDocument);
         }
+*/
 	}
 }
 
@@ -233,6 +236,9 @@ function showSelectDialog(title, choices, index, callback) {
 	<head>
 	  <style>
 	  </style>
+	  <banner>
+         <title>${title}</title>
+      </banner>
 	</head>
 	<listTemplate>
 	  <list>
@@ -262,12 +268,74 @@ function showSelectDialog(title, choices, index, callback) {
 	navigationDocument.presentModal(dialog);
 }
 
-function performAction(action) {
+function showInfoDialog(info) {
+	var template=`
+		<document>
+    <productTemplate>
+        <background>
+        </background>
+        <banner>
+        	<infoList>
+            <info>
+               <header>
+                  <title>Director</title>
+               </header>
+               <text>${info.director}</text>
+            </info>
+            <info>
+               <header>
+                  <title>Actors</title>
+               </header>
+               `;
+               for (var i in info.cast) {
+			   	template += `<text>${info.cast[i][0]}</text>`;
+        		}
+               template += `
+            </info>
+         </infoList>
+            <stack>
+                <title style="tv-text-max-lines: 3;">${info.title}</title>
+                <row>
+					<text><badge src="resource://tomato-fresh"/>${info.rating * 100 / 10}%</text>
+					<text>${info.duration}</text>
+					<text>${info.genre}</text>
+					<text>${info.year}</text>
+					<badge src="resource://mpaa-${info.mpaa}" class="badge" />
+			   </row>
+                <description style="tv-text-max-lines: 30;">${info.plot}</description>
+            </stack>
+            <heroImg src="${documentLoader.baseURL + info.poster}" />
+        </banner>
+    </productTemplate>
+</document>
+	`;
+	var d = new DOMParser().parseFromString(template, "application/xml");
+	navigationDocument.pushDocument(d);
+}
+
+function performAction(action, p) {
 	var re = /RunPlugin\(plugin:\/\/(.*)\/\?(.*)\)/;
 	var result = re.exec(action);
 	if (result != null) {
 		var plugin = result[1];
 		var query = result[2];
 		load("/catalog/"+btoa(plugin)+"/"+btoa(query));	
+		return;
+	}
+	
+	re = /RunPlugin\((.*)\)/;
+	var result = re.exec(action);
+	if (typeof p != "undefined" && result != null) {
+		var query = result[1];
+		load("/catalog/"+btoa(p)+"/"+btoa(query));	
+		return;
+	}
+	
+	re = /ItemInfo\((.*)\)/;
+	var result = re.exec(action);
+	if (result != null) {
+		var info = JSON.parse(result[1]);
+		showInfoDialog(info);
+		return;
 	}
 }

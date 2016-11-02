@@ -6,6 +6,7 @@ Various classes and functions to interact with Kodi.
 """
 
 import xbmcgui as _xbmcgui
+import xbmcplugin as _xbmcplugin
 import time, re, os
 import app, utils
 
@@ -204,7 +205,22 @@ class Player(object):
 			xbmc.Player().play(url, listitem, windowed)
 			xbmc.Player().play(playlist, listitem, windowed, startpos)
 		"""
-		pass
+		print 'called Player.play with item={}, listitem={}'.format(item, listitem)
+		if listitem:
+			if listitem.path.startswith('plugin://'):
+				function = 'Container.Update({})'.format(listitem.path)
+				print 'calling execute on {}'.format(function)
+				executebuiltin(function)
+			else:
+				_xbmcplugin.setResolvedUrl(None, True, listitem)		
+		elif url:
+			if url.startswith('plugin://'):
+				function = 'Container.Update({})'.format(url)
+				print 'calling execute on {}'.format(function)
+				executebuiltin(function)
+			else:
+				bridge.play(url=url)
+			
 
 	def stop(self):
 		"""Stop playing."""
@@ -1001,6 +1017,14 @@ def executebuiltin(function, wait=False):
 	if m:
 		bridge._message({'type':'load', 'url':'/catalog/{}/{}'.format(utils.b64encode(Container.plugin.id), utils.b64encode(m.group(1)))})
 		return str()
+	m = re.search('.*RunPlugin\(plugin://([^/]*)(.*)\)', function)
+	if m:
+		bridge._message({'type':'load', 'url':'/catalog/{}/{}'.format(utils.b64encode(m.group(1)), utils.b64encode(m.group(2)))})
+		return str()
+	m = re.search('.*RunPlugin\((.*)\)', function)
+	if m:
+		bridge._message({'type':'load', 'url':'/catalog/{}/{}'.format(utils.b64encode(Container.plugin.id), utils.b64encode(m.group(1)))})
+		return str()
 	m = re.search('Notification\((.*), (.*)(, (.*), (.*))*\)', function)
 	if m:
 		title = m.group(1)
@@ -1412,7 +1436,9 @@ def translatePath(path):
 	if "special://home/addons" in path :
 		return path.replace("special://home/addons", 'kodiplugins')
 	if 'special://profile/addon_data/' in path:
-		return path.replace('special://profile/addon_data/', 'kodiplugins{}'.format(os.path.sep)) 
+		return path.replace('special://profile/addon_data/', 'kodiplugins{}'.format(os.path.sep))
+	if 'special://temp/' in path:
+		return path.replace('special://temp/', 'kodiplugins{}'.format(os.path.sep))
 	return path
 
 

@@ -1,11 +1,11 @@
 import xml.etree.ElementTree as ET
-import os, sys
+import os, sys, json
 import importlib
 from xml.sax.saxutils import escape
 import bridge
 
 class Item:
-	def __init__(self, url, title, subtitle=None, icon=None, details=None, menuurl='', info={}):
+	def __init__(self, url, title, subtitle=None, icon=None, details=None, menuurl='', info={}, context={}):
 		self.url = url
 		self.title = title #'[COLOR green] >>	 Move to next page[/COLOR]'
 		self.subtitle = escape(subtitle) if subtitle else None
@@ -13,8 +13,9 @@ class Item:
 		self.details = escape(details) if details else None
 		self.menuurl = menuurl
 		self.info = info
+		self.context = context
 	def __repr__(self):
-		return str({'url':self.url, 'title':self.title, 'subtitle':self.subtitle, 'icon':self.icon, 'details':self.details, 'menuurl':self.menuurl, 'info':self.info})
+		return json.dumps({"url":self.url, "title":self.title, "subtitle":self.subtitle, "icon":self.icon, "details":self.details, "menuurl":self.menuurl, "info":self.info, "context":self.context})
 
 
 class Plugin:

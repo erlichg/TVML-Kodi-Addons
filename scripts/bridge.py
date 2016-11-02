@@ -9,7 +9,8 @@ def play_stop(b, _id, stop_completion):
 	res = None
 	if 'setproctitle' in sys.modules:
 		setproctitle.setproctitle('python TVMLServer (play wait {})'.format(_id))
-	while not b.thread.stop:
+	now = time.time()
+	while not b.thread.stop and time.time() - now < 18000: #Max wait for 5 hours in case of stuck/aborted app
 		try:
 			r = b.thread.responses.get(False)
 			print 'found response for {}'.format(r['id'])
@@ -22,14 +23,20 @@ def play_stop(b, _id, stop_completion):
 		except:
 			time.sleep(1)
 	b.play = None
-	print 'detected player stop at time {}'.format(utils.b64decode(res))
-	if stop_completion:
-		stop_completion(utils.b64decode(res))
+	if time.time() - now < 18000:
+		print 'detected player stop at time {}'.format(utils.b64decode(res))
+		if stop_completion:
+			stop_completion(utils.b64decode(res))
+	else:
+		print 'forced player stop due to unresponsiveness'
+		if stop_completion:
+			stop_completion(0)		
 		
 def progress_stop(b, _id):
 	if 'setproctitle' in sys.modules:
 		setproctitle.setproctitle('python TVMLServer (progress dialog {})'.format(_id))
-	while b.progress and not b.thread.stop:
+	now = time.time()
+	while b.progress and not b.thread.stop and time.time() - now < 18000: #Max wait for 5 hours in case of stuck/aborted app:
 		try:
 			r = b.thread.responses.get(False)
 			print 'found response for {}'.format(r['id'])
@@ -42,6 +49,7 @@ def progress_stop(b, _id):
 				b.thread.responses.put(r)					
 		except:			
 			time.sleep(1)
+   b.progress=None
    
 class bridge:
 	"""Bridge class which is created on every client request.

@@ -34,6 +34,7 @@ sys.path.append('kodiplugins')
 
 
 import utils
+import jinja2
 app = Flask(__name__)
 app.jinja_env.filters['base64encode'] = utils.b64encode
 #app.jinja_env.add_extension('jinja2.ext.do')
@@ -156,7 +157,11 @@ def catalog(pluginid, url=None, response=None):
 		print 'entering while alive'
 		while p.is_alive():
 			try:
-				msg = p.messages.get(False)			
+				msg = p.messages.get(False)
+			except:
+				time.sleep(0.1)
+				continue
+			try:		
 				method = getattr(messages, msg['type'])
 				if msg['type'] == 'end':
 					global PROCESSES
@@ -176,13 +181,18 @@ def catalog(pluginid, url=None, response=None):
 					return_url = '{}/{}/{}'.format(request.url, 'fake', p.id)
 				return method(plugin, msg, return_url)
 			except:
-				time.sleep(0.1)
+				traceback.print_exc(file=sys.stdout)
 		print 'exiting while alive and entering 2s wait'
 		#Check for possible last message which could have appeared after the thread has died. This could happen if message was sent during time.sleep in while and loop exited immediately afterwards
 		start = 0
 		while start < 2: #wait at most 2 seconds
 			try:
 				msg = p.messages.get(False)
+			except:
+				time.sleep(0.1)
+				start+=0.1
+				continue
+			try:
 				method = getattr(messages, msg['type'])
 				if msg['type'] == 'end':				
 					global PROCESSES
@@ -192,8 +202,7 @@ def catalog(pluginid, url=None, response=None):
 					print 'PROCESS {} TERMINATED'.format(p.id)
 				return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, p.id))	
 			except:
-				time.sleep(0.1)
-				start+=0.1
+				traceback.print_exc(file=sys.stdout)
 		print 'finished 2 sec wait. Restarting process'
 		#if we got here, this means thread has probably crashed.
 		global PROCESSES

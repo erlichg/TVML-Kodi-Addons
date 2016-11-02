@@ -112,8 +112,8 @@ class Addon(object):
 							self.settings[label].append(e.attrib)
 				ADDON_CACHE[self.id] = 'lock'
 				print 'trakt.user before settings load is {}'.format(self.getSetting('trakt.user'))
-				loaded_settings = json.loads(utils.b64decode(xbmc.bridge._message({'type':'loadSettings'}, True)))
-				self.settings.update(loaded_settings)
+				#loaded_settings = json.loads(utils.b64decode(xbmc.bridge._message({'type':'loadSettings'}, True)))
+				#self.settings.update(loaded_settings)
 				print 'trakt.user after settings load is {}'.format(self.getSetting('trakt.user'))
 				ADDON_CACHE[self.id] = self.settings
 						

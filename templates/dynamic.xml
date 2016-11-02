@@ -22,15 +22,16 @@ See LICENSE.txt for this sample’s licensing information
 		  <section>
 				{% for item in menu %}
 				{% if msgid is defined %}
-				<listItemLockup menuURL="{{item.menuurl}}" onselect="notify('/response/{{msgid}}/{{loop.index}}'); load('{{url}}')">
+				<listItemLockup onholdselect="var item = JSON.parse(event.target.children.item(0).getAttribute('item')); if (Object.keys(item.context).length > 0) { showSelectDialog(item.title, Object.keys(item.context), 0, function(ans) { if (typeof ans != 'undefined') {performAction(item.context[ans], '{{plugin.id}}');}});}" onselect="notify('/response/{{msgid}}/{{loop.index}}'); load('{{url}}')">
 				{% else %}
-				<listItemLockup menuURL="{{item.menuurl}}" onselect="load('/catalog/{{plugin.id | base64encode}}/{{item.url | base64encode}}')">								
+				<listItemLockup onholdselect="var item = JSON.parse(event.target.children.item(0).getAttribute('item')); if (Object.keys(item.context).length > 0) { showSelectDialog(item.title, Object.keys(item.context), 0, function(ans) { if (typeof ans != 'undefined') {performAction(item.context[ans], '{{plugin.id}}');}});}" onselect="load('/catalog/{{plugin.id | base64encode}}/{{item.url | base64encode}}')">								
 				{% endif %}
+					<placeholder item="{{item}}"></placeholder>
 				 	<title class="foo">{{item.title}}</title>
 				 	<relatedContent>
 					 	<lockup style="margin: 10">
 						 	<img src="{{item.icon}}" width="857" height="842"/>
-						 	<description class="foo">{{item.details}}</description>
+						 	<description style="tv-text-max-lines: 15;">{{item.details}}</description>
 					 	</lockup>
 				 	</relatedContent>			 					 	
 				</listItemLockup>
@@ -44,9 +45,9 @@ See LICENSE.txt for this sample’s licensing information
 		  <section>
 				{% for item in menu %}
 				{% if msgid is defined %}
-				<listItemLockup menuURL="{{item.menuurl}}" onselect="notify('/response/{{msgid}}/{{loop.index}}'); load('{{url}}')">
+				<listItemLockup onholdselect="var item = JSON.parse(event.target.children.item(0).getAttribute('item')); if (Object.keys(item.context).length > 0) { showSelectDialog(item.title, Object.keys(item.context), 0, function(ans) { if (typeof ans != 'undefined') {performAction(item.context[ans], '{{plugin.id}}');}});}" onselect="notify('/response/{{msgid}}/{{loop.index}}'); load('{{url}}')">
 				{% else %}
-				<listItemLockup menuURL="{{item.menuurl}}" onselect="load('/catalog/{{plugin.id | base64encode}}/{{item.url | base64encode}}')">								
+				<listItemLockup onholdselect="var item = JSON.parse(event.target.children.item(0).getAttribute('item')); if (Object.keys(item.context).length > 0) { showSelectDialog(item.title, Object.keys(item.context), 0, function(ans) { if (typeof ans != 'undefined') {performAction(item.context[ans], '{{plugin.id}}');}});}" onselect="load('/catalog/{{plugin.id | base64encode}}/{{item.url | base64encode}}')">								
 				{% endif %}							
 				 	<title class="foo">{{item.title}}</title>				 					 	
 				</listItemLockup>
@@ -65,9 +66,9 @@ See LICENSE.txt for this sample’s licensing information
 		  {% for item in menu %}		  
 				
 				{% if msgid is defined %}
-				<lockup onselect="notify('/response/{{msgid}}/{{loop.index}}'); load('{{url}}')" menuURL="{{item.menuurl}}">
+				<lockup onholdselect="var item = JSON.parse(event.target.children.item(0).getAttribute('item')); if (Object.keys(item.context).length > 0) { showSelectDialog(item.title, Object.keys(item.context), 0, function(ans) { if (typeof ans != 'undefined') {performAction(item.context[ans], '{{plugin.id}}');}});}" onselect="notify('/response/{{msgid}}/{{loop.index}}'); load('{{url}}')">
 				{% else %}
-				<lockup menuURL="{{item.menuurl}}" onselect="load('/catalog/{{plugin.id | base64encode}}/{{item.url | base64encode}}')">								
+				<lockup onholdselect="var item = JSON.parse(event.target.children.item(0).getAttribute('item')); if (Object.keys(item.context).length > 0) { showSelectDialog(item.title, Object.keys(item.context), 0, function(ans) { if (typeof ans != 'undefined') {performAction(item.context[ans], '{{plugin.id}}');}});}" onselect="load('/catalog/{{plugin.id | base64encode}}/{{item.url | base64encode}}')">								
 				{% endif %}						
 					<img style="tv-placeholder: movie;" src="{{item.icon}}" width="{{item.width}}" height="{{item.height}}"/>
 				 	<title class="foo2">{{item.title}}</title>			 					 	

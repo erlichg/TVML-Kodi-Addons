@@ -1,5 +1,5 @@
 import xml.etree.ElementTree as ET
-import os, sys, re
+import os, sys, re, json
 import importlib
 import bridge
 import utils
@@ -101,7 +101,7 @@ class KodiPlugin:
 			return items
 		for item in items:
 			#url, title, subtitle=None, icon=None, details=None, menuurl='', info={})
-			i = Item(url=item['url'], title=convert_kodi_tags_to_html_tags(item['listitem'].label), subtitle=item['listitem'].getProperty('subtitle'), icon=item['listitem'].thumbnailImage if item['listitem'].thumbnailImage != 'DefaultFolder.png' else '', details=item['listitem'].getProperty('details'),info=item['listitem'].infos)
+			i = Item(url=item['url'], title=convert_kodi_tags_to_html_tags(item['listitem'].label), subtitle=item['listitem'].getProperty('subtitle'), icon=item['listitem'].thumbnailImage if item['listitem'].thumbnailImage != 'DefaultFolder.png' else '', details=item['listitem'].getProperty('details'),info=item['listitem'].infos, context=item['listitem'].context)
 			infos = item['listitem'].infos
 			if 'poster' in infos:
 				i.icon = infos['poster']
@@ -109,5 +109,7 @@ class KodiPlugin:
 				i.details = infos['plot']
 			if 'year' in infos:
 				i.year = infos['year']
+			if 'trailer' in infos:
+				i.context['Watch trailer'] = 'RunPlugin({})'.format(infos['trailer'])			
 			ans.append(i)
 		return ans

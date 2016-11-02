@@ -36,6 +36,7 @@ def end(plugin, msg, url=None):
 		if item.icon:
 			print 'thread start'
 			item.icon = CACHE.get(item.icon)
+			item.info['poster'] = item.icon
 			try:
 				item.width, item.height = utils.get_image_size('.{}'.format(item.icon))
 				if item.width > 600 or item.height > 600:
@@ -51,7 +52,8 @@ def end(plugin, msg, url=None):
 			print 'thread done'
 		else:
 			item.width = 300
-			item.height = 300			
+			item.height = 300
+		item.context['Item info'] = 'ItemInfo({})'.format(json.dumps(item.info))			
 	print 'parallel start'
 	run_parallel_in_threads(work, items)
 	print 'parallel end'
