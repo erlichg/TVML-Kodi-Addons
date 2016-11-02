@@ -49,7 +49,7 @@ def progress_stop(b, _id):
 				b.thread.responses.put(r)					
 		except:			
 			time.sleep(1)
-   b.progress=None
+	b.progress=None
    
 class bridge:
 	"""Bridge class which is created on every client request.
