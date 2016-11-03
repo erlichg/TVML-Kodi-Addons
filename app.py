@@ -1,5 +1,6 @@
 from __future__ import division
 import sys, os, imp, urllib, json, time, traceback, re
+from threading import Timer
 try:
 	from flask import Flask, render_template, send_from_directory, request
 except:
@@ -10,19 +11,23 @@ try:
 except:
 	pass
 
-try:
-	import faulthandler
-	faulthandler.enable()
-except:
-	print 'TVML Server requires faulthandler module.\nPlease install it via "pip install faulthandler"'
-	sys.exit(1)
+# try:
+# 	import faulthandler
+# 	faulthandler.enable()
+# except:
+# 	print 'TVML Server requires faulthandler module.\nPlease install it via "pip install faulthandler"'
+# 	sys.exit(1)
 
 import multiprocessing
 import urlparse
 #import gevent.monkey
 #gevent.monkey.patch_all()
-from gevent.pywsgi import WSGIServer
-
+try:
+	from gevent.pywsgi import WSGIServer
+except:
+	print 'TVML Server requires gevent module.\nPlease install it via "pip install gevent"'
+	sys.exit(1)
+	
 reload(sys)
 sys.setdefaultencoding('utf8')
 sys.path.append('scripts')
@@ -46,7 +51,6 @@ from KodiPlugin import *
 from bridge import bridge
 
 import messages
-
 
 
 
@@ -203,13 +207,20 @@ def catalog(pluginid, url=None, response=None):
 				return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, p.id))	
 			except:
 				traceback.print_exc(file=sys.stdout)
-		print 'finished 2 sec wait. Restarting process'
+		print 'finished 2 sec wait'
 		#if we got here, this means thread has probably crashed.
 		global PROCESSES
 		del PROCESSES[p.id]
 		p.join()
 		p.terminate()
 		print 'PROCESS {} CRASHED'.format(p.id)
+		def restart():
+			print 'restarting app'
+			global http_server
+			http_server.stop()
+			python = sys.executable
+			os.execl(python, python, *sys.argv)
+		Timer(1, restart, ()).start()
 		return render_template('alert.xml', title='Communication error', description="Failed to load page.\nThis could mean the server had a problem, or the request dialog timed-out\nPlease try again")
 	except:
 		traceback.print_exc(file=sys.stdout)
@@ -392,7 +403,7 @@ def mmain():
 			print 'Successfully loaded plugin: {}'.format(p)
 		except Exception as e:
 			print 'Failed to load kodi plugin {}. Error: {}'.format(plugin, e)
-				
+	global http_server		
 	http_server = WSGIServer(('',5000), app)
 	#http_server.log = open('http.log', 'w')
 	http_server.serve_forever()
