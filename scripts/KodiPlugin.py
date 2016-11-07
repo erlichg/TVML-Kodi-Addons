@@ -2,7 +2,7 @@ import xml.etree.ElementTree as ET
 import os, sys, re, json
 import importlib
 import bridge
-import utils
+import kodi_utils
 import Plugin
 import traceback
 
@@ -29,7 +29,7 @@ class KodiPlugin:
 				self.script = e2.attrib['library']
 		self.icon = '{}/icon.png'.format(self.dir.replace('\\', '/'))
 		self.module = self.script[:-3]
-		self.menuurl = '/menu/{}'.format(utils.b64encode(self.id))
+		self.menuurl = '/menu/{}'.format(kodi_utils.b64encode(self.id))
 		
 	def settings(self, bridge, url):
 		import xbmc

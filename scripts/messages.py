@@ -1,7 +1,7 @@
 from flask import Flask, render_template, send_from_directory, request
 import json
 import imageCache
-import utils
+import kodi_utils
 import traceback, sys
 
 import time
@@ -35,10 +35,13 @@ def end(plugin, msg, url=None):
 	def work(item):
 		if item.icon:
 			print 'thread start'
-			item.icon = CACHE.get(item.icon)
+			if item.icon.startswith('kodiplugins') or item.icon.startswith('plugins'):
+				item.icon = '/{}'.format(item.icon)
+			else:
+				item.icon = CACHE.get(item.icon)
 			item.info['poster'] = item.icon
 			try:
-				item.width, item.height = utils.get_image_size('.{}'.format(item.icon))
+				item.width, item.height = kodi_utils.get_image_size('.{}'.format(item.icon))
 				if item.width > 600 or item.height > 600:
 					item.width = item.width / 2
 					item.height = item.height / 2
@@ -71,9 +74,15 @@ def end(plugin, msg, url=None):
 
 def play(plugin, msg, url=None):
 	"""Opens the player on msg url attribute"""
+	if msg['image']:
+		if msg['image'].startswith('kodiplugins') or msg['image'].startswith('plugins'):
+			msg['image'] = '/{}'.format(msg['image'])
+		else:
+			msg['image'] = CACHE.get(msg['image'])
+	print 'image after cache = {}'.format(msg['image'])
 	#since url paremeter is the original url that was called which resulted in a play message, we can save this url for time
 	#return render_template('player.xml', url=msg['url'], type=msg['playtype'])
-	return json.dumps({'url': msg['url'], 'stop': msg['stop'], 'type':msg['playtype'], 'imdb':msg['imdb'], 'title':msg['title'], 'description':msg['description'], 'image':msg['image'], 'season':msg['season'], 'episode':msg['episode']}), 202
+	return json.dumps({'continue': url, 'url': msg['url'], 'stop': msg['stop'], 'type':msg['playtype'], 'imdb':msg['imdb'], 'title':msg['title'], 'description':msg['description'], 'image':msg['image'], 'season':msg['season'], 'episode':msg['episode']}), 202
 	
 def isplaying(plugin, msg, url=None):
 	pass
@@ -89,6 +98,7 @@ def alertdialog(plugin, msg, url=None):
 		
 def progressdialog(plugin, msg, url=None):
 	"""Shows a progress dialog. Initially with progress 0"""
+	print 'returning progress template with {}'.format(msg)
 	return render_template('progressdialog.xml', title=msg['title'], text=msg['text'], value=msg['value'], url=url, msgid=msg['id'])
 	
 def selectdialog(plugin, msg, url=None):

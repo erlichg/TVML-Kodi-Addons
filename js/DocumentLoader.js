@@ -103,17 +103,22 @@ DocumentLoader.prototype.fetch = function(options) {
 				    	resume.getElementById("resume").addEventListener("select", function() {
 						    navigationDocument.removeDocument(resume);
 						    this.play(msg, time, playCache, options);
+						    options.url = msg['continue'];
+							this.fetch(options);
 				    	}.bind(this));
 				    	resume.getElementById("begin").addEventListener("select", function() {
 						    navigationDocument.removeDocument(resume);
 						    this.play(msg, 0, playCache, options);
+						    options.url = msg['continue'];
+							this.fetch(options);
 				    	}.bind(this));
 				    	navigationDocument.pushDocument(resume);
 				    }
 			    } else {
 				    this.play(msg, time, playCache, options);
-			    }
-			    
+				    options.url = msg['continue'];
+					this.fetch(options);
+			    }			    
 			    return;
 		    } catch (e) {
 			    console.log(e);
@@ -282,6 +287,9 @@ DocumentLoader.prototype.cancelFetch = function() {
  */
 DocumentLoader.prototype.prepareURL = function(url) {
     // Handle URLs relative to the "server root" (baseURL)
+    if (url == null) {
+	    return null;
+    }
     if (url.indexOf("/") === 0) {
         url = this.baseURL + url.substr(1);
     }
@@ -499,7 +507,7 @@ function traverseElements(elem, callback) {
 }
 
 DocumentLoader.prototype.play = function(msg, time, playCache, options) {
-	var player = VLCPlayer.createPlayerWithUrlTimeImageDescriptionTitleImdbSeasonEpisodeCallback(msg['url'], time, msg['image'], msg['description'], msg['title'], msg['imdb'], msg['season'], msg['episode'], function(time) {
+	var player = VLCPlayer.createPlayerWithUrlTimeImageDescriptionTitleImdbSeasonEpisodeCallback(msg['url'], time, this.prepareURL(msg['image']), msg['description'], msg['title'], msg['imdb'], msg['season'], msg['episode'], function(time) {
 		try {
 			var total = player.getDuration();
 			console.log("player ended with "+time+"ms out of "+total+"ms");
@@ -508,9 +516,9 @@ DocumentLoader.prototype.play = function(msg, time, playCache, options) {
 			}
 			console.log("calculated time is "+time);
 			var imdb = msg['imdb'];
-		    var season = msg['season'];
-		    var episode = msg['episode'];
-		    if (imdb != null) {
+			var season = msg['season'];
+			var episode = msg['episode'];
+			if (imdb != null) {
 			    var search = imdb;
 			    if (season != null) {
 				    search += "S"+season;
@@ -519,10 +527,10 @@ DocumentLoader.prototype.play = function(msg, time, playCache, options) {
 				    search += "E"+episode;
 			    }
 			    playCache[search] = time;
-		    } else {
-		    	playCache[msg['url']] = time;
-		    }			
-			localStorage.setItem('playCache', JSON.stringify(playCache)); //save this url's stop time for future playback
+			} else {
+				playCache[msg['url']] = time;
+			}			
+			localStorage.setItem('playCache', JSON.stringify(playCache)); //save this url's stop time for future playback			
 			var url = this.prepareURL(msg['stop']+"/"+btoa(time.toString()));
 			console.log("notifying "+url);
 			VLCPlayer.notify(url);
@@ -531,8 +539,17 @@ DocumentLoader.prototype.play = function(msg, time, playCache, options) {
 		}
 	}.bind(this));
 	console.log("after create player: "+player);
-	VLCPlayer.present(player);
 	options.abort(); //remove the loading document
+	if (typeof(player) != "undefined") {
+		VLCPlayer.present(player);
+	} else {
+		var alert = createAlertDocument("Error", "Error playing URL "+msg['url'], true);
+		navigationDocument.presentModal(alert);
+		var url = this.prepareURL(msg['stop']+"/"+btoa(time.toString()));
+		console.log("notifying "+url);
+		notify(url);
+	}
+	
 }
 
 DocumentLoader.prototype.formatTime = function(time) {

@@ -24,6 +24,7 @@ import urlparse
 #gevent.monkey.patch_all()
 try:
 	from gevent.pywsgi import WSGIServer
+	import gevent
 except:
 	print 'TVML Server requires gevent module.\nPlease install it via "pip install gevent"'
 	sys.exit(1)
@@ -35,13 +36,13 @@ sys.path.append(os.path.join('scripts', 'kodi'))
 sys.path.append('plugins')
 sys.path.append('kodiplugins')
 
+print sys.executable
 
 
-
-import utils
+import kodi_utils
 import jinja2
 app = Flask(__name__)
-app.jinja_env.filters['base64encode'] = utils.b64encode
+app.jinja_env.filters['base64encode'] = kodi_utils.b64encode
 #app.jinja_env.add_extension('jinja2.ext.do')
 	
 import threading
@@ -87,12 +88,15 @@ def route(pid, id, res=None):
 	if request.method == 'POST':
 		res = request.form.keys()[0]
 	global PROCESSES
-	p = PROCESSES[pid]
-	print 'received response on process {}'.format(pid)
-	if p is not None:
-		p.responses.put({'id':id, 'response':res})
+	if pid in PROCESSES:
+		p = PROCESSES[pid]
+		print 'received response on process {}'.format(pid)
+		if p is not None:
+			p.responses.put({'id':id, 'response':res})
+			return 'OK', 206
+		return render_template('alert.xml', title='Communication error', description="Failed to load page.\nThis could mean the server had a problem, or the request dialog timed-out\nPlease try again")
+	else:
 		return 'OK', 206
-	return render_template('alert.xml', title='Communication error', description="Failed to load page.\nThis could mean the server had a problem, or the request dialog timed-out\nPlease try again")
 
 @app.route('/icon.png')
 def icon():
@@ -124,18 +128,18 @@ def template(filename):
 @app.route('/menu/<pluginid>/<response>')
 @app.route('/catalog/<pluginid>')
 @app.route('/catalog/<pluginid>/<url>')
-@app.route('/catalog/<pluginid>/<url>/<response>')
-def catalog(pluginid, url=None, response=None):
+@app.route('/catalog/<pluginid>/<url>/<process>')
+def catalog(pluginid, url=None, process=None):
 	try:
 		if not url:
 			decoded_url = ''
 		elif url == 'fake':
 			decoded_url = ''
 		else:
-			decoded_url = utils.b64decode(url)
-		decoded_id = utils.b64decode(pluginid)
+			decoded_url = kodi_utils.b64decode(url)
+		decoded_id = kodi_utils.b64decode(pluginid)
 		if request.full_path.startswith('/catalog'):
-			print 'catalog {}, {}, {}'.format(decoded_id, decoded_url, response)
+			print 'catalog {}, {}, {}'.format(decoded_id, decoded_url, process)
 		else:
 			print 'menu {}, {}'.format(decoded_id, response)
 		plugin = [p for p in PLUGINS if p.id == decoded_id][0]
@@ -143,8 +147,10 @@ def catalog(pluginid, url=None, response=None):
 			return render_template('alert.xml', title='Communication error', description="Failed to load page.\nThis could mean the server had a problem, or the request dialog timed-out\nPlease try again")
 		
 		global PROCESSES
-		if response:
-			p = PROCESSES[response]
+		if process:
+			if not process in PROCESSES:
+				return render_template('alert.xml', title='Fatal error', description="Failed to load page.\nSomething has gone terribly wrong.\nPlease try to restart the App")
+			p = PROCESSES[process]
 		else:
 			if request.full_path.startswith('/catalog'):
 				p = Process(target=get_items, args=(plugin.id, decoded_url, CONTEXT, PLUGINS))
@@ -153,7 +159,7 @@ def catalog(pluginid, url=None, response=None):
 			print 'saving process id {}'.format(p.id)		
 			PROCESSES[p.id] = p
 			def stop():
-				time.sleep(5) #close bridge after 10s
+				time.sleep(5) #close bridge after 5s
 				global PROCESSES
 				del PROCESSES[p.id]
 			#b.thread.onStop = stop
@@ -163,18 +169,18 @@ def catalog(pluginid, url=None, response=None):
 			try:
 				msg = p.messages.get(False)
 			except:
-				time.sleep(0.1)
+				gevent.sleep(0.1)
 				continue
 			try:		
 				method = getattr(messages, msg['type'])
-				if msg['type'] == 'end':
+				if msg['type'] == 'end' or msg['type'] == 'load':
 					global PROCESSES
 					del PROCESSES[p.id]
-					p.join()
-					p.terminate()
+					#p.join()
+					#p.terminate()
 					print 'PROCESS {} TERMINATED'.format(p.id)
 				return_url = None
-				if response:
+				if process:
 					#return on same url for more
 					return_url = request.url
 				elif url or request.full_path.startswith('/menu'):
@@ -189,38 +195,44 @@ def catalog(pluginid, url=None, response=None):
 		print 'exiting while alive and entering 2s wait'
 		#Check for possible last message which could have appeared after the thread has died. This could happen if message was sent during time.sleep in while and loop exited immediately afterwards
 		start = 0
-		while start < 2: #wait at most 2 seconds
+		while start < 5: #wait at most 5 seconds
 			try:
 				msg = p.messages.get(False)
 			except:
-				time.sleep(0.1)
+				gevent.sleep(0.1)
 				start+=0.1
 				continue
 			try:
 				method = getattr(messages, msg['type'])
-				if msg['type'] == 'end':				
+				if msg['type'] == 'end' or msg['type'] == 'load':				
 					global PROCESSES
 					del PROCESSES[p.id]
-					p.join()
-					p.terminate()
+					#p.join()
+					#p.terminate()
 					print 'PROCESS {} TERMINATED'.format(p.id)
-				return method(plugin, msg, request.url) if response else method(plugin, msg, '{}/{}'.format(request.url, p.id))	
+				return method(plugin, msg, request.url) if process else method(plugin, msg, '{}/{}'.format(request.url, p.id))	
 			except:
 				traceback.print_exc(file=sys.stdout)
-		print 'finished 2 sec wait'
+		print 'finished 5 sec wait'
 		#if we got here, this means thread has probably crashed.
 		global PROCESSES
 		del PROCESSES[p.id]
 		p.join()
 		p.terminate()
 		print 'PROCESS {} CRASHED'.format(p.id)
-		def restart():
-			print 'restarting app'
-			global http_server
-			http_server.stop()
-			python = sys.executable
-			os.execl(python, python, *sys.argv)
-		Timer(1, restart, ()).start()
+# 		def restart():
+# 			print 'restarting app'
+# 			global http_server
+# 			http_server.stop()
+# 			try:
+# 				p = psutil.Process(os.getpid())
+# 				for handler in p.get_open_files() + p.connections():
+# 					os.close(handler.fd)
+# 			except Exception, e:
+# 				print e
+# 			python = sys.executable
+# 			os.execl(python, python, *sys.argv)
+# 		Timer(1, restart, ()).start()
 		return render_template('alert.xml', title='Communication error', description="Failed to load page.\nThis could mean the server had a problem, or the request dialog timed-out\nPlease try again")
 	except:
 		traceback.print_exc(file=sys.stdout)
@@ -237,7 +249,7 @@ def settings(response=None):
 		print 'saving process id {}'.format(p.id)		
 		PROCESSES[p.id] = p
 		def stop():
-			time.sleep(5) #close bridge after 10s
+			time.sleep(5) #close bridge after 5s
 			global PROCESSES
 			del PROCESSES[p.id]
 		#b.thread.onStop = stop
@@ -260,7 +272,7 @@ def settings(response=None):
 				return_url = '{}/{}'.format(request.url, p.id)			
 			return method(plugin, msg, return_url)
 		except:
-			time.sleep(0.1)
+			gevent.sleep(0.1)
 	#Check for possible last message which could have appeared after the thread has died. This could happen if message was sent during time.sleep in while and loop exited immediately afterwards
 	while True:
 		try:
@@ -278,7 +290,7 @@ def settings(response=None):
 	
 @app.route('/subtitles/<msg>')
 def subtitles(msg):
-	msg = utils.b64decode(msg)
+	msg = kodi_utils.b64decode(msg)
 	print msg
 
 

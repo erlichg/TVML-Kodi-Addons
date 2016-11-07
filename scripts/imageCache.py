@@ -1,5 +1,5 @@
 import os, urllib2, traceback, time, sys
-import utils
+import kodi_utils
 
 class imageCache:
 	
@@ -21,7 +21,7 @@ class imageCache:
 		self.limit = limit
 		for f in os.listdir(self.dir):
 			try:
-				self.add(utils.b64decode(f), os.path.join(self.dir, f))
+				self.add(kodi_utils.b64decode(f), os.path.join(self.dir, f))
 			except:
 				continue
 			
@@ -56,7 +56,7 @@ class imageCache:
 			print 'downloading {}'.format(url)
 			if url in self.cache:
 				return True
-			name = utils.b64encode(url)
+			name = kodi_utils.b64encode(url)
 			req = urllib2.Request(url)
 			req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.86 Safari/537.36')
 			req.add_header('Accept-encoding', 'gzip')

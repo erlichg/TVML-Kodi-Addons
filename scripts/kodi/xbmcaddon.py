@@ -14,7 +14,6 @@ import xml.etree.ElementTree as ET
 from xml.sax.saxutils import escape
 import xbmc
 from collections import OrderedDict
-import utils
 
 ADDON_CACHE = {}
 

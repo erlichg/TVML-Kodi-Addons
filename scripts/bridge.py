@@ -1,5 +1,5 @@
-import importlib, time, sys, json, utils
-import multiprocessing
+import importlib, time, sys, json, kodi_utils
+import multiprocessing, gevent
 try:
 	import setproctitle
 except:
@@ -21,12 +21,13 @@ def play_stop(b, _id, stop_completion):
 			else:
 				b.thread.responses.put(r)					
 		except:
-			time.sleep(1)
+			gevent.sleep(1)
 	b.play = None
 	if time.time() - now < 18000:
-		print 'detected player stop at time {}'.format(utils.b64decode(res))
+		print 'detected player stop at time {}'.format(kodi_utils.b64decode(res))
 		if stop_completion:
-			stop_completion(utils.b64decode(res))
+			print 'calling stop completion'
+			stop_completion(kodi_utils.b64decode(res))
 	else:
 		print 'forced player stop due to unresponsiveness'
 		if stop_completion:
@@ -48,8 +49,9 @@ def progress_stop(b, _id):
 			else:
 				b.thread.responses.put(r)					
 		except:			
-			time.sleep(1)
+			gevent.sleep(1)
 	b.progress=None
+	print 'Progress has been closed'
    
 class bridge:
 	"""Bridge class which is created on every client request.
@@ -63,7 +65,7 @@ class bridge:
 		if not self.thread:
 			return None
 		if not _id:
-			_id = utils.randomword()
+			_id = kodi_utils.randomword()
 			msg['id'] = '{}/{}'.format(self.thread.id, _id)						
 		
 		print 'adding message: {}'.format(msg)
@@ -81,7 +83,7 @@ class bridge:
 				else:
 					self.thread.responses.put(r)
 			except:
-				time.sleep(0.1)
+				gevent.sleep(0.1)
 		if self.thread.stop:
 			print 'finished waiting for response {} due to thread stop'.format(_id)
 		else:
@@ -95,13 +97,15 @@ class bridge:
 	def inputdialog(self, title, description='', placeholder='', button='OK', secure=False):
 		"""Shows an input dialog to the user with text field. Returns the text the user typed or None if user aborted"""
 		s = self._message({'type':'inputdialog', 'title':title, 'description':description, 'placeholder':placeholder, 'button':button, 'secure':secure}, True)
-		return utils.b64decode(s) if s else None
+		return kodi_utils.b64decode(s) if s else None
 		
 	def progressdialog(self, heading, text=''):
 		"""Shows a progress dialog to the user"""
-		_id = utils.randomword()
+		_id = kodi_utils.randomword()
 		self.progress={'title': heading, 'id': _id}					
-		multiprocessing.Process(target=progress_stop, args=(self, _id)).start()
+		p = multiprocessing.Process(target=progress_stop, args=(self, _id))
+		p.daemon = True
+		p.start()
 		self._message({'type':'progressdialog', 'title':heading, 'text':text, 'value':'0', 'id':'{}/{}'.format(self.thread.id, _id)}, False, _id)
 		
 	def updateprogressdialog(self, value, text=''):
@@ -123,15 +127,17 @@ class bridge:
 	def selectdialog(self, title, text='', list_=[]):
 		"""Shows a selection dialog"""
 		ans = self._message({'type':'selectdialog', 'title':title, 'text':text, 'list':list_}, True)				
-		time.sleep(1)
+		gevent.sleep(1)
 		return ans
 		
 	def play(self, url, type_='video', title=None, description=None, image=None, imdb=None, season=None, episode=None, stop_completion=None):
 		"""Plays a url"""
 		print 'Playing {}'.format(url)
 		self.play = url
-		_id = utils.randomword()		
-		multiprocessing.Process(target=play_stop, args=(self, _id, stop_completion)).start()	
+		_id = kodi_utils.randomword()		
+		p = multiprocessing.Process(target=play_stop, args=(self, _id, stop_completion))
+		p.daemon = True
+		p.start()
 		self._message({'type':'play', 'url':url, 'stop':'/response/{}/{}'.format(self.thread.id, _id), 'playtype': type_, 'title':title, 'description':description, 'image':image, 'imdb':imdb, 'season':season, 'episode':episode})
 		return 
 	
@@ -161,4 +167,4 @@ class bridge:
 			s = self._message({'type':'formdialog', 'title':title, 'sections':sections, 'cont':cont}, True)
 		else:
 			raise Exception('Must have either fields or sections')
-		return json.loads(utils.b64decode(s)) if s else None
+		return json.loads(kodi_utils.b64decode(s)) if s else None
