@@ -71,7 +71,7 @@ App.onLaunch = function(options) {
             // Instantiate the DocumentLoader, which will be used to fetch and resolve URLs from the fecthed XML documents.
             // This instance is passed along to subsequent DocumentController objects.
             documentLoader = new DocumentLoader(baseURL);
-            //const startDocURL = baseURL + "templates/Index.xml";
+            //const startDocURL = baseURL + "templates/Index.xml";            
             const startDocURL = baseURL + "main";
             // Instantiate the controller with root template. The controller is passed in the loading document which
             // was pushed while scripts were being evaluated, and controller will replace it with root template once
@@ -82,7 +82,7 @@ App.onLaunch = function(options) {
             // error message to the user in an alert dialog.
             const alertDocument = createEvalErrorAlertDocument();
             navigationDocument.replaceDocument(alertDocument, loadingDocument);
-            throw new EvalError("TVMLCatalog application.js: unable to evaluate scripts.");
+            throw new EvalError("application.js: unable to evaluate scripts.");
         }
     });
 };
@@ -95,7 +95,7 @@ App.onExit = function(options) {
 }
 
 /*
-	This is called when the app gois to background
+	This is called when the app goes to background
 */
 App.onSuspend = function(options) {
 
@@ -108,10 +108,17 @@ App.onResume = function(options) {
 }
 
 /*
-	This is called when app receives memory warning. If ignored, the app will be exited forcefully
+	This is called when app receives memory warning. If ignored for some time, the app will be exited forcefully
 */
 App.onMemoryWarning = function(options) {
 	
+}
+
+/*
+	This is called when app is terminated
+*/
+App.onTerminate = function(options) {
+		
 }
 
 /**
@@ -120,12 +127,15 @@ App.onMemoryWarning = function(options) {
 function createLoadingDocument(title) {
     // If no title has been specified, fall back to "Loading...".
     title = title || "Loading...";
-
+	console.log("Creating loading document");
     const template = `<?xml version="1.0" encoding="UTF-8" ?>
         <document>
             <loadingTemplate>
-                <activityIndicator>
-                    <title>${title}</title>
+            	<background>
+					<img src="/templates/background.png"/>
+				</background>
+            	<activityIndicator>
+                    <title style="color:rgb(241,241,241)">${title}</title>
                 </activityIndicator>
             </loadingTemplate>
         </document>
@@ -143,6 +153,9 @@ function createAlertDocument(title, description, isModal) {
     const template = `<?xml version="1.0" encoding="UTF-8" ?>
         <document>
             <alertTemplate>
+            	<background>
+					<img src="/templates/background.png"/>
+				</background>
                 <title style="${textStyle}">${title}</title>
                 <description style="${textStyle}">${description}</description>
             </alertTemplate>
@@ -238,6 +251,18 @@ function createLoadErrorAlertDocument(url, xhr, isModal) {
 	return new DOMParser().parseFromString(template, "application/xml");
  }
  
+ function createPlayerDocument(image) {
+	 var template = `<?xml version="1.0" encoding="UTF-8" ?>
+	 <document>
+	 	<divTemplate>
+			<mediaContent playbackMode="always">
+				<img src="${image}" aspectFill="true" width="845" height="475"/>
+			</mediaContent>
+		</divTemplate>
+	</document>`;
+	return new DOMParser().parseFromString(template, "application/xml");
+ }
+ 
  function createSubtitleDocument() {
 	 var template = `<?xml version="1.0" encoding="UTF-8" ?>
 <!--
@@ -269,5 +294,27 @@ function createLoadErrorAlertDocument(url, xhr, isModal) {
 	</stackTemplate>
 </document>`;
 	return new DOMParser().parseFromString(template, "application/xml");
+ }
+ 
+ function createResumeDocument(time) {
+	 var template = `<?xml version="1.0" encoding="UTF-8" ?>
+	 <document>
+   <alertTemplate>
+   		<background>
+			<img src="${documentLoader.baseURL}templates/background.png"/>
+		</background>
+      <title style="color:rgb(241,241,241);">Resume playback</title>
+      <description></description>
+      <button id="resume">
+         <text style="color:rgb(241,241,241); tv-highlight-color:rgb(0,0,0);">Resume at ${time}</text>
+      </button>
+      <button id="begin">
+         <text style="color:rgb(241,241,241); tv-highlight-color:rgb(0,0,0);">Play from beginning</text>
+      </button>
+   </alertTemplate>
+</document>
+	 
+	 `;
+	return new DOMParser().parseFromString(template, "application/xml"); 
  }
  

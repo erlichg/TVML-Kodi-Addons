@@ -6,18 +6,36 @@ See LICENSE.txt for this sample’s licensing information
   <document>
 	<head>
 	  <style>
-	  </style>
+	  @media tv-template and (tv-theme:light) {
+      	.foo { color:rgb(0, 0, 0); tv-highlight-color:rgb(255, 255, 255);}
+	  }
+	  @media tv-template and (tv-theme:dark) {
+      	.foo { color:rgb(255, 255, 255); tv-highlight-color:rgb(0,0,0);}
+	  }
+	</style>
 	</head>
 	<listTemplate>
-	  <list>
+		<banner>
+			<title class="foo">{{title}}</title>
+			{% if text is defined %}
+			<infoList>
+				<info>
+				{% for t in text %}
+				<text style="font-size:30">{{t}}</text>
+				{% endfor %}
+				</info>
+			</infoList>
+			{% endif %}
+		</banner>		
+	  <list style="width: 1000">		  
 		  <section>
 				{% for item in menu %}
 				{% if msgid is defined %}
 				<listItemLockup menuURL="{{item.menuurl}}" onselect="notify('/response/{{msgid}}/{{loop.index}}'); load('{{url}}')">
 				{% else %}
-				<listItemLockup menuURL="{{item.menuurl}}" onselect="load('/catalog/{{plugin.name | base64encode}}/{{item.url | base64encode}}')">								
+				<listItemLockup menuURL="{{item.menuurl}}" onselect="load('/catalog/{{plugin.id | base64encode}}/{{item.url | base64encode}}')">								
 				{% endif %}							
-				 	<title>{{item.title}}</title>				 					 	
+				 	<title class="foo">{{item.title}}</title>				 					 	
 				</listItemLockup>
 				{% endfor %}
 			</section>

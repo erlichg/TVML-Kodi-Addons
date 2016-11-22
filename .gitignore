@@ -1,2 +1,5 @@
 *.pyc
 *.log
+plugins/*c
+!plugins/*c/
+plugins/*/*.db

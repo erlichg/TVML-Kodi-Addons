@@ -29,25 +29,49 @@ function DocumentController(documentLoader, documentURL, loadingDocument, initia
     this.handleEvent = this.handleEvent.bind(this);
     this.handleHoldSelect = this.handleHoldSelect.bind(this);
     this._documentLoader = documentLoader;
-    documentLoader.fetch({
-	    initial: initial,
-        url: documentURL,
-        success: function(document, isModal) {
-            // Add the event listener for document
-            this.setupDocument(document);
-            // Allow subclass to do custom handling for this document
-            this.handleDocument(document, loadingDocument, isModal);
-        }.bind(this),
-        error: function(xhr) {
-            const alertDocument = createLoadErrorAlertDocument(documentURL, xhr, false);
-            this.handleDocument(alertDocument, loadingDocument);
-        }.bind(this),
-        abort: function() {
-	        if(loadingDocument) {
-		        navigationDocument.removeDocument(loadingDocument);
-	        }
-        }
-    });
+    if (typeof initial == "boolean" && initial) {
+	    var favs = loadFavourites();
+		documentLoader.post({
+	    	initial: initial,	    	
+        	url: documentURL,
+        	data: btoa(JSON.stringify(favs)),
+        	success: function(document, isModal) {
+        	    // Add the event listener for document
+        	    this.setupDocument(document);
+        	    // Allow subclass to do custom handling for this document
+        	    this.handleDocument(document, loadingDocument, isModal);
+        	}.bind(this),
+        	error: function(xhr) {
+        	    const alertDocument = createLoadErrorAlertDocument(documentURL, xhr, false);
+        	    this.handleDocument(alertDocument, loadingDocument);
+        	}.bind(this),
+        	abort: function() {
+	    	    if(loadingDocument) {
+			        navigationDocument.removeDocument(loadingDocument);
+	    	    }
+        	}
+    	}); 	       					
+    } else {
+    	documentLoader.fetch({
+		    initial: initial,
+    	    url: documentURL,
+    	    success: function(document, isModal) {
+    	        // Add the event listener for document
+    	        this.setupDocument(document);
+    	        // Allow subclass to do custom handling for this document
+    	        this.handleDocument(document, loadingDocument, isModal);
+    	    }.bind(this),
+    	    error: function(xhr) {
+    	        const alertDocument = createLoadErrorAlertDocument(documentURL, xhr, false);
+    	        this.handleDocument(alertDocument, loadingDocument);
+    	    }.bind(this),
+    	    abort: function() {
+		        if(loadingDocument) {
+			        navigationDocument.removeDocument(loadingDocument);
+		        }
+    	    }
+    	});
+    }
 }
 
 registerAttributeName('documentURL', DocumentController);
@@ -109,7 +133,9 @@ DocumentController.prototype.handleEvent = function(event) {
 
 DocumentController.prototype.handleHoldSelect = function(event) {
 	const target = event.target;
-	if (target.hasAttribute("menuURL")) {
+	if (target.getAttribute("onholdselect") != "") {
+		eval(target.getAttribute("onholdselect"));
+/*
 		const documentURL = target.getAttribute("menuURL");
 		if (documentURL != "") {
 			var loadingDocument;
@@ -120,10 +146,12 @@ DocumentController.prototype.handleHoldSelect = function(event) {
         	// Create the subsequent controller based on the atribute and its value. Controller would handle its presentation.
 			new DocumentController(this._documentLoader, documentURL, loadingDocument);
         }
+*/
 	}
 }
 
 function notify(url) {
+	console.log("notify: "+url);
 	documentLoader.fetch({
 		url:url,
 		abort: function() {
@@ -138,8 +166,85 @@ function notify(url) {
 	});
 }
 
-function load(url) {
-	new DocumentController(documentLoader, url, createLoadingDocument());
+function load(url, initial) {
+	console.log("loading "+url);
+	if (typeof initial == "boolean" && initial) {
+		navigationDocument.clear();
+	}
+	var loadingDocument = createLoadingDocument();
+	navigationDocument.pushDocument(loadingDocument);	
+	new DocumentController(documentLoader, url, loadingDocument, initial);
+}
+
+function saveSettings(addon, settings) {
+	console.log("saving settings: "+JSON.stringify(settings));
+	var addonsSettings = localStorage.getItem("addonsSettings");
+	if (addonsSettings == null) {
+	    addonsSettings = "{}";
+    }
+	try {
+		addonsSettings = JSON.parse(addonsSettings);
+	} catch (e) {
+		console.log("Error getting addonsSettings from local storage");
+		addonsSettings = {};
+	}    
+    addonsSettings[addon] = settings;
+    localStorage.setItem('addonsSettings', JSON.stringify(addonsSettings));
+}
+
+function loadSettings(addon) {
+	var addonsSettings = localStorage.getItem("addonsSettings");
+	if (addonsSettings == null) {
+	    addonsSettings = "{}";
+    }
+	try {
+		addonsSettings = JSON.parse(addonsSettings);
+	} catch (e) {
+		console.log("Error getting addonsSettings from local storage");
+		addonsSettings = {};
+	} 
+    
+    var addonSettings = addonsSettings[addon];
+    if(addonSettings == null) {
+	    addonSettings = {};
+    }
+    console.log('Loaded addon settings '+JSON.stringify(addonSettings));
+    return addonSettings;
+}
+
+function loadFavourites() {
+	var favs = localStorage.getItem("favourites");
+	if (favs == null) {
+	    favs = "[]";
+    }
+	try {
+		favs = JSON.parse(favs);
+	} catch (e) {
+		console.log("Error getting addonsSettings from local storage");
+		favs = [];
+	} 
+    
+    console.log('Loaded favourites '+JSON.stringify(favs));
+    return favs;
+}
+
+function saveFavourites(favs) {
+	localStorage.setItem('favourites', JSON.stringify(favs));
+}
+
+function addToFavourites(addon) {
+	var favs = loadFavourites();
+	favs.push(addon);
+	saveFavourites(favs);
+}
+
+function removeFromFavourites(addon) {
+	var favs = loadFavourites();
+	var index = favs.indexOf(addon);
+	if (index > -1) {
+    	favs.splice(index, 1);
+	}
+	saveFavourites(favs);
 }
 
 function showInputDialog(title, description, placeholder, button, secure, callback) {
@@ -185,4 +290,114 @@ function showInputDialog(title, description, placeholder, button, secure, callba
 		}
 	});
 	navigationDocument.presentModal(dialog);
+}
+
+function showSelectDialog(title, choices, index, callback) {
+	var template=`<?xml version="1.0" encoding="UTF-8" ?>
+  <document>
+	<head>
+	  <style>
+	  </style>
+	  <banner>
+         <title>${title}</title>
+      </banner>
+	</head>
+	<listTemplate>
+	  <list>
+		  <section>`;
+	for (var item in choices) {
+		template = template + `<listItemLockup>										
+				 	<title>${choices[item]}</title>				 					 	
+				</listItemLockup>`;
+	}
+	template = template +`</section>
+	  </list>
+	</listTemplate>
+  </document>`;
+  	var dialog = new DOMParser().parseFromString(template, "application/xml");
+	var sent_answer = false;
+	dialog.addEventListener("select", function(event) {
+		var ans = event.target.childNodes.item(0).textContent;
+		callback(ans);
+		sent_answer = true;
+		navigationDocument.dismissModal(dialog);
+	});
+	dialog.addEventListener("unload", function() {
+		if(!sent_answer) {
+			callback();
+		}
+	});
+	navigationDocument.presentModal(dialog);
+}
+
+function showInfoDialog(info) {
+	var template=`
+		<document>
+    <productTemplate>
+        <background>
+        </background>
+        <banner>
+        	<infoList>
+            <info>
+               <header>
+                  <title>Director</title>
+               </header>
+               <text>${info.director}</text>
+            </info>
+            <info>
+               <header>
+                  <title>Actors</title>
+               </header>
+               `;
+               for (var i in info.cast) {
+			   	template += `<text>${info.cast[i][0]}</text>`;
+        		}
+               template += `
+            </info>
+         </infoList>
+            <stack>
+                <title style="tv-text-max-lines: 3;">${info.title}</title>
+                <row>
+					<text><badge src="resource://tomato-fresh"/>${info.rating * 100 / 10}%</text>
+					<text>${info.duration}</text>
+					<text>${info.genre}</text>
+					<text>${info.year}</text>
+					<badge src="resource://mpaa-${info.mpaa}" class="badge" />
+			   </row>
+                <description style="tv-text-max-lines: 30;">${info.plot}</description>
+            </stack>
+            <heroImg src="${documentLoader.baseURL + info.poster}" />
+        </banner>
+    </productTemplate>
+</document>
+	`;
+	var d = new DOMParser().parseFromString(template, "application/xml");
+	navigationDocument.pushDocument(d);
+}
+
+function performAction(action, p) {
+	var re = /RunPlugin\(plugin:\/\/(.*)\/\?(.*)\)/;
+	var result = re.exec(action);
+	if (result != null) {
+		var plugin = result[1];
+		var query = result[2];
+		load("/catalog/"+btoa(plugin)+"/"+btoa(query));	
+		return;
+	}
+	
+	re = /RunPlugin\((.*)\)/;
+	var result = re.exec(action);
+	if (typeof p != "undefined" && result != null) {
+		var query = result[1];
+		load("/catalog/"+btoa(p)+"/"+btoa(query));	
+		return;
+	}
+	
+	re = /ItemInfo\((.*)\)/;
+	var result = re.exec(action);
+	if (result != null) {
+		var info = JSON.parse(result[1]);
+		showInfoDialog(info);
+		return;
+	}
 }

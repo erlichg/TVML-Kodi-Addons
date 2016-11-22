@@ -7,16 +7,45 @@ See LICENSE.txt for this sample’s licensing information
 <document>
 	<head>
 	  <style>
-	  </style>
+	  @media tv-template and (tv-theme:light) {
+      	.foo { color:rgb(0, 0, 0); tv-highlight-color:rgb(0, 0, 0);}
+	  }
+	  @media tv-template and (tv-theme:dark) {
+      	.foo { color:rgb(255, 255, 255); tv-highlight-color:rgb(255,255,255);}
+	  }
+	</style>
 	</head>
-	<stackTemplate>
+		<stackTemplate title="Favorites" id="fav">
+		<banner style="tv-align:center;">
+			  <placeholder></placeholder>			  
+		</banner>			
+	  <collectionList>
+		  <grid>
+		  {% if not favs %}			  
+			  <header><title>Favorite addons will be displayed here</title></header>
+		  {% endif %}
+		  <section>
+				{% for plugin in favs %}
+				<lockup onholdselect="showSelectDialog('', ['Remove from favorites', 'Addon settings'], 0, function(ans) { if (typeof ans != 'undefined') { if (ans=='Remove from favorites') { removeFromFavourites('{{plugin.id}}'); load('{{url}}', true);} else if (ans=='Addon settings') {load('{{plugin.menuurl}}'); }} })" onselect="load('/catalog/{{plugin.id | base64encode}}')">
+					<img src="/{{plugin.icon}}" width="256" height="256"/>
+				 	<title class="foo">{{plugin.name}}</title>				 					 	
+				</lockup>
+				{% endfor %}
+			</section>
+		  </grid>
+	  </collectionList>
+	</stackTemplate>
+		<stackTemplate title="All" id="all">
+		<banner style="tv-align:center;">
+			  <placeholder></placeholder>
+		</banner>			
 	  <collectionList>
 		  <grid>
 		  <section>
 				{% for plugin in menu %}
-				<lockup menuURL="{{plugin.menuurl}}" onselect="load('/catalog/{{plugin.name | base64encode}}')">
-					<img src="/{{plugin.icon}}" width="650" height="360"/>
-				 	<title>{{plugin.name}}</title>				 					 	
+				<lockup onholdselect="showSelectDialog('', ['Add to favorites', 'Addon settings'], 0, function(ans) { if (typeof ans != 'undefined') { if (ans=='Add to favorites') { addToFavourites('{{plugin.id}}'); load('{{url}}', true);} else if (ans=='Addon settings') {load('{{plugin.menuurl}}'); }} })" onselect="load('/catalog/{{plugin.id | base64encode}}')">
+					<img src="/{{plugin.icon}}" width="256" height="256"/>
+				 	<title class="foo">{{plugin.name}}</title>				 					 	
 				</lockup>
 				{% endfor %}
 			</section>

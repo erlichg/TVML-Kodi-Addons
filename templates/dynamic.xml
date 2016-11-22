@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+Copyright (C) 2016 Apple Inc. All Rights Reserved.
+See LICENSE.txt for this sample’s licensing information
+-->
+  <document>
+	<head>
+	  <style>
+	  @media tv-template and (tv-theme:light) {
+      	.foo { color:rgb(0, 0, 0); tv-highlight-color:rgb(255, 255, 255); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+      	.foo2 { color:rgb(0, 0, 0); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; }
+	  }
+	  @media tv-template and (tv-theme:dark) {
+      	.foo { color:rgb(255, 255, 255); tv-highlight-color:rgb(0,0,0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+      	.foo2 { color:rgb(255, 255, 255); tv-highlight-color:rgb(255, 255, 255); tv-text-max-lines:15; }
+	  }
+	</style>
+	</head>
+	<catalogTemplate title="Details" id="list">
+	  <list style="width: 1000">
+		  <placeholder></placeholder>		  
+		  <section>
+				{% for item in menu %}
+				{% if msgid is defined %}
+				<listItemLockup onholdselect="var item = JSON.parse(event.target.children.item(0).getAttribute('item')); if (Object.keys(item.context).length > 0) { showSelectDialog(item.title, Object.keys(item.context), 0, function(ans) { if (typeof ans != 'undefined') {performAction(item.context[ans], '{{plugin.id}}');}});}" onselect="notify('/response/{{msgid}}/{{loop.index}}'); load('{{url}}')">
+				{% else %}
+				<listItemLockup onholdselect="var item = JSON.parse(event.target.children.item(0).getAttribute('item')); if (Object.keys(item.context).length > 0) { showSelectDialog(item.title, Object.keys(item.context), 0, function(ans) { if (typeof ans != 'undefined') {performAction(item.context[ans], '{{plugin.id}}');}});}" onselect="load('/catalog/{{plugin.id | base64encode}}/{{item.url | base64encode}}')">								
+				{% endif %}
+					<placeholder item="{{item}}"></placeholder>
+				 	<title class="foo">{{item.title}}</title>
+				 	<relatedContent>
+					 	<lockup style="margin: 10">
+						 	<img src="{{item.icon}}" width="857" height="842"/>
+						 	<description style="tv-text-max-lines: 15;">{{item.details}}</description>
+					 	</lockup>
+				 	</relatedContent>			 					 	
+				</listItemLockup>
+				{% endfor %}
+			</section>
+	  </list>
+	</catalogTemplate>
+	<listTemplate title="List" id="nakedlist">		
+	  <list style="width: 1000">
+		  <placeholder></placeholder>	  
+		  <section>
+				{% for item in menu %}
+				{% if msgid is defined %}
+				<listItemLockup onholdselect="var item = JSON.parse(event.target.children.item(0).getAttribute('item')); if (Object.keys(item.context).length > 0) { showSelectDialog(item.title, Object.keys(item.context), 0, function(ans) { if (typeof ans != 'undefined') {performAction(item.context[ans], '{{plugin.id}}');}});}" onselect="notify('/response/{{msgid}}/{{loop.index}}'); load('{{url}}')">
+				{% else %}
+				<listItemLockup onholdselect="var item = JSON.parse(event.target.children.item(0).getAttribute('item')); if (Object.keys(item.context).length > 0) { showSelectDialog(item.title, Object.keys(item.context), 0, function(ans) { if (typeof ans != 'undefined') {performAction(item.context[ans], '{{plugin.id}}');}});}" onselect="load('/catalog/{{plugin.id | base64encode}}/{{item.url | base64encode}}')">								
+				{% endif %}							
+				 	<title class="foo">{{item.title}}</title>				 					 	
+				</listItemLockup>
+				{% endfor %}
+			</section>
+	  </list>
+	</listTemplate>
+	<stackTemplate title="Grid" id="grid">
+		<banner style="tv-align:center;">
+			  <placeholder></placeholder>
+			  </banner>
+	  <collectionList>
+		  <grid>
+			  
+			  <section>
+		  {% for item in menu %}		  
+				
+				{% if msgid is defined %}
+				<lockup onholdselect="var item = JSON.parse(event.target.children.item(0).getAttribute('item')); if (Object.keys(item.context).length > 0) { showSelectDialog(item.title, Object.keys(item.context), 0, function(ans) { if (typeof ans != 'undefined') {performAction(item.context[ans], '{{plugin.id}}');}});}" onselect="notify('/response/{{msgid}}/{{loop.index}}'); load('{{url}}')">
+				{% else %}
+				<lockup onholdselect="var item = JSON.parse(event.target.children.item(0).getAttribute('item')); if (Object.keys(item.context).length > 0) { showSelectDialog(item.title, Object.keys(item.context), 0, function(ans) { if (typeof ans != 'undefined') {performAction(item.context[ans], '{{plugin.id}}');}});}" onselect="load('/catalog/{{plugin.id | base64encode}}/{{item.url | base64encode}}')">								
+				{% endif %}						
+					<img style="tv-placeholder: movie;" src="{{item.icon}}" width="{{item.width}}" height="{{item.height}}"/>
+				 	<title class="foo2">{{item.title}}</title>			 					 	
+				</lockup>
+										
+		  {% endfor %}
+		  </section>
+		  </grid>
+	  </collectionList>
+	</stackTemplate>
+  </document>

@@ -6,23 +6,29 @@ See LICENSE.txt for this sample’s licensing information
   <document>
 	<head>
 	  <style>
-	  </style>
+	  @media tv-template and (tv-theme:light) {
+      	.foo { color:rgb(0, 0, 0); tv-highlight-color:rgb(255, 255, 255);}
+	  }
+	  @media tv-template and (tv-theme:dark) {
+      	.foo { color:rgb(255, 255, 255); tv-highlight-color:rgb(0,0,0);}
+	  }
+	</style>
 	</head>
 	<listTemplate>
-	  <list>
+	  <list style="width: 1000">
 		  <section>
 				{% for item in menu %}
 				{% if msgid is defined %}
 				<listItemLockup menuURL="{{item.menuurl}}" onselect="notify('/response/{{msgid}}/{{loop.index}}'); load('{{url}}')">
 				{% else %}
-				<listItemLockup menuURL="{{item.menuurl}}" onselect="load('/catalog/{{plugin.name | base64encode}}/{{item.url | base64encode}}')">								
+				<listItemLockup menuURL="{{item.menuurl}}" onselect="load('/catalog/{{plugin.id | base64encode}}/{{item.url | base64encode}}')">								
 				{% endif %}
-				 	<title>{{item.title}}</title>
+				 	<title class="foo">{{item.title}}</title>
 				 	<relatedContent>
 					 	<lockup>
 						 	<img src="{{item.icon}}" width="857" height="842"/>
-						 	<title>{{item.subtitle}}</title>
-						 	<description>{{item.details}}</description>
+						 	<title class="foo">{{item.subtitle}}</title>
+						 	<description class="foo">{{item.details}}</description>
 					 	</lockup>
 				 	</relatedContent>			 					 	
 				</listItemLockup>

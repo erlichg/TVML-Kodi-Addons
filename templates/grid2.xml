@@ -6,19 +6,19 @@ See LICENSE.txt for this sample’s licensing information
   <document>
 	<head>
 	  <style>
-	  @media tv-template and (tv-theme:light) {
-      	.foo { color:rgb(0, 0, 0); tv-highlight-color:rgb(255, 255, 255);}
-	  }
-	  @media tv-template and (tv-theme:dark) {
-      	.foo { color:rgb(255, 255, 255); tv-highlight-color:rgb(0,0,0);}
-	  }
-	</style>
+	  </style>
 	</head>
 	<stackTemplate>
+		<background>
+			<img src="/templates/background.png"/>
+		</background>
 	  <collectionList>
-		  <grid>
+		  {% for item in menu %}
+		  {% if loop.index % 4  == 1 %}
+		  {% set complete = false %}
+		  <shelf style="tv-interitem-spacing:50">
 			  <section>
-		  {% for item in menu %}		  
+			{% endif %}		  
 				
 				{% if msgid is defined %}
 				<lockup onselect="notify('/response/{{msgid}}/{{loop.index}}'); load('{{url}}')" menuURL="{{item.menuurl}}">
@@ -26,12 +26,19 @@ See LICENSE.txt for this sample’s licensing information
 				<lockup menuURL="{{item.menuurl}}" onselect="load('/catalog/{{plugin.id | base64encode}}/{{item.url | base64encode}}')">								
 				{% endif %}							
 					<img src="{{item.icon}}" width="390" height="216"/>
-				 	<title class="foo">{{item.title}}</title>				 					 	
+				 	<title style="color:rgb(241,241,241); tv-highlight-color:rgb(241,241,241);">{{item.title}}</title>				 					 	
 				</lockup>
-										
+							
+			{% if loop.index % 4 == 0 %}
+			{% set complete = true %}
+			</section>
+		  </shelf>
+		  {% endif %}
 		  {% endfor %}
+		  {% if complete == false %}
 		  </section>
-		  </grid>
+		  </shelf>
+		  {% endif %}
 	  </collectionList>
 	</stackTemplate>
   </document>

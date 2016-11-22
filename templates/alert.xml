@@ -1,6 +1,9 @@
 <document>
    <alertTemplate>
-      <title style="color: rgb(0,0,0);">{{title}}</title>
-      <description style="color: rgb(0,0,0);">{{description}}</description>      
+	   <background>
+			<img src="/templates/background.png"/>
+		</background>
+      <title style="color:rgb(241,241,241)">{{title}}</title>
+      <description style="color: rgb(241,241,241);">{{description}}</description>      
    </alertTemplate>
 </document>
