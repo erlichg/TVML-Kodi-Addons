@@ -199,7 +199,7 @@ def catalog(pluginid, process=None):
 		print 'exiting while alive and entering 5s wait'
 		#Check for possible last message which could have appeared after the thread has died. This could happen if message was sent during time.sleep in while and loop exited immediately afterwards
 		start = 0
-		while start < 5: #wait at most 5 seconds
+		while start < 10: #wait at most 5 seconds
 			try:
 				msg = p.messages.get(False)
 			except:

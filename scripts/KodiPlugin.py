@@ -98,7 +98,7 @@ class KodiPlugin:
 		fp.close()
 		#sys.argv = old_sys_argv
 		items = xbmcplugin.items
-		#print 'Plugin {} ended with: {}'.format(self.name, items)
+		print 'Plugin {} ended with: {}'.format(self.name, items)
 		ans = []
 		items = xbmcplugin.items
 		from Plugin import Item
@@ -107,6 +107,8 @@ class KodiPlugin:
 		for item in items:
 			#url, title, subtitle=None, icon=None, details=None, menuurl='', info={})
 			i = Item(url=item['url'], title=convert_kodi_tags_to_html_tags(item['listitem'].label), subtitle=item['listitem'].getProperty('subtitle'), icon=item['listitem'].thumbnailImage if item['listitem'].thumbnailImage != 'DefaultFolder.png' else '', details=item['listitem'].getProperty('details'),info=item['listitem'].infos, context=item['listitem'].context)
+			if type(i.context) is list: #needs to be dict
+				i.context = {x[0]:x[1] for x in i.context}
 			infos = item['listitem'].infos
 			if 'poster' in infos:
 				i.icon = infos['poster']

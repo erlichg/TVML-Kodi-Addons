@@ -1011,19 +1011,19 @@ def executebuiltin(function, wait=False):
 	print 'evaluating {}'.format(function)
 	m = re.search('.*Container.Update\(plugin://([^/]*)(.*)\)', function)
 	if m:
-		bridge._message({'type':'load', 'url':'/catalog/{}/{}'.format(kodi_utils.b64encode(m.group(1)), kodi_utils.b64encode(m.group(2)))})
+		bridge._message({'type':'load', 'url':'/catalog/{}'.format(kodi_utils.b64encode(m.group(1))), 'data':kodi_utils.b64encode(m.group(2))})
 		return str()
 	m = re.search('.*Container.Update\((.*)\)', function)
 	if m:
-		bridge._message({'type':'load', 'url':'/catalog/{}/{}'.format(kodi_utils.b64encode(Container.plugin.id), kodi_utils.b64encode(m.group(1)))})
+		bridge._message({'type':'load', 'url':'/catalog/{}'.format(kodi_utils.b64encode(Container.plugin.id)), 'data':kodi_utils.b64encode(m.group(1))})
 		return str()
 	m = re.search('.*RunPlugin\(plugin://([^/]*)(.*)\)', function)
 	if m:
-		bridge._message({'type':'load', 'url':'/catalog/{}/{}'.format(kodi_utils.b64encode(m.group(1)), kodi_utils.b64encode(m.group(2)))})
+		bridge._message({'type':'load', 'url':'/catalog/{}'.format(kodi_utils.b64encode(m.group(1))), 'data':kodi_utils.b64encode(m.group(2))})
 		return str()
 	m = re.search('.*RunPlugin\((.*)\)', function)
 	if m:
-		bridge._message({'type':'load', 'url':'/catalog/{}/{}'.format(kodi_utils.b64encode(Container.plugin.id), kodi_utils.b64encode(m.group(1)))})
+		bridge._message({'type':'load', 'url':'/catalog/{}'.format(kodi_utils.b64encode(Container.plugin.id)), 'data':kodi_utils.b64encode(m.group(1))})
 		return str()
 	m = re.search('Notification\((.*), (.*)(, (.*), (.*))*\)', function)
 	if m:

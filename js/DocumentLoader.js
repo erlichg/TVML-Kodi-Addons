@@ -141,6 +141,10 @@ DocumentLoader.prototype.fetchPost = function(options) {
 		} else if (xhr.status == 212) {
 			var msg = JSON.parse(xhr.responseText);
 			options.url = msg['url'];
+			if (typeof msg['data'] != "undefined") {
+				options.type = "POST";
+				options.data = msg['data'];
+			}
 			this.fetchPost(options);
 	    } else {
         	const responseDoc = xhr.response;
