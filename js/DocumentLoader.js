@@ -115,7 +115,9 @@ DocumentLoader.prototype.fetchPost = function(options) {
 		} else if(xhr.status == 205) {
 			console.log('sent response')
 	    } else if(xhr.status == 206) {
-		    options.abort();
+		    if (typeof options.abort === "function") {
+		    	options.abort();
+		    }
 		} else if(xhr.status == 208) {
 			const responseDoc = xhr.response;
 			this.prepareDocument(responseDoc);

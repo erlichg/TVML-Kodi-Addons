@@ -16,7 +16,7 @@
 								this.post({
 									url: "/response/{{msgid}}",
 									data: btoa(JSON.stringify(ans)),
-									success: function() {
+									abort: function() {
 										if ("{{url}}" != "") load("{{url}}");
 									}
 								});

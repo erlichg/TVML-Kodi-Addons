@@ -25,7 +25,7 @@ function resolveControllerFromElement(elem) {
     }
 }
 
-function DocumentController(documentLoader, documentURL, loadingDocument, initial) {
+function DocumentController(documentLoader, documentURL, loadingDocument, initial, data) {
     this.handleEvent = this.handleEvent.bind(this);
     this.handleHoldSelect = this.handleHoldSelect.bind(this);
     this._documentLoader = documentLoader;
@@ -51,9 +51,30 @@ function DocumentController(documentLoader, documentURL, loadingDocument, initia
 	    	    }
         	}
     	}); 	       					
+    } else if (typeof data != "undefined") {
+	    documentLoader.post({
+	    	initial: initial,	    	
+        	url: documentURL,
+        	data: data,
+        	success: function(document, isModal) {
+        	    // Add the event listener for document
+        	    this.setupDocument(document);
+        	    // Allow subclass to do custom handling for this document
+        	    this.handleDocument(document, loadingDocument, isModal);
+        	}.bind(this),
+        	error: function(xhr) {
+        	    const alertDocument = createLoadErrorAlertDocument(documentURL, xhr, false);
+        	    this.handleDocument(alertDocument, loadingDocument);
+        	}.bind(this),
+        	abort: function() {
+	    	    if(loadingDocument) {
+			        navigationDocument.removeDocument(loadingDocument);
+	    	    }
+        	}
+    	});
     } else {
     	documentLoader.fetchPost({
-		    initial: initial,
+		    initial: false,
     	    url: documentURL,
     	    success: function(document, isModal) {
     	        // Add the event listener for document
@@ -180,10 +201,8 @@ function post(url, data) {
 	console.log("posting "+url);
 	var loadingDocument = createLoadingDocument();
 	navigationDocument.pushDocument(loadingDocument);
-	documentLoader.post({
-		url: url,
-		data: data
-	});
+	new DocumentController(documentLoader, url, loadingDocument, false, data);
+	
 }
 
 function saveSettings(addon, settings) {
