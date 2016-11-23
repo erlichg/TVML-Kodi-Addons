@@ -126,10 +126,14 @@ def template(filename):
 
 @app.route('/menu/<pluginid>')
 @app.route('/menu/<pluginid>/<process>')
-@app.route('/catalog/<pluginid>')
-@app.route('/catalog/<pluginid>/<url>')
-@app.route('/catalog/<pluginid>/<url>/<process>')
-def catalog(pluginid, url=None, process=None):
+@app.route('/catalog/<pluginid>', methods=['POST', 'GET'])
+@app.route('/catalog/<pluginid>/<process>', methods=['POST', 'GET'])
+#@app.route('/catalog/<pluginid>/<url>')
+#@app.route('/catalog/<pluginid>/<url>/<process>')
+def catalog(pluginid, process=None):
+	url = None
+	if request.method == 'POST':
+		url = request.form.keys()[0]		
 	try:
 		if not url:
 			decoded_url = ''
@@ -183,16 +187,16 @@ def catalog(pluginid, url=None, process=None):
 				if process:
 					#return on same url for more
 					return_url = request.url
-				elif url or request.full_path.startswith('/menu'):
+				else:
 					#add response bridge
 					return_url = '{}/{}'.format(request.url, p.id)
-				else:
+				#else:
 					#No url and no response so add 'fake' url
-					return_url = '{}/{}/{}'.format(request.url, 'fake', p.id)
+				#	return_url = '{}/{}/{}'.format(request.url, 'fake', p.id)
 				return method(plugin, msg, return_url)
 			except:
 				traceback.print_exc(file=sys.stdout)
-		print 'exiting while alive and entering 2s wait'
+		print 'exiting while alive and entering 5s wait'
 		#Check for possible last message which could have appeared after the thread has died. This could happen if message was sent during time.sleep in while and loop exited immediately afterwards
 		start = 0
 		while start < 5: #wait at most 5 seconds
@@ -324,7 +328,7 @@ def get_items(plugin_id, url, context, PLUGINS):
 		traceback.print_exc(file=sys.stdout)
 		print 'Encountered error in plugin: {}'.format(plugin_id)		
 		items = None
-	print 'get_items finished with {}'.format(items)
+	#print 'get_items finished with {}'.format(items)
 	return items
 	
 def get_menu(plugin_id, url):

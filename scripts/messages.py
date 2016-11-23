@@ -27,7 +27,7 @@ def end(plugin, msg, url=None):
 		renders various templates based on items attributes (ans attribute in msg)
 	"""
 	items = msg['ans']
-	print items
+	#print items
 	if not items or len(items) == 0:
 		return '', 206
 	template = None
@@ -60,16 +60,14 @@ def end(plugin, msg, url=None):
 	print 'parallel start'
 	run_parallel_in_threads(work, items)
 	print 'parallel end'
+	widths = [item.width for item in items]
+	heights = [item.height for item in items]
+	avg_width = reduce(lambda x, y: x + y, widths) / len(widths)
+	avg_height = reduce(lambda x, y: x + y, heights) / len(heights)
 	for item in items:
-		if item.title and item.subtitle and item.icon and item.details and not template:
-			template = 'list.xml'
-		elif item.title and item.icon and (not item.subtitle or not item.details) and (not template or template == 'list.xml'):
-			template = 'grid.xml'
-		elif not item.icon and not template:
-			template = 'nakedlist.xml'
-		else:
-			pass		
-	print items
+		item.width = avg_width
+		item.height = avg_height		
+	#print items
 	return render_template("dynamic.xml", menu=items, plugin = plugin)
 
 def play(plugin, msg, url=None):

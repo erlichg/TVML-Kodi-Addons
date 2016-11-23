@@ -52,7 +52,7 @@ function DocumentController(documentLoader, documentURL, loadingDocument, initia
         	}
     	}); 	       					
     } else {
-    	documentLoader.fetch({
+    	documentLoader.fetchPost({
 		    initial: initial,
     	    url: documentURL,
     	    success: function(document, isModal) {
@@ -152,7 +152,7 @@ DocumentController.prototype.handleHoldSelect = function(event) {
 
 function notify(url) {
 	console.log("notify: "+url);
-	documentLoader.fetch({
+	documentLoader.fetchPost({
 		url:url,
 		abort: function() {
 						
@@ -174,6 +174,16 @@ function load(url, initial) {
 	var loadingDocument = createLoadingDocument();
 	navigationDocument.pushDocument(loadingDocument);	
 	new DocumentController(documentLoader, url, loadingDocument, initial);
+}
+
+function post(url, data) {
+	console.log("posting "+url);
+	var loadingDocument = createLoadingDocument();
+	navigationDocument.pushDocument(loadingDocument);
+	documentLoader.post({
+		url: url,
+		data: data
+	});
 }
 
 function saveSettings(addon, settings) {

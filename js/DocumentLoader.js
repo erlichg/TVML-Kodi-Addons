@@ -20,61 +20,28 @@ function DocumentLoader(baseURL) {
 }
 
 DocumentLoader.prototype.post = function(options) {
-	if (typeof options.url !== "string") {
-        throw new TypeError("DocumentLoader.fetch: url option must be a string.");
-    }
-    const docURL = this.prepareURL(options.url);
-    const xhr = new XMLHttpRequest();    
-    xhr.open("POST", docURL);
-    xhr.timeout = 30000;
-    xhr.responseType = "document";
-    xhr.onload = function() {
-		try {
-			const responseDoc = xhr.response;
-			if (typeof options.initial == "boolean" && options.initial) {
-				console.log("registering event handlers");
-				responseDoc.addEventListener("disappear", function() {
-					if(navigationDocument.documents.length==1) {
-						//if we got here than we've exited from the web server since the only page (root) has disappeared
-						App.onExit({});
-					}
-				}.bind(this));				
-			}
-			this.prepareDocument(responseDoc);
-			if (typeof options.success === "function") {
-				options.success(responseDoc);
-			} else {
-				navigationDocument.pushDocument(responseDoc);
-			}
-		} catch (e) {
-			if (typeof options.success === "function") {
-				options.success();
-			}
-		}
-    }.bind(this);
-    xhr.onerror = function() {
-		if (typeof options.failure != "undefined") {
-			options.failure();
-		}  
-    };
-    xhr.send(options.data);
+	options.type = "POST";
+	this.fetchPost(options);
 }
 
 /*
  * Helper method to request templates from the server
  */
-DocumentLoader.prototype.fetch = function(options) {
+DocumentLoader.prototype.fetchPost = function(options) {
     if (typeof options.url !== "string") {
         throw new TypeError("DocumentLoader.fetch: url option must be a string.");
     }    
+    if (typeof options.type == "undefined") {
+	    options.type = "GET";
+    }
     // Cancel the previous request if it is still in-flight.
     //if (options.concurrent !== true) {
-    //    this.cancelFetch();
+    //    this.cancelfetchPost();
     //}
     // Parse the request URL
     const docURL = this.prepareURL(options.url);
     const xhr = new XMLHttpRequest();    
-    xhr.open("GET", docURL);
+    xhr.open(options.type, docURL);
     xhr.responseType = "document";
     xhr.onload = function() {
 	    console.log('got status '+xhr.status);
@@ -124,20 +91,20 @@ DocumentLoader.prototype.fetch = function(options) {
 						    navigationDocument.removeDocument(resume);
 						    this.play(msg, time, playCache, options);
 						    options.url = msg['continue'];
-							this.fetch(options);
+							this.fetchPost(options);
 				    	}.bind(this));
 				    	resume.getElementById("begin").addEventListener("select", function() {
 						    navigationDocument.removeDocument(resume);
 						    this.play(msg, 0, playCache, options);
 						    options.url = msg['continue'];
-							this.fetch(options);
+							this.fetchPost(options);
 				    	}.bind(this));
 				    	navigationDocument.pushDocument(resume);
 				    }
 			    } else {
 				    this.play(msg, time, playCache, options);
 				    options.url = msg['continue'];
-					this.fetch(options);
+					this.fetchPost(options);
 			    }			    
 		    } catch (e) {
 			    console.log(e);
@@ -166,13 +133,13 @@ DocumentLoader.prototype.fetch = function(options) {
 				});
 				setTimeout(function() {
 					options.url = msg['url']
-					this.fetch(options);
+					this.fetchPost(options);
 				}.bind(this), 1000)				
 			}
 		} else if (xhr.status == 212) {
 			var msg = JSON.parse(xhr.responseText);
 			options.url = msg['url'];
-			this.fetch(options);
+			this.fetchPost(options);
 	    } else {
         	const responseDoc = xhr.response;
         	if (typeof options.initial == "boolean" && options.initial) {
@@ -201,7 +168,11 @@ DocumentLoader.prototype.fetch = function(options) {
         }
     };
     xhr.timeout = 30000;
-    xhr.send();
+    if (typeof options.data == "undefined") {
+	    xhr.send();
+	} else {
+		xhr.send(options.data);
+	}
     // Preserve the request so it can be cancelled by the next fetch
     if (options.concurrent !== true) {
         this._fetchXHR = xhr;
@@ -247,7 +218,7 @@ DocumentLoader.prototype.prepareDocument = function(document) {
 	    var url = progress.getAttribute("documentURL");
 	    var id = progress.getAttribute("msgid");
 	    //setTimeout(function() {
-		    this.fetch({
+		    this.fetchPost({
 				url: url,
 				success: function(responseDoc) {
 					try {
@@ -325,7 +296,7 @@ DocumentLoader.prototype.prepareDocument = function(document) {
 				}
 				playCache[msg['url']] = currenttime;
 				localStorage.setItem('playCache', JSON.stringify(playCache)); //save this url's stop time for future playback
-				this.fetch({
+				this.fetchPost({
 					url:msg['stop']+"/"+btoa(currenttime.toString()),
 					abort: function() {
 						//do nothing
@@ -383,7 +354,7 @@ DocumentLoader.prototype.prepareDocument = function(document) {
 	   if (elem.hasAttribute("notify")) {
 		   var url = elem.getAttribute("notify");
 		   elem.addEventListener("select", function() {
-			   this.fetch({
+			   this.fetchPost({
 					url: url,
 					abort: function() {
 						navigationDocument.removeDocument(document); //remove the document

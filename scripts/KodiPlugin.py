@@ -98,7 +98,7 @@ class KodiPlugin:
 		fp.close()
 		#sys.argv = old_sys_argv
 		items = xbmcplugin.items
-		print 'Plugin {} ended with: {}'.format(self.name, items)
+		#print 'Plugin {} ended with: {}'.format(self.name, items)
 		ans = []
 		items = xbmcplugin.items
 		from Plugin import Item
