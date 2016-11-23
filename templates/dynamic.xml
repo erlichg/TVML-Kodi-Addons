@@ -16,7 +16,7 @@ See LICENSE.txt for this sample’s licensing information
 	  }
 	</style>
 	</head>
-	<catalogTemplate id="list">
+	<catalogTemplate title="Details" id="list">
 	  <list style="width: 1000">
 		  <placeholder></placeholder>		  
 		  <section>
@@ -39,7 +39,7 @@ See LICENSE.txt for this sample’s licensing information
 			</section>
 	  </list>
 	</catalogTemplate>
-	<listTemplate id="nakedlist">		
+	<listTemplate title="List" id="nakedlist">		
 	  <list style="width: 1000">
 		  <placeholder></placeholder>	  
 		  <section>
@@ -55,7 +55,7 @@ See LICENSE.txt for this sample’s licensing information
 			</section>
 	  </list>
 	</listTemplate>
-	<stackTemplate id="grid">
+	<stackTemplate title="Grid" id="grid">
 		<banner style="tv-align:center;">
 			  <placeholder></placeholder>
 			  </banner>

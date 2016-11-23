@@ -27,11 +27,31 @@ DocumentLoader.prototype.post = function(options) {
     const xhr = new XMLHttpRequest();    
     xhr.open("POST", docURL);
     xhr.timeout = 30000;
+    xhr.responseType = "document";
     xhr.onload = function() {
-		if (typeof options.success != "undefined") {
-			options.success();
-		}  
-    };
+		try {
+			const responseDoc = xhr.response;
+			if (typeof options.initial == "boolean" && options.initial) {
+				console.log("registering event handlers");
+				responseDoc.addEventListener("disappear", function() {
+					if(navigationDocument.documents.length==1) {
+						//if we got here than we've exited from the web server since the only page (root) has disappeared
+						App.onExit({});
+					}
+				}.bind(this));				
+			}
+			this.prepareDocument(responseDoc);
+			if (typeof options.success === "function") {
+				options.success(responseDoc);
+			} else {
+				navigationDocument.pushDocument(responseDoc);
+			}
+		} catch (e) {
+			if (typeof options.success === "function") {
+				options.success();
+			}
+		}
+    }.bind(this);
     xhr.onerror = function() {
 		if (typeof options.failure != "undefined") {
 			options.failure();
@@ -119,91 +139,9 @@ DocumentLoader.prototype.fetch = function(options) {
 				    options.url = msg['continue'];
 					this.fetch(options);
 			    }			    
-			    return;
 		    } catch (e) {
 			    console.log(e);
-		    }
-			
-			
-			
-		    //Built-in player
-		    var singleVideo = new MediaItem(msg['type'], msg['url']);
-		    if(msg['image'] != null) {
-		    	singleVideo.artworkImageURL = msg['image'];
-		    }
-		    if(msg['description'] != null) {
-		    	singleVideo.description = msg['description'];
-		    }
-		    if(msg['title'] != null) {
-		    	singleVideo.title = msg['title'];
-		    }
-			singleVideo.resumeTime = time;
-			var videoList = new Playlist();
-			videoList.push(singleVideo);
-/*
-			try {
-				var playerDocument = createPlayerDocument(msg['image']);
-				playerDocument.addEventListener("load", function() {
-					var myPlayer = playerDocument.getElementsByTagName("mediaContent").item(0).getFeature("Player");
-					myPlayer.playlist = videoList;
-					console.log("presented new player");
-				});
-				
-				navigationDocument.pushDocument(playerDocument);				
-				//myPlayer.present();				
-			} catch (err) {
-*/
-				var myPlayer = new Player();
-				console.log("old player");
-				myPlayer.playlist = videoList;
-				myPlayer.play();
-// 			}
-						
-			
-			//var overlayDocument = createSubtitleDocument();
-			//myPlayer.overlay = overlayDocument;
-			//var subtitle = overlayDocument.getElementsByTagName("text").item(0);
-			options.abort(); //remove the loading document
-						
-			var currenttime = 0;
-			var duration;
-			console.log("media item duration: "+myPlayer.currentMediaItemDuration);
-			if (myPlayer.currentMediaItemDuration == null) { //pre tvos 10
-				duration = 0;
-				myPlayer.addEventListener("shouldHandleStateChange", function(e) {
-					duration = e.duration;
-				});
-			}
-			myPlayer.addEventListener("timeDidChange", function(info) {
-				currenttime = info.time;				
-				//hack for duration
-				if (duration == 0) {
-					if (myPlayer.currentMediaItemDuration != null && myPlayer.currentMediaItemDuration != 0) {
-						duration = myPlayer.currentMediaItemDuration;
-					} else {
-						myPlayer.pause(); //this will trigger "shouldHandleStateChange"
-						setTimeout(function(){
-							myPlayer.play();
-						},100);
-					}
-				}
-				//subtitle.textContent = "timeDidChange "+info.time;
-			}, {"interval":1});			
-			myPlayer.addEventListener("stateDidChange", function(e) {  
-				if(e.state == "end") {
-					if ((duration - currenttime) * 100/duration <=3) { //if we've stopped at more than 97% play time, don't resume
-						currenttime = 0;
-					}
-					playCache[msg['url']] = currenttime;
-					localStorage.setItem('playCache', JSON.stringify(playCache)); //save this url's stop time for future playback
-					this.fetch({
-						url:msg['stop']+"/"+btoa(currenttime.toString()),
-						abort: function() {
-							//do nothing
-						}
-					});
-				}
-			}.bind(this), false);  
+		    } 
 					
 		} else if(xhr.status == 204) {
 			//no message
@@ -409,26 +347,16 @@ DocumentLoader.prototype.prepareDocument = function(document) {
 		segmentBar.setAttribute("autoHighlight", "true");
 		segmentBar.appendChild(document.createElement("segmentBar"));
 		segmentBar.firstChild.setAttribute("autoHighlight", "true");
-		var item = document.createElement("segmentBarItem");
-		item.setAttribute("class", "list");
-		item.appendChild(document.createElement("title"));
-		item.firstChild.textContent = "Details";
-		segmentBar.firstChild.appendChild(item);
-		items["list"] = item;
 		
-		item = document.createElement("segmentBarItem");
-		item.setAttribute("class", "nakedlist");
-		item.appendChild(document.createElement("title"));
-		item.firstChild.textContent = "List";
-		segmentBar.firstChild.appendChild(item);
-		items["nakedlist"] = item;
+		for (key in templates) {
+			var item = document.createElement("segmentBarItem");
+			item.setAttribute("class", key);
+			item.appendChild(document.createElement("title"));
+			item.firstChild.textContent = templates[key].getAttribute("title");
+			segmentBar.firstChild.appendChild(item);
+			items[key] = item;
+		}
 		
-		item = document.createElement("segmentBarItem");
-		item.setAttribute("class", "grid");
-		item.appendChild(document.createElement("title"));
-		item.firstChild.textContent = "Grid";
-		segmentBar.firstChild.appendChild(item);
-		items["grid"] = item;
 		
 		segmentBar.firstChild.addEventListener('highlight', function(event) {
             selectItem(event.target);
@@ -507,48 +435,123 @@ function traverseElements(elem, callback) {
 }
 
 DocumentLoader.prototype.play = function(msg, time, playCache, options) {
-	var player = VLCPlayer.createPlayerWithUrlTimeImageDescriptionTitleImdbSeasonEpisodeCallback(msg['url'], time, this.prepareURL(msg['image']), msg['description'], msg['title'], msg['imdb'], msg['season'], msg['episode'], function(time) {
-		try {
-			var total = player.getDuration();
-			console.log("player ended with "+time+"ms out of "+total+"ms");
-			if ((total - time) * 100/total <=3) { //if we've stopped at more than 97% play time, don't resume
-				time = 0;
+	try {
+		var player = VLCPlayer.createPlayerWithUrlTimeImageDescriptionTitleImdbSeasonEpisodeCallback(msg['url'], time, this.prepareURL(msg['image']), msg['description'], msg['title'], msg['imdb'], msg['season'], msg['episode'], function(time) {
+			try {
+				var total = player.getDuration();
+				console.log("player ended with "+time+"ms out of "+total+"ms");
+				if ((total - time) * 100/total <=3) { //if we've stopped at more than 97% play time, don't resume
+					time = 0;
+				}
+				console.log("calculated time is "+time);
+				var imdb = msg['imdb'];
+				var season = msg['season'];
+				var episode = msg['episode'];
+				if (imdb != null) {
+				    var search = imdb;
+				    if (season != null) {
+					    search += "S"+season;
+				    }
+				    if (episode != null) {
+					    search += "E"+episode;
+				    }
+				    playCache[search] = time;
+				} else {
+					playCache[msg['url']] = time;
+				}			
+				localStorage.setItem('playCache', JSON.stringify(playCache)); //save this url's stop time for future playback			
+				var url = this.prepareURL(msg['stop']+"/"+btoa(time.toString()));
+				console.log("notifying "+url);
+				VLCPlayer.notify(url);
+			} catch (e) {
+				console.log(e);
 			}
-			console.log("calculated time is "+time);
-			var imdb = msg['imdb'];
-			var season = msg['season'];
-			var episode = msg['episode'];
-			if (imdb != null) {
-			    var search = imdb;
-			    if (season != null) {
-				    search += "S"+season;
-			    }
-			    if (episode != null) {
-				    search += "E"+episode;
-			    }
-			    playCache[search] = time;
-			} else {
-				playCache[msg['url']] = time;
-			}			
-			localStorage.setItem('playCache', JSON.stringify(playCache)); //save this url's stop time for future playback			
-			var url = this.prepareURL(msg['stop']+"/"+btoa(time.toString()));
-			console.log("notifying "+url);
-			VLCPlayer.notify(url);
-		} catch (e) {
-			console.log(e);
+		}.bind(this));
+		console.log("after create player: "+player);
+		
+		if (typeof(player) != "undefined") {
+			options.abort(); //remove the loading document
+			VLCPlayer.present(player);
+		} else {
+			//Built-in player
+			var singleVideo = new MediaItem(msg['type'], msg['url']);
+			if(msg['image'] != null) {
+			 singleVideo.artworkImageURL = msg['image'];
+			}
+			if(msg['description'] != null) {
+			 singleVideo.description = msg['description'];
+			}
+			if(msg['title'] != null) {
+			 singleVideo.title = msg['title'];
+			}
+			//singleVideo.resumeTime = time / 1000; //convert to seconds
+			var videoList = new Playlist();
+			videoList.push(singleVideo);
+			
+			 var myPlayer = new Player();
+			 console.log("old player");
+			 myPlayer.playlist = videoList;
+			 myPlayer.play();
+			 myPlayer.seekToTime(time);
+			
+			options.abort(); //remove the loading document
+			 		
+			var currenttime = 0;
+			var duration;
+			console.log("media item duration: "+myPlayer.currentMediaItemDuration);
+			if (myPlayer.currentMediaItemDuration == null) { //pre tvos 10
+			 duration = 0;
+			 myPlayer.addEventListener("shouldHandleStateChange", function(e) {
+			 	duration = e.duration;
+			 });
+			}
+			myPlayer.addEventListener("timeDidChange", function(info) {
+			 currenttime = info.time;				
+			 //hack for duration
+			 if (duration == 0) {
+			 	if (myPlayer.currentMediaItemDuration != null && myPlayer.currentMediaItemDuration != 0) {
+			 		duration = myPlayer.currentMediaItemDuration;
+			 	} else {
+			 		myPlayer.pause(); //this will trigger "shouldHandleStateChange"
+			 		setTimeout(function(){
+			 			myPlayer.play();
+			 		},100);
+			 	}
+			 }
+			}, {"interval":1});			
+			myPlayer.addEventListener("stateDidChange", function(e) {  
+			 if(e.state == "end") {
+			 	if ((duration - currenttime) * 100/duration <=3) { //if we've stopped at more than 97% play time, don't resume
+			 		currenttime = 0;
+			 	}
+			 	currenttime = currenttime * 1000;
+			 	var imdb = msg['imdb'];
+				var season = msg['season'];
+				var episode = msg['episode'];
+				if (imdb != null) {
+				    var search = imdb;
+				    if (season != null) {
+					    search += "S"+season;
+				    }
+				    if (episode != null) {
+					    search += "E"+episode;
+				    }
+				    playCache[search] = currenttime;
+				} else {
+					playCache[msg['url']] = currenttime;
+				}			
+				localStorage.setItem('playCache', JSON.stringify(playCache)); //save this url's stop time for future playback			
+				var url = this.prepareURL(msg['stop']+"/"+btoa(currenttime.toString()));
+				notify(url);
+			 }
+			}.bind(this), false);
 		}
-	}.bind(this));
-	console.log("after create player: "+player);
-	options.abort(); //remove the loading document
-	if (typeof(player) != "undefined") {
-		VLCPlayer.present(player);
-	} else {
-		var alert = createAlertDocument("Error", "Error playing URL "+msg['url'], true);
-		navigationDocument.presentModal(alert);
-		var url = this.prepareURL(msg['stop']+"/"+btoa(time.toString()));
-		console.log("notifying "+url);
-		notify(url);
-	}
+	} catch (e) {
+			var alert = createAlertDocument("Error", "Error playing URL "+msg['url'], true);
+			navigationDocument.presentModal(alert);
+			var url = this.prepareURL(msg['stop']+"/"+btoa(time.toString()));
+			notify(url);
+	}	
 	
 }
 

@@ -15,17 +15,35 @@ See LICENSE.txt for this sample’s licensing information
 	  }
 	</style>
 	</head>
-	<stackTemplate>		
-		<!--<banner>
-			<buttonLockup onselect="load('/settings')">
-				<badge src="/templates/settings.png" width="50" height="50"/>
-			</buttonLockup>
-		</banner>-->
+		<stackTemplate title="Favorites" id="fav">
+		<banner style="tv-align:center;">
+			  <placeholder></placeholder>			  
+		</banner>			
+	  <collectionList>
+		  <grid>
+		  {% if not favs %}			  
+			  <header><title>Favorite addons will be displayed here</title></header>
+		  {% endif %}
+		  <section>
+				{% for plugin in favs %}
+				<lockup onholdselect="showSelectDialog('', ['Remove from favorites', 'Addon settings'], 0, function(ans) { if (typeof ans != 'undefined') { if (ans=='Remove from favorites') { removeFromFavourites('{{plugin.id}}'); load('{{url}}', true);} else if (ans=='Addon settings') {load('{{plugin.menuurl}}'); }} })" onselect="load('/catalog/{{plugin.id | base64encode}}')">
+					<img src="/{{plugin.icon}}" width="256" height="256"/>
+				 	<title class="foo">{{plugin.name}}</title>				 					 	
+				</lockup>
+				{% endfor %}
+			</section>
+		  </grid>
+	  </collectionList>
+	</stackTemplate>
+		<stackTemplate title="All" id="all">
+		<banner style="tv-align:center;">
+			  <placeholder></placeholder>
+		</banner>			
 	  <collectionList>
 		  <grid>
 		  <section>
 				{% for plugin in menu %}
-				<lockup onholdselect="load('{{plugin.menuurl}}')" onselect="load('/catalog/{{plugin.id | base64encode}}')">
+				<lockup onholdselect="showSelectDialog('', ['Add to favorites', 'Addon settings'], 0, function(ans) { if (typeof ans != 'undefined') { if (ans=='Add to favorites') { addToFavourites('{{plugin.id}}'); load('{{url}}', true);} else if (ans=='Addon settings') {load('{{plugin.menuurl}}'); }} })" onselect="load('/catalog/{{plugin.id | base64encode}}')">
 					<img src="/{{plugin.icon}}" width="256" height="256"/>
 				 	<title class="foo">{{plugin.name}}</title>				 					 	
 				</lockup>

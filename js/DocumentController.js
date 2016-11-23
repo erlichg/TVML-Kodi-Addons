@@ -29,25 +29,49 @@ function DocumentController(documentLoader, documentURL, loadingDocument, initia
     this.handleEvent = this.handleEvent.bind(this);
     this.handleHoldSelect = this.handleHoldSelect.bind(this);
     this._documentLoader = documentLoader;
-    documentLoader.fetch({
-	    initial: initial,
-        url: documentURL,
-        success: function(document, isModal) {
-            // Add the event listener for document
-            this.setupDocument(document);
-            // Allow subclass to do custom handling for this document
-            this.handleDocument(document, loadingDocument, isModal);
-        }.bind(this),
-        error: function(xhr) {
-            const alertDocument = createLoadErrorAlertDocument(documentURL, xhr, false);
-            this.handleDocument(alertDocument, loadingDocument);
-        }.bind(this),
-        abort: function() {
-	        if(loadingDocument) {
-		        navigationDocument.removeDocument(loadingDocument);
-	        }
-        }
-    });
+    if (typeof initial == "boolean" && initial) {
+	    var favs = loadFavourites();
+		documentLoader.post({
+	    	initial: initial,	    	
+        	url: documentURL,
+        	data: btoa(JSON.stringify(favs)),
+        	success: function(document, isModal) {
+        	    // Add the event listener for document
+        	    this.setupDocument(document);
+        	    // Allow subclass to do custom handling for this document
+        	    this.handleDocument(document, loadingDocument, isModal);
+        	}.bind(this),
+        	error: function(xhr) {
+        	    const alertDocument = createLoadErrorAlertDocument(documentURL, xhr, false);
+        	    this.handleDocument(alertDocument, loadingDocument);
+        	}.bind(this),
+        	abort: function() {
+	    	    if(loadingDocument) {
+			        navigationDocument.removeDocument(loadingDocument);
+	    	    }
+        	}
+    	}); 	       					
+    } else {
+    	documentLoader.fetch({
+		    initial: initial,
+    	    url: documentURL,
+    	    success: function(document, isModal) {
+    	        // Add the event listener for document
+    	        this.setupDocument(document);
+    	        // Allow subclass to do custom handling for this document
+    	        this.handleDocument(document, loadingDocument, isModal);
+    	    }.bind(this),
+    	    error: function(xhr) {
+    	        const alertDocument = createLoadErrorAlertDocument(documentURL, xhr, false);
+    	        this.handleDocument(alertDocument, loadingDocument);
+    	    }.bind(this),
+    	    abort: function() {
+		        if(loadingDocument) {
+			        navigationDocument.removeDocument(loadingDocument);
+		        }
+    	    }
+    	});
+    }
 }
 
 registerAttributeName('documentURL', DocumentController);
@@ -142,11 +166,14 @@ function notify(url) {
 	});
 }
 
-function load(url) {
+function load(url, initial) {
 	console.log("loading "+url);
+	if (typeof initial == "boolean" && initial) {
+		navigationDocument.clear();
+	}
 	var loadingDocument = createLoadingDocument();
-	navigationDocument.pushDocument(loadingDocument);
-	new DocumentController(documentLoader, url, loadingDocument);
+	navigationDocument.pushDocument(loadingDocument);	
+	new DocumentController(documentLoader, url, loadingDocument, initial);
 }
 
 function saveSettings(addon, settings) {
@@ -183,6 +210,41 @@ function loadSettings(addon) {
     }
     console.log('Loaded addon settings '+JSON.stringify(addonSettings));
     return addonSettings;
+}
+
+function loadFavourites() {
+	var favs = localStorage.getItem("favourites");
+	if (favs == null) {
+	    favs = "[]";
+    }
+	try {
+		favs = JSON.parse(favs);
+	} catch (e) {
+		console.log("Error getting addonsSettings from local storage");
+		favs = [];
+	} 
+    
+    console.log('Loaded favourites '+JSON.stringify(favs));
+    return favs;
+}
+
+function saveFavourites(favs) {
+	localStorage.setItem('favourites', JSON.stringify(favs));
+}
+
+function addToFavourites(addon) {
+	var favs = loadFavourites();
+	favs.push(addon);
+	saveFavourites(favs);
+}
+
+function removeFromFavourites(addon) {
+	var favs = loadFavourites();
+	var index = favs.indexOf(addon);
+	if (index > -1) {
+    	favs.splice(index, 1);
+	}
+	saveFavourites(favs);
 }
 
 function showInputDialog(title, description, placeholder, button, secure, callback) {

@@ -12,7 +12,7 @@ import os, sys, re, json, time
 import codecs
 import xml.etree.ElementTree as ET
 from xml.sax.saxutils import escape
-import xbmc
+import xbmc, kodi_utils
 from collections import OrderedDict
 
 ADDON_CACHE = {}
@@ -111,8 +111,8 @@ class Addon(object):
 							self.settings[label].append(e.attrib)
 				ADDON_CACHE[self.id] = 'lock'
 				print 'trakt.user before settings load is {}'.format(self.getSetting('trakt.user'))
-				#loaded_settings = json.loads(utils.b64decode(xbmc.bridge._message({'type':'loadSettings'}, True)))
-				#self.settings.update(loaded_settings)
+				loaded_settings = json.loads(kodi_utils.b64decode(xbmc.bridge._message({'type':'loadSettings'}, True)))
+				self.settings.update(loaded_settings)
 				print 'trakt.user after settings load is {}'.format(self.getSetting('trakt.user'))
 				ADDON_CACHE[self.id] = self.settings
 						

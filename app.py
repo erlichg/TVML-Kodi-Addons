@@ -125,7 +125,7 @@ def template(filename):
 
 
 @app.route('/menu/<pluginid>')
-@app.route('/menu/<pluginid>/<response>')
+@app.route('/menu/<pluginid>/<process>')
 @app.route('/catalog/<pluginid>')
 @app.route('/catalog/<pluginid>/<url>')
 @app.route('/catalog/<pluginid>/<url>/<process>')
@@ -141,7 +141,7 @@ def catalog(pluginid, url=None, process=None):
 		if request.full_path.startswith('/catalog'):
 			print 'catalog {}, {}, {}'.format(decoded_id, decoded_url, process)
 		else:
-			print 'menu {}, {}'.format(decoded_id, response)
+			print 'menu {}, {}'.format(decoded_id, process)
 		plugin = [p for p in PLUGINS if p.id == decoded_id][0]
 		if not plugin:
 			return render_template('alert.xml', title='Communication error', description="Failed to load page.\nThis could mean the server had a problem, or the request dialog timed-out\nPlease try again")
@@ -298,9 +298,14 @@ def subtitles(msg):
 def helloworld():
 	return render_template('helloworld.xml')
 
-@app.route('/main')
+@app.route('/main', methods=['POST', 'GET'])
 def main():
-	return render_template('main.xml', menu=PLUGINS)
+	if request.method == 'POST':
+		favs = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
+		favs = [[p for p in PLUGINS if p.id == id][0] for id in favs]
+	else:
+		favs = []
+	return render_template('main.xml', menu=PLUGINS, favs=favs, url=request.full_path)
 	
 
 def get_items(plugin_id, url, context, PLUGINS):

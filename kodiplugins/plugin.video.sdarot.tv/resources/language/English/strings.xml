@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<strings>
+    <!-- Category strings -->
+    <string id="20000">How long to keep pages in cache</string>
+    <string id="20001">Turn on Debug Mode</string>
+    <string id="20002">Username</string>
+    <string id="20003">Password</string>
+    <string id="20004">Site address</string>
+	<string id="20005">Attempt to fix playback crash</string>
+	<string id="20006">Clean cache</string>
+	<string id="20007">Max playing quality (paying members)</string>
+    <string id="30001">More...</string>
+    <string id="30002">Season</string>
+    <string id="30003">Missing Chapter Title</string>
+    <string id="30004">The shows</string>
+    <string id="30005">Choose quality</string>
+</strings>

@@ -65,9 +65,9 @@ class KodiPlugin:
 				sys.argv = [url.split('?')[0], '1', '?{}'.format(url.split('?')[1])]
 			else:
 				sys.argv = [url, '1', '']
-			m = re.search('.*://[^/]*(/.*)', sys.argv[0])
-			if m:
-				sys.argv[0] = m.group(1)
+			#m = re.search('.*://[^/]*(/.*)', sys.argv[0])
+			#if m:
+			#	sys.argv[0] = m.group(1)
 			
 			if not sys.argv[0]:
 				sys.argv[0] = os.path.join('file://{}'.format(self.id),self.script)
