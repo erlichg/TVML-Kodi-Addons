@@ -65,12 +65,17 @@ class KodiPlugin:
 				sys.argv = [url.split('?')[0], '1', '?{}'.format(url.split('?')[1])]
 			else:
 				sys.argv = [url, '1', '']
+			#print 'before regex {}'.format(sys.argv[0])
 			#m = re.search('.*://[^/]*(/.*)', sys.argv[0])
 			#if m:
 			#	sys.argv[0] = m.group(1)
+			#print 'after regex {}'.format(sys.argv[0])
 			
 			if not sys.argv[0]:
 				sys.argv[0] = os.path.join('file://{}'.format(self.id),self.script)
+				
+			if not sys.argv[0].startswith('file://') and not sys.argv[0].startswith('plugin://'):
+				sys.argv[0] = 'file://{}{}'.format(self.id, sys.argv[0])
 			#sys.argv = [script, '1', url]
 			print 'Calling plugin {} with {}'.format(self.name, sys.argv)
 			import xbmcplugin

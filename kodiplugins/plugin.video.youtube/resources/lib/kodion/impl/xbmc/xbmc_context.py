@@ -39,8 +39,8 @@ class XbmcContext(AbstractContext):
         if override:
             self._uri = sys.argv[0]
             comps = urlparse.urlparse(self._uri)
-            #self._path = urllib.unquote(comps.path).decode('utf-8')
-            self._path = sys.argv[0]
+            self._path = urllib.unquote(comps.path).decode('utf-8')
+            #self._path = sys.argv[0]
 
             # after that try to get the params
             params = sys.argv[2][1:]
