@@ -72,7 +72,7 @@ class KodiPlugin:
 			#print 'after regex {}'.format(sys.argv[0])
 			
 			if not sys.argv[0]:
-				sys.argv[0] = os.path.join('file://{}'.format(self.id),self.script)
+				sys.argv[0] = 'file://{}/{}'.format(self.id,self.script)
 				
 			if not sys.argv[0].startswith('file://') and not sys.argv[0].startswith('plugin://'):
 				sys.argv[0] = 'file://{}{}'.format(self.id, sys.argv[0])

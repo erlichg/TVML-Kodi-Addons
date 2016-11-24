@@ -524,10 +524,11 @@ DocumentLoader.prototype.play = function(msg, time, playCache, options) {
 			}.bind(this), false);
 		}
 	} catch (e) {
-			var alert = createAlertDocument("Error", "Error playing URL "+msg['url'], true);
-			navigationDocument.presentModal(alert);
-			var url = this.prepareURL(msg['stop']+"/"+btoa(time.toString()));
-			notify(url);
+		console.log(e);
+		var alert = createAlertDocument("Error", "Error playing URL "+msg['url'], true);
+		navigationDocument.presentModal(alert);
+		var url = this.prepareURL(msg['stop']+"/"+btoa(time.toString()));
+		notify(url);
 	}	
 	
 }
