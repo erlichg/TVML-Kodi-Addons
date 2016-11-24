@@ -43,6 +43,7 @@ class Storage(object):
 
     def _open(self):
         if self._file is None:
+            print 'open DB'
             self._optimize_file_size()
 
             path = os.path.dirname(self._filename)
@@ -50,16 +51,23 @@ class Storage(object):
                 os.makedirs(path)
                 pass
 
-            self._file = sqlite3.connect(self._filename, check_same_thread=False, detect_types=sqlite3.PARSE_DECLTYPES,
+            print 'connecting'
+            try:
+                self._file = sqlite3.connect(self._filename, check_same_thread=False, detect_types=sqlite3.PARSE_DECLTYPES,
                                          timeout=1)
+            except:
+                print 'failed to connect'
+            print 'connected'
             self._file.isolation_level = None
             self._cursor = self._file.cursor()
             self._cursor.execute('PRAGMA journal_mode=MEMORY')
             # self._cursor.execute('PRAGMA synchronous=OFF')
+            print 'creating table'
             self._create_table()
         pass
 
     def _execute(self, needs_commit, query, values=[]):
+        self._open()
         if not self._needs_commit and needs_commit:
             self._needs_commit = True
             self._cursor.execute('BEGIN')
@@ -71,14 +79,17 @@ class Storage(object):
         """
         for tries in range(5):
             try:
-                return self._cursor.execute(query, values)
+                ans = self._cursor.execute(query, values)
+                return ans
             except:
                 time.sleep(2)
                 pass
         else:
-            return self._cursor.execute(query, values)
+            ans = self._cursor.execute(query, values)
+            return ans
 
     def _close(self):
+        print 'DB close'
         if self._file is not None:
             self._file.commit()
             self._cursor.close()
@@ -145,10 +156,12 @@ class Storage(object):
         pass
 
     def _clear(self):
+        print 'clearing cache'
         self._open()
         query = 'DELETE FROM %s' % self._table_name
         self._execute(True, query)
         self._create_table()
+        print 'cleared cache'
         pass
 
     def _is_empty(self):

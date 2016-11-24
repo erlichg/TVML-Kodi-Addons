@@ -91,22 +91,32 @@ class Provider(kodion.AbstractProvider):
 
 	def get_client(self, context):
 		# set the items per page (later)
+                print 'in get_client with {}'.format(context)
 		settings = context.get_settings()
+                print 'a'
 		items_per_page = settings.get_items_per_page()
+                print 'b'
 
 		access_manager = context.get_access_manager()
+                print 'c'
 		access_tokens = access_manager.get_access_token().split('|')
+                print 'd'
 		if access_manager.is_new_login_credential() or len(
 				access_tokens) != 2 or access_manager.is_access_token_expired():
 			# reset access_token
+                        print 'e'
 			access_manager.update_access_token('')
+                        print 'e1'
 			# we clear the cache, so none cached data of an old account will be displayed.
 			context.get_function_cache().clear()
+                        print 'e2'
 			# reset the client
 			self._client = None
 			pass
 
+                print 'f'
 		if not self._client:		  
+                        print 'g'
 			major_version = context.get_system_version().get_version()[0]
 			youtube_config = YouTube.CONFIGS.get('youtube-for-kodi-%d' % major_version, None)
 			if not youtube_config or youtube_config is None:
@@ -123,7 +133,9 @@ class Provider(kodion.AbstractProvider):
 				access_manager.remove_login_credentials()
 				pass
 
+                        print 'h'
 			if access_manager.has_login_credentials() or access_manager.has_refresh_token():
+                                print 'i'
 				last_kodi_version = settings.get_int('youtube.login.version', 0)
 
 				if last_kodi_version != major_version:
@@ -185,6 +197,7 @@ class Provider(kodion.AbstractProvider):
 									   access_token_tv=access_tokens[0], config=youtube_config)
 				self._client.set_log_error(context.log_error)
 			else:
+                                print 'j'
 				self._client = YouTube(items_per_page=items_per_page, language=language, region=region, config=youtube_config)
 				self._client.set_log_error(context.log_error)
 
@@ -193,6 +206,7 @@ class Provider(kodion.AbstractProvider):
 				pass
 			pass
 
+                print 'returning client {}'.format(self._client)
 		return self._client
 
 	def get_resource_manager(self, context):
@@ -226,6 +240,7 @@ class Provider(kodion.AbstractProvider):
 
 	@kodion.RegisterProviderPath('^/playlist/(?P<playlist_id>.*)/$')
 	def _on_playlist(self, context, re_match):
+                print 'in playlist' 
 		self.set_content_type(context, kodion.constants.content_type.EPISODES)
 
 		result = []

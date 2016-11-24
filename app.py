@@ -11,6 +11,9 @@ try:
 except:
 	pass
 
+import sqlite3
+
+
 # try:
 # 	import faulthandler
 # 	faulthandler.enable()
@@ -157,6 +160,7 @@ def catalog(pluginid, process=None):
 			p = PROCESSES[process]
 		else:
 			if request.full_path.startswith('/catalog'):
+				sqlite3.connect(':memory:').close()
 				p = Process(target=get_items, args=(plugin.id, decoded_url, CONTEXT, PLUGINS))
 			else:
 				p = Process(target=get_menu, args=(plugin.id, decoded_url))	

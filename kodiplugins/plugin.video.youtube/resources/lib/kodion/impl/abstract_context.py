@@ -56,6 +56,7 @@ class AbstractContext(object):
             self._function_cache = FunctionCache(os.path.join(self._get_cache_path(), 'cache'),
                                                  max_file_size_kb=max_cache_size_mb * 1024)
             pass
+        print 'returning {}'.format(self._function_cache)
         return self._function_cache
 
     def get_search_history(self):
@@ -227,3 +228,10 @@ class AbstractContext(object):
 
     def sleep(self, milli_seconds):
         raise NotImplementedError()
+
+    def __del__(self):
+        print 'deleting context'
+
+    def tear_down(self):
+        print 'context tear down'
+        self._function_cache = None

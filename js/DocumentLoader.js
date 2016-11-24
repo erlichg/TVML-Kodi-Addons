@@ -446,7 +446,9 @@ DocumentLoader.prototype.play = function(msg, time, playCache, options) {
 		}.bind(this));
 		console.log("after create player: "+player);
 		
-		if (typeof(player) != "undefined") {
+		if (typeof(player) == "string") { //an error has occured
+			throw player;
+		} else if (typeof(player) != "undefined") {
 			options.abort(); //remove the loading document
 			VLCPlayer.present(player);
 		} else {
@@ -525,6 +527,7 @@ DocumentLoader.prototype.play = function(msg, time, playCache, options) {
 		}
 	} catch (e) {
 		console.log(e);
+		options.abort(); //remove the loading document
 		var alert = createAlertDocument("Error", "Error playing URL "+msg['url'], true);
 		navigationDocument.presentModal(alert);
 		var url = this.prepareURL(msg['stop']+"/"+btoa(time.toString()));

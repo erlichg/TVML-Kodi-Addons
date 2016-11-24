@@ -119,6 +119,7 @@ class AbstractProvider(object):
 			re_match = re.search(key, path, re.UNICODE)
 			if re_match is not None:
 				method_name = self._dict_path.get(key, '')
+                                print 'found path {}'.format(method_name)
 				method = getattr(self, method_name)
 				if method is not None:
 					result = method(context, re_match)
@@ -285,6 +286,5 @@ class AbstractProvider(object):
 		return True
 
 	def tear_down(self, context):
-		pass
-
+            context.tear_down()
 	pass

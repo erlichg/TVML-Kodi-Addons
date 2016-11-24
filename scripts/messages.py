@@ -49,7 +49,7 @@ def end(plugin, msg, url=None):
 					item.width = item.width * 2
 					item.height = item.height * 2
 			except:
-				traceback.print_exc(file=sys.stdout)
+				#traceback.print_exc(file=sys.stdout)
 				item.width = 300
 				item.height = 300
 			print 'thread done'
