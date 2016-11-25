@@ -134,10 +134,13 @@ class bridge:
 		"""Plays a url"""
 		print 'Playing {}'.format(url)
 		self.play = url
-		_id = kodi_utils.randomword()		
-		p = multiprocessing.Process(target=play_stop, args=(self, _id, stop_completion))
-		p.daemon = True
-		p.start()
+		_id = kodi_utils.randomword()
+		try:		
+			p = multiprocessing.Process(target=play_stop, args=(self, _id, stop_completion))
+			p.daemon = True
+			p.start()
+		except:
+			print 'Failed to start play progress process.'
 		self._message({'type':'play', 'url':url, 'stop':'/response/{}/{}'.format(self.thread.id, _id), 'playtype': type_, 'title':title, 'description':description, 'image':image, 'imdb':imdb, 'season':season, 'episode':episode})
 		return 
 	
