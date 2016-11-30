@@ -42,7 +42,7 @@ if getattr(sys, 'frozen', False):
 	# we are running in a bundle
 	bundle_dir = sys._MEIPASS
 else:
-	bundle_dir = '.'
+	bundle_dir = ''
 
 sys.path.append(os.path.join(bundle_dir, 'scripts'))
 sys.path.append(os.path.join(bundle_dir, 'scripts', 'kodi'))
@@ -108,34 +108,34 @@ def route(pid, id, res=None):
 	else:
 		return 'OK', 206
 
-@app.route('{}/icon.png'.format(bundle_dir))
+#@app.route('/{}icon.png'.format(bundle_dir))
 @app.route('/icon.png')
 def icon():
 	return send_from_directory(bundle_dir, 'icon.png')
 	
-@app.route('{}/plugins/<path:filename>'.format(bundle_dir))
+#@app.route('/{}plugins/<path:filename>'.format(bundle_dir))
 @app.route('/plugins/<path:filename>')
 def plugin_icon(filename):
 	return send_from_directory(os.path.join(bundle_dir, 'plugins'), filename)
 
-@app.route('{}/cache/<path:filename>'.format(bundle_dir))
+#@app.route('/{}cache/<path:filename>'.format(bundle_dir))
 @app.route('/cache/<path:filename>')
 def cache(filename):
 	return send_from_directory('cache', filename)
 	
-@app.route('{}/kodiplugins/<path:filename>'.format(bundle_dir))
+#@app.route('/{}kodiplugins/<path:filename>'.format(bundle_dir))
 @app.route('/kodiplugins/<path:filename>')
 def kodiplugin_icon(filename):
 	return send_from_directory(os.path.join(bundle_dir, 'kodiplugins'), filename)
 		
-@app.route('{}/js/<path:filename>'.format(bundle_dir))
+#@app.route('/{}js/<path:filename>'.format(bundle_dir))
 @app.route('/js/<path:filename>')
 def js(filename):
 	return send_from_directory(os.path.join(bundle_dir, 'js'), filename)
 	
 	
 @app.route('/templates/<path:filename>')
-@app.route('{}/templates/<path:filename>'.format(bundle_dir))
+#@app.route('/{}templates/<path:filename>'.format(bundle_dir))
 def template(filename):
 	return send_from_directory(os.path.join(bundle_dir, 'templates'), filename)
 

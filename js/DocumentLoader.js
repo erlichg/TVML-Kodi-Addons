@@ -140,7 +140,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
 			}.bind(this), 1000)							
 		} else if (xhr.status == 212) {
 			var msg = JSON.parse(xhr.responseText);
-			var save_success = options.success;			
+			/*var save_success = options.success;			
 			options.success = function(document, isModal) {
 				//if (typeof save_success != "undefined") {
 				//	save_success(document, isModal);
@@ -168,7 +168,13 @@ DocumentLoader.prototype.fetchPost = function(options) {
 				this.fetchPost(options);
 			}.bind(this);
 			options.url = msg['cont'];
-			this.fetchPost(options);			
+			this.fetchPost(options);*/	
+			options.url = msg['url'];
+			if (typeof msg['data'] != "undefined") {
+				options.type = "POST";
+				options.data = msg['data'];			
+			}
+			this.fetchPost(options);	
 	    } else {
         	const responseDoc = xhr.response;
         	if (typeof options.initial == "boolean" && options.initial) {

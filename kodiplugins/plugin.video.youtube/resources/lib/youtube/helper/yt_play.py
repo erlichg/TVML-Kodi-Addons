@@ -40,8 +40,8 @@ def play_video(provider, context, re_match):
 
         # Trigger post play events
         if provider.is_logged_in():
-            command = 'RunPlugin(%s)' % context.create_uri(['events', 'post_play'], {'video_id': video_id})
-            context.execute(command)
+            #command = 'RunPlugin(%s)' % context.create_uri(['events', 'post_play'], {'video_id': video_id})
+            #context.execute(command)
             pass
 
         return video_item
