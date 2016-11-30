@@ -37,6 +37,8 @@ def end(plugin, msg, url=None):
 			print 'thread start'
 			if item.icon.startswith('kodiplugins') or item.icon.startswith('plugins'):
 				item.icon = '/{}'.format(item.icon)
+			elif item.icon.startswith('/'):
+				pass
 			else:
 				item.icon = CACHE.get(item.icon)
 			item.info['poster'] = item.icon
@@ -121,7 +123,8 @@ def formdialog(plugin, msg, url=None):
 	return render_template('multiformdialog2.xml', title=msg['title'], sections=msg['sections'], msgid=msg['id'], url=url if msg['cont'] else '')
 
 def saveSettings(plugin, msg, url=None):
-	print 'SaveSettings in messages'	
+	print 'SaveSettings in messages'
+	msg['url'] = url
 	return json.dumps(msg), 210
 	
 def loadSettings(plugin, msg, url=None):
@@ -129,4 +132,5 @@ def loadSettings(plugin, msg, url=None):
 	return json.dumps({'type':'loadSettings', 'addon':plugin.id, 'msgid':msg['id'], 'url': url }), 210
 	
 def load(plugin, msg, url=None):
+	msg['cont'] = url
 	return json.dumps(msg), 212

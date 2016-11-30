@@ -17,6 +17,12 @@ from collections import OrderedDict
 
 ADDON_CACHE = {}
 
+if getattr(sys, 'frozen', False):
+	# we are running in a bundle
+	bundle_dir = sys._MEIPASS
+else:
+	bundle_dir = '.'
+
 class Addon(object):
 	"""
 	Addon(id=None)
@@ -50,8 +56,8 @@ class Addon(object):
 				raise Exception('Could not find addon ID automatically')
 		self.id = id
 		self.strings = {}
-		strings_po = os.path.join('kodiplugins', self.id, 'resources', 'language', 'English', 'strings.po')
-		strings_xml = os.path.join('kodiplugins', self.id, 'resources', 'language', 'English', 'strings.xml')
+		strings_po = os.path.join(bundle_dir, 'kodiplugins', self.id, 'resources', 'language', 'English', 'strings.po')
+		strings_xml = os.path.join(bundle_dir, 'kodiplugins', self.id, 'resources', 'language', 'English', 'strings.xml')
 		if os.path.isfile(strings_po):
 			f = codecs.open(strings_po, mode='r', encoding='UTF-8')
 			contents = f.read()
@@ -83,7 +89,7 @@ class Addon(object):
 			self.settings = ADDON_CACHE[self.id]
 		else:						
 			self.settings = OrderedDict()
-			settings_xml = os.path.join('kodiplugins', self.id, 'resources', 'settings.xml')
+			settings_xml = os.path.join(bundle_dir, 'kodiplugins', self.id, 'resources', 'settings.xml')
 			if os.path.isfile(settings_xml):
 				f = codecs.open(settings_xml, mode='r', encoding='UTF-8')
 				contents = f.read().replace('&', '&amp;')
@@ -151,7 +157,7 @@ class Addon(object):
 		print 'getSetting {}='.format(id)
 		return ''
 
-	def setSetting(self, id, value):
+	def setSetting(self, id, value, save=True):
 		"""Sets a script setting.
 
 		:param id: string - id of the setting that the module needs to access.
@@ -166,6 +172,15 @@ class Addon(object):
 			for s in self.settings[cat]:
 				if 'id' in s and s['id'] == id:
 					s['value'] = value
+					if save:
+						xbmc.bridge._message({'type':'saveSettings','addon':self.id, 'settings':self.settings})
+					return
+		#if we got here this means key does not exist
+		for cat in self.settings:
+			self.settings[cat].append({'id':id, 'value':value})
+			break
+		if save:
+			xbmc.bridge._message({'type':'saveSettings','addon':self.id, 'settings':self.settings})
 
 	def openSettings(self):
 		"""Opens this scripts settings dialog."""
@@ -187,9 +202,9 @@ class Addon(object):
 			if m:
 				neg = m.group(1) == '!'
 				if neg:
-					return not os.path.isdir(os.path.join('kodiplugins', m.group(2)))
+					return not os.path.isdir(os.path.join(bundle_dir, 'kodiplugins', m.group(2)))
 				else:
-					return os.path.isdir(os.path.join('kodiplugins', m.group(2)))
+					return os.path.isdir(os.path.join(bundle_dir, 'kodiplugins', m.group(2)))
 		for cat in self.settings:
 			fields = []
 			for attrib in self.settings[cat]:
@@ -237,7 +252,7 @@ class Addon(object):
 				val = values.index(ans[id])
 			elif field['type'] == 'text':
 				val = ans[id]						
-			self.setSetting(id, val)
+			self.setSetting(id, val, false)
 		xbmc.bridge._message({'type':'saveSettings','addon':self.id, 'settings':self.settings})
 
 	def getAddonInfo(self, id):
@@ -254,9 +269,9 @@ class Addon(object):
 			version = self.Addon.getAddonInfo('version')
 		"""
 		if id=='path':
-			return os.path.join('kodiplugins', self.id)
+			return os.path.join(bundle_dir, 'kodiplugins', self.id)
 		if id=='profile':
-			return os.path.join(os.getcwd(), 'kodiplugins', self.id)
+			return os.path.join(bundle_dir, 'kodiplugins', self.id)
 		if id=='name':
 			return self.id
 		if id=='id':

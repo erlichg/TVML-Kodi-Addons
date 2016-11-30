@@ -7,8 +7,14 @@ Various classes and functions to interact with Kodi.
 
 import xbmcgui as _xbmcgui
 import xbmcplugin as _xbmcplugin
-import time, re, os
+import time, re, os, sys
 import app, kodi_utils
+
+if getattr(sys, 'frozen', False):
+	# we are running in a bundle
+	bundle_dir = sys._MEIPASS
+else:
+	bundle_dir = '.'
 
 CAPTURE_FLAG_CONTINUOUS = 1
 CAPTURE_FLAG_IMMEDIATELY = 2
@@ -1017,6 +1023,10 @@ def executebuiltin(function, wait=False):
 	if m:
 		bridge._message({'type':'load', 'url':'/catalog/{}'.format(kodi_utils.b64encode(Container.plugin.id)), 'data':kodi_utils.b64encode(m.group(1))})
 		return str()
+	m = re.search('.*Container.Refresh.*', function)
+	if m:
+		bridge._message({'type':'load', 'url':'/catalog/{}'.format(kodi_utils.b64encode(Container.plugin.id))})
+		return str()
 	m = re.search('.*RunPlugin\(plugin://([^/]*)(.*)\)', function)
 	if m:
 		bridge._message({'type':'load', 'url':'/catalog/{}'.format(kodi_utils.b64encode(m.group(1))), 'data':kodi_utils.b64encode(m.group(2))})
@@ -1434,11 +1444,11 @@ def translatePath(path):
 		fpath = xbmc.translatePath('special://masterprofile/script_data')
 	"""
 	if "special://home/addons" in path :
-		return path.replace("special://home/addons", 'kodiplugins')
+		return path.replace("special://home/addons", os.path.join(bundle_dir, 'kodiplugins'))
 	if 'special://profile/addon_data/' in path:
-		return path.replace('special://profile/addon_data/', 'kodiplugins{}'.format(os.path.sep))
+		return path.replace('special://profile/addon_data/', '{}{}'.format(os.path.join(bundle_dir, 'kodiplugins'), os.path.sep))
 	if 'special://temp/' in path:
-		return path.replace('special://temp/', 'kodiplugins{}'.format(os.path.sep))
+		return path.replace('special://temp/', '{}{}'.format(os.path.join(bundle_dir, 'kodiplugins'), os.path.sep))
 	return path
 
 

@@ -1,6 +1,6 @@
-from tokenize import group
 __author__ = 'bromix'
 
+import os
 from resources.lib.youtube.helper import yt_subscriptions
 from resources.lib import kodion
 from resources.lib.kodion.utils import FunctionCache
@@ -10,6 +10,7 @@ from .helper import v3, ResourceManager, yt_specials, yt_playlist, yt_login, yt_
 	yt_context_menu, yt_play, yt_old_actions, UrlResolver, UrlToItemConverter
 from .youtube_exceptions import LoginException
 import xbmcaddon
+import xbmcvfs
 
 
 class Provider(kodion.AbstractProvider):
@@ -66,7 +67,12 @@ class Provider(kodion.AbstractProvider):
 				 'youtube.video.more': 30548,
 				 'youtube.live': 30539,
 				 'youtube.error.no_video_streams_found': 30549,
-				 'youtube.error.rtmpe_not_supported': 30542}
+				 'youtube.error.rtmpe_not_supported': 30542,
+				 'youtube.remove.as.watchlater': 30568,
+				 'youtube.set.as.watchlater': 30567,
+				 'youtube.remove.as.history': 30572,
+				 'youtube.set.as.history': 30571,
+				 'youtube.settings': 30577}
 
 	def __init__(self):
 		kodion.AbstractProvider.__init__(self)
@@ -91,38 +97,24 @@ class Provider(kodion.AbstractProvider):
 
 	def get_client(self, context):
 		# set the items per page (later)
-                print 'in get_client with {}'.format(context)
 		settings = context.get_settings()
-                print 'a'
 		items_per_page = settings.get_items_per_page()
-                print 'b'
 
 		access_manager = context.get_access_manager()
-                print 'c'
 		access_tokens = access_manager.get_access_token().split('|')
-                print 'd'
 		if access_manager.is_new_login_credential() or len(
 				access_tokens) != 2 or access_manager.is_access_token_expired():
 			# reset access_token
-                        print 'e'
 			access_manager.update_access_token('')
-                        print 'e1'
 			# we clear the cache, so none cached data of an old account will be displayed.
-			context.get_function_cache().clear()
-                        print 'e2'
+			# context.get_function_cache().clear()
 			# reset the client
 			self._client = None
 			pass
 
-                print 'f'
-		if not self._client:		  
-                        print 'g'
-			major_version = context.get_system_version().get_version()[0]
-			youtube_config = YouTube.CONFIGS.get('youtube-for-kodi-%d' % major_version, None)
-			if not youtube_config or youtube_config is None:
-				youtube_config = YouTube.CONFIGS['youtube-for-kodi-fallback']
-				pass
-
+		youtubetv_config = YouTube.CONFIGS.get('youtube-tv')
+		youtube_config = YouTube.CONFIGS.get('main')
+		if not self._client:
 			context.log_debug('Selecting YouTube config "%s"' % youtube_config['system'])
 
 			language = context.get_settings().get_string('youtube.language', 'en-US')
@@ -133,18 +125,11 @@ class Provider(kodion.AbstractProvider):
 				access_manager.remove_login_credentials()
 				pass
 
-                        print 'h'
 			if access_manager.has_login_credentials() or access_manager.has_refresh_token():
-                                print 'i'
-				last_kodi_version = settings.get_int('youtube.login.version', 0)
-
-				if last_kodi_version != major_version:
-					context.log_warning(
-						'Different KODI versions (%d != %d) signing out for new login' % (
-							last_kodi_version, major_version))
+				if YouTube.api_keys_changed:
+					context.log_warning('API key set changed: Resetting client and updating access token')
 					self.reset_client()
 					access_manager.update_access_token(access_token='', refresh_token='')
-					pass
 
 				# username, password = access_manager.get_login_credentials()
 				access_tokens = access_manager.get_access_token()
@@ -160,12 +145,15 @@ class Provider(kodion.AbstractProvider):
 				# create a new access_token
 				if len(access_tokens) != 2 and len(refresh_tokens) == 2:
 					try:
-						access_token_tv, expires_in_tv = YouTube(language=language,
-																 config=youtube_config).refresh_token_tv(
-							refresh_tokens[0])
-						access_token_kodi, expires_in_kodi = YouTube(language=language,
-																	 config=youtube_config).refresh_token(
-							refresh_tokens[1])
+
+						access_token_kodi, expires_in_kodi = \
+							YouTube(language=language, config=youtube_config).refresh_token(refresh_tokens[1])
+						if not settings.requires_dual_login():
+							access_token_tv, expires_in_tv = access_token_kodi, expires_in_kodi
+						else:
+							access_token_tv, expires_in_tv = \
+								YouTube(language=language, config=youtubetv_config).refresh_token_tv(refresh_tokens[0])
+
 						access_tokens = [access_token_tv, access_token_kodi]
 
 						access_token = '%s|%s' % (access_token_tv, access_token_kodi)
@@ -197,7 +185,6 @@ class Provider(kodion.AbstractProvider):
 									   access_token_tv=access_tokens[0], config=youtube_config)
 				self._client.set_log_error(context.log_error)
 			else:
-                                print 'j'
 				self._client = YouTube(items_per_page=items_per_page, language=language, region=region, config=youtube_config)
 				self._client.set_log_error(context.log_error)
 
@@ -206,7 +193,6 @@ class Provider(kodion.AbstractProvider):
 				pass
 			pass
 
-                print 'returning client {}'.format(self._client)
 		return self._client
 
 	def get_resource_manager(self, context):
@@ -240,8 +226,7 @@ class Provider(kodion.AbstractProvider):
 
 	@kodion.RegisterProviderPath('^/playlist/(?P<playlist_id>.*)/$')
 	def _on_playlist(self, context, re_match):
-                print 'in playlist' 
-		self.set_content_type(context, kodion.constants.content_type.EPISODES)
+		self.set_content_type(context, kodion.constants.content_type.VIDEOS)
 
 		result = []
 
@@ -265,7 +250,7 @@ class Provider(kodion.AbstractProvider):
 
 	@kodion.RegisterProviderPath('^/channel/(?P<channel_id>.*)/playlist/(?P<playlist_id>.*)/$')
 	def _on_channel_playlist(self, context, re_match):
-		self.set_content_type(context, kodion.constants.content_type.EPISODES)
+		self.set_content_type(context, kodion.constants.content_type.VIDEOS)
 
 		result = []
 
@@ -309,7 +294,7 @@ class Provider(kodion.AbstractProvider):
 
 	@kodion.RegisterProviderPath('^/(?P<method>(channel|user))/(?P<channel_id>.*)/$')
 	def _on_channel(self, context, re_match):
-		self.set_content_type(context, kodion.constants.content_type.EPISODES)
+		self.set_content_type(context, kodion.constants.content_type.VIDEOS)
 
 		resource_manager = self.get_resource_manager(context)
 
@@ -377,9 +362,7 @@ class Provider(kodion.AbstractProvider):
 
 	@kodion.RegisterProviderPath('^/play/$')
 	def on_play(self, context, re_match):
-		print 'on_play'
 		params = context.get_params()
-		print 'params: {}'.format(params)
 		if 'video_id' in params and not 'playlist_id' in params:
 			return yt_play.play_video(self, context, re_match)
 		elif 'playlist_id' in params:
@@ -419,24 +402,28 @@ class Provider(kodion.AbstractProvider):
 
 				# second: remove video from 'Watch Later' playlist
 				if context.get_settings().get_bool('youtube.playlist.watchlater.autoremove', True):
-					playlist_item_id = client.get_playlist_item_id_of_video_id(playlist_id='WL', video_id=video_id)
+					cplid = context.get_settings().get_string('youtube.folder.watch_later.playlist', '').strip()
+					playlist_id = cplid if cplid else 'WL'
+					playlist_item_id = client.get_playlist_item_id_of_video_id(playlist_id=playlist_id, video_id=video_id)
 					if playlist_item_id:
-						json_data = client.remove_video_from_playlist('WL', playlist_item_id)
+						json_data = client.remove_video_from_playlist(playlist_id, playlist_item_id)
 						if not v3.handle_error(self, context, json_data):
 							return False
-						pass
-					pass
-				pass
-			pass
+
+				history_playlist_id = context.get_settings().get_string('youtube.folder.history.playlist', '').strip()
+				if history_playlist_id:
+					json_data = client.add_video_to_playlist(history_playlist_id, video_id)
+					if not v3.handle_error(self, context, json_data):
+						return False
 		else:
 			context.log_warning('Missing video ID for post play event')
 			pass
 		return True
 
 	@kodion.RegisterProviderPath('^/sign/(?P<mode>.*)/$')
-	def _on_sign(self, context, re_match):
-		mode = re_match.group('mode')			 
-		yt_login.process(mode, self, context, re_match)
+	def _on_sign(self, context, re_match):		
+		mode = re_match.group('mode')
+		yt_login.process(mode, self, context, re_match, context.get_settings().requires_dual_login())
 		return True
 
 	@kodion.RegisterProviderPath('^/search/$')
@@ -456,7 +443,7 @@ class Provider(kodion.AbstractProvider):
 		page = int(context.get_param('page', 1))
 
 		if search_type == 'video':
-			self.set_content_type(context, kodion.constants.content_type.EPISODES)
+			self.set_content_type(context, kodion.constants.content_type.VIDEOS)
 			pass
 
 		if page == 1 and search_type == 'video' and not event_type:
@@ -497,6 +484,46 @@ class Provider(kodion.AbstractProvider):
 		result.extend(v3.response_to_items(self, context, json_data))
 		return result
 
+	@kodion.RegisterProviderPath('^/config/(?P<switch>.*)/$')
+	def configure_addon(self, context, re_match):
+		switch = re_match.group('switch')
+		if switch == 'youtube':
+			context._addon.openSettings()
+		elif switch == 'mpd':
+			xbmcaddon.Addon(id='inputstream.adaptive').openSettings()
+		else:
+			return False
+
+	@kodion.RegisterProviderPath('^/maintain/(?P<maint_type>.*)/(?P<action>.*)/$')
+	def maintenance_actions(self, context, re_match):
+		maint_type = re_match.group('maint_type')
+		action = re_match.group('action')
+		if action == 'clear':
+			if maint_type == 'function_cache':
+				if context.get_ui().on_remove_content(context.localize(30557)):
+					context.get_function_cache().clear()
+					context.get_ui().show_notification(context.localize(30575))
+			elif maint_type == 'search_cache':
+				if context.get_ui().on_remove_content(context.localize(30558)):
+					context.get_search_history().clear()
+					context.get_ui().show_notification(context.localize(30575))
+		elif action == 'delete':
+				_maint_files = {'function_cache': 'cache.sqlite',
+								'search_cache': 'search.sqlite',
+								'settings_xml': 'settings.xml'}
+				_file = _maint_files.get(maint_type, '')
+				if _file:
+					if 'sqlite' in _file:
+						_file_w_path = os.path.join(context._get_cache_path(), _file)
+					else:
+						_file_w_path = os.path.join(context._data_path, _file)
+					if context.get_ui().on_delete_content(_file):
+						success = xbmcvfs.delete(_file_w_path)
+						if success:
+							context.get_ui().show_notification(context.localize(30575))
+						else:
+							context.get_ui().show_notification(context.localize(30576))
+
 	def on_root(self, context, re_match):
 		"""
 		Support old YouTube url calls, but also log a deprecation warnings.
@@ -505,25 +532,12 @@ class Provider(kodion.AbstractProvider):
 		if old_action:
 			return yt_old_actions.process_old_action(self, context, re_match)
 
-		addon = xbmcaddon.Addon()
-		
 		settings = context.get_settings()
-		
-		if settings.get_string('youtube.api.autologin', '') == '':
-			settings.set_bool('youtube.api.autologin', False) 
-		
-		if settings.get_bool('youtube.api.autologin', True):
-			mode = 'in'
-			yt_login.process(mode, self, context, re_match, False)
-			pass
 
 		self.get_client(context)
 		resource_manager = self.get_resource_manager(context)
 
 		result = []
-
-		if settings.get_bool('youtube.api.enable', True) and settings.get_bool('youtube.api.autologin', True):
-			settings.set_bool('youtube.api.autologin', False)
 
 		# sign in
 		if not self.is_logged_in() and settings.get_bool('youtube.folder.sign.in.show', True):
@@ -572,6 +586,12 @@ class Provider(kodion.AbstractProvider):
 		# subscriptions
 		if self.is_logged_in():
 			playlists = resource_manager.get_related_playlists(channel_id='mine')
+			if playlists.has_key('watchLater'):
+				cplid = settings.get_string('youtube.folder.watch_later.playlist', '').strip()
+				playlists['watchLater'] = ' %s' % cplid if cplid else ' WL'
+			if playlists.has_key('watchHistory'):
+				cplid = settings.get_string('youtube.folder.history.playlist', '').strip()
+				playlists['watchHistory'] = '%s' % cplid if cplid else 'HL'
 
 			# my channel
 			if settings.get_bool('youtube.folder.my_channel.show', True):
@@ -673,10 +693,17 @@ class Provider(kodion.AbstractProvider):
 			result.append(sign_out_item)
 			pass
 
+		if settings.get_bool('youtube.folder.settings.show', True):
+			settings_menu_item = DirectoryItem(context.localize(self.LOCAL_MAP['youtube.settings']),
+											   context.create_uri(['config', 'youtube']),
+											   image=context.create_resource_path('media', 'settings.png'))
+			settings_menu_item.set_fanart(self.get_fanart(context))
+			result.append(settings_menu_item)
+
 		return result
 
 	def set_content_type(self, context, content_type):
-		if content_type == kodion.constants.content_type.EPISODES:
+		if content_type == kodion.constants.content_type.VIDEOS:
 			context.set_content_type(content_type)
 			context.add_sort_method(kodion.constants.sort_method.UNSORTED,
 									kodion.constants.sort_method.VIDEO_RUNTIME,

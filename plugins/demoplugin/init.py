@@ -44,6 +44,25 @@ def main(bridge, url):
 		if bridge.isprogresscanceled():
 			return
 		bridge.closeprogress()
+		
+		bridge.progressdialog('progress title2', 'progress text \n second line')
+		time.sleep(0.5)
+		if bridge.isprogresscanceled():
+			return
+		bridge.updateprogressdialog('0.2', 'new progress text \n new second line')
+		time.sleep(0.5)
+		if bridge.isprogresscanceled():
+			return
+		bridge.updateprogressdialog('0.5', 'new progress text')
+		time.sleep(0.5)
+		if bridge.isprogresscanceled():
+			return
+		bridge.updateprogressdialog('0.8', 'new progress text')
+		time.sleep(0.5)
+		if bridge.isprogresscanceled():
+			return
+		bridge.closeprogress()
+		
 		return [Item('55', 'bah')]
 	if url == '33':
 		ans = bridge.selectdialog('select from list', list_=[Item('41', 'item 1'), Item('42', 'item 2')])

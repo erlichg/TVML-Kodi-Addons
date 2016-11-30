@@ -126,26 +126,49 @@ DocumentLoader.prototype.fetchPost = function(options) {
 			var msg = JSON.parse(xhr.responseText);
 			if (msg['type'] == 'saveSettings') {
 				saveSettings(msg['addon'], msg['settings']);
-				options.abort();
+				//options.abort();
 			} else if(msg['type'] == 'loadSettings') {
 				var settings = loadSettings(msg['addon']);
 				this.post({
 					url:'/response/'+msg['msgid'],
 					data:btoa(JSON.stringify(settings))
 				});
-				setTimeout(function() {
-					options.url = msg['url']
-					this.fetchPost(options);
-				}.bind(this), 1000)				
 			}
+			setTimeout(function() {
+				options.url = msg['url']
+				this.fetchPost(options);
+			}.bind(this), 1000)							
 		} else if (xhr.status == 212) {
 			var msg = JSON.parse(xhr.responseText);
-			options.url = msg['url'];
-			if (typeof msg['data'] != "undefined") {
-				options.type = "POST";
-				options.data = msg['data'];
-			}
-			this.fetchPost(options);
+			var save_success = options.success;			
+			options.success = function(document, isModal) {
+				//if (typeof save_success != "undefined") {
+				//	save_success(document, isModal);
+				//}				
+				
+				options.url = msg['url'];
+				options.success = save_success;
+				if (typeof msg['data'] != "undefined") {
+					options.type = "POST";
+					options.data = msg['data'];			
+				}
+				this.fetchPost(options);
+			}.bind(this);
+			var save_abort = options.abort;			
+			options.abort = function() {
+				//if (typeof save_abort != "undefined") {
+					//save_abort();
+				//}				
+				options.url = msg['url'];
+				options.abort = save_abort;
+				if (typeof msg['data'] != "undefined") {
+					options.type = "POST";
+					options.data = msg['data'];			
+				}
+				this.fetchPost(options);
+			}.bind(this);
+			options.url = msg['cont'];
+			this.fetchPost(options);			
 	    } else {
         	const responseDoc = xhr.response;
         	if (typeof options.initial == "boolean" && options.initial) {
@@ -246,12 +269,15 @@ DocumentLoader.prototype.prepareDocument = function(document) {
 						console.log("Removing progress dialog");						
 						this.post({
 							url: "/response/" + id,
-							data: "blah"
+							data: "blah",
+							abort: function() {
+								var loadingDocument = createLoadingDocument();
+								navigationDocument.replaceDocument(loadingDocument, this.progressDocument);
+								delete this.progressDocument;						
+								new DocumentController(this, url, loadingDocument);
+							}.bind(this)
 						});						
-						var loadingDocument = createLoadingDocument();
-						navigationDocument.replaceDocument(loadingDocument, this.progressDocument);
-						delete this.progressDocument;						
-						new DocumentController(this, url, loadingDocument);
+						
 					} catch (err) {
 					}					
 					

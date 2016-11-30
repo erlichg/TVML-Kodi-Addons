@@ -6,7 +6,11 @@ import kodi_utils
 import Plugin
 import traceback
 
-
+if getattr(sys, 'frozen', False):
+	# we are running in a bundle
+	bundle_dir = sys._MEIPASS
+else:
+	bundle_dir = '.'
 
 
 def convert_kodi_tags_to_html_tags(s):
@@ -20,7 +24,7 @@ def convert_kodi_tags_to_html_tags(s):
 class KodiPlugin:
 	def __init__(self, dir):
 		self.dir = dir
-		tree = ET.parse(os.path.join(dir, 'addon.xml'))
+		tree = ET.parse(os.path.join(bundle_dir, dir, 'addon.xml'))
 		for e in tree.iter('addon'):
 			self.name = e.attrib['name']
 			self.id = e.attrib['id']
@@ -42,7 +46,11 @@ class KodiPlugin:
 		if url.startswith('http') or url.startswith('https'):
 			bridge.play(url, type_='video')
 			return
-		sys.path.append(self.dir)
+		sys.path.append(os.path.join(bundle_dir, self.dir))
+		sys.path.append(os.path.join(bundle_dir, 'scripts'))
+		sys.path.append(os.path.join(bundle_dir, 'scripts', 'kodi'))
+		sys.path.append(os.path.join(bundle_dir, 'plugins'))
+		sys.path.append(os.path.join(bundle_dir, 'kodiplugins'))
 		import xbmc
 		xbmc.bridge = bridge
 		import Container
@@ -51,7 +59,7 @@ class KodiPlugin:
 			raise Exception('Kodi plugin only accepts one string argument')
 				
 		try:
-			fp = open(os.path.join(self.dir, self.script), 'rb')
+			fp = open(os.path.join(bundle_dir, self.dir, self.script), 'rb')
 			#old_sys_argv = sys.argv
 			#plugin://plugin.video.youtube/play/?video_id=sa7kZXOHAtI
 			#/playlist/PLpSnlSGciSWPewHLHBq5HFLJBGhHrsKnJ/
@@ -80,7 +88,8 @@ class KodiPlugin:
 			print 'Calling plugin {} with {}'.format(self.name, sys.argv)
 			import xbmcplugin
 			import imp
-			import urllib
+			
+			import urllib			
 			quote_plus_orig = urllib.quote_plus
 			def quote_plus_patch(s, safe=''):
 				if type(s) == unicode:
@@ -88,8 +97,7 @@ class KodiPlugin:
 					s = s.encode('utf-8')
 				return quote_plus_orig(s, safe)
 			urllib.quote_plus = quote_plus_patch
-			
-			
+			print sys.path
 			xbmcplugin.items = []
 			imp.load_module(self.module, fp, self.dir, ('.py', 'rb', imp.PY_SOURCE))
 		except:

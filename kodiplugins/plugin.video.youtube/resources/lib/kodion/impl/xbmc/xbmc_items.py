@@ -1,7 +1,6 @@
 __author__ = 'bromix'
 
-import xbmc, xbmcgui
-import urllib, re
+import xbmcgui
 
 from ...items import VideoItem, AudioItem, UriItem
 from . import info_labels
@@ -9,24 +8,32 @@ from . import info_labels
 
 def to_video_item(context, video_item):
     context.log_debug('Converting VideoItem')
-    item = xbmcgui.ListItem(label=video_item.get_name(),
-                            iconImage=u'DefaultVideo.png',
-                            thumbnailImage=video_item.get_image())
-
-    # only set fanart is enabled
+    major_version = context.get_system_version().get_version()[0]
+    thumb = video_item.get_image() if video_item.get_image() else u'DefaultVideo.png'
+    title = video_item.get_title() if video_item.get_title() else video_item.get_name()
+    fanart = ''
     settings = context.get_settings()
+    item = xbmcgui.ListItem(label=title)
     if video_item.get_fanart() and settings.show_fanart():
-        item.setProperty(u'fanart_image', video_item.get_fanart())
-        pass
+        fanart = video_item.get_fanart()
+    if major_version <= 15:
+        item.setArt({'thumb': thumb, 'fanart': fanart})
+        item.setIconImage(thumb)
+    else:
+        item.setArt({'icon': thumb, 'thumb': thumb, 'fanart': fanart})
+
     if video_item.get_context_menu() is not None:
         item.addContextMenuItems(video_item.get_context_menu(), replaceItems=video_item.replace_context_menu())
         pass
 
+    if video_item.use_dash():
+        item.setProperty('inputstreamaddon', 'inputstream.adaptive')
+        item.setProperty('inputstream.adaptive.manifest_type', 'mpd')
+
     item.setProperty(u'IsPlayable', u'true')
 
-    video_id = context.get_param('video_id')
-    if video_id is not None:
-        item.setSubtitles(download_subs(video_id))
+    if video_item.subtitles:
+        item.setSubtitles(video_item.subtitles)
 
     _info_labels = info_labels.create_from_item(context, video_item)
 
@@ -43,15 +50,20 @@ def to_video_item(context, video_item):
 
 def to_audio_item(context, audio_item):
     context.log_debug('Converting AudioItem')
-    item = xbmcgui.ListItem(label=audio_item.get_name(),
-                            iconImage=u'DefaultAudio.png',
-                            thumbnailImage=audio_item.get_image())
-
-    # only set fanart is enabled
+    major_version = context.get_system_version().get_version()[0]
+    thumb = audio_item.get_image() if audio_item.get_image() else u'DefaultAudio.png'
+    title = audio_item.get_name()
+    fanart = ''
     settings = context.get_settings()
+    item = xbmcgui.ListItem(label=title)
     if audio_item.get_fanart() and settings.show_fanart():
-        item.setProperty(u'fanart_image', audio_item.get_fanart())
-        pass
+        fanart = audio_item.get_fanart()
+    if major_version <= 15:
+        item.setArt({'thumb': thumb, 'fanart': fanart})
+        item.setIconImage(thumb)
+    else:
+        item.setArt({'icon': thumb, 'thumb': thumb, 'fanart': fanart})
+
     if audio_item.get_context_menu() is not None:
         item.addContextMenuItems(audio_item.get_context_menu(), replaceItems=audio_item.replace_context_menu())
         pass
@@ -80,20 +92,3 @@ def to_item(context, base_item):
         return to_audio_item(context, base_item)
 
     return None
-
-
-def download_subs(video_id):
-    subs = []
-    sub_list = ("http://www.youtube.com/api/timedtext?type=list&v=%s" % (video_id))
-
-    sock = urllib.urlopen(sub_list)
-    xml = sock.read()
-    sock.close()
-
-    sub_langs = re.compile('lang_code=["](.*?)["]', re.IGNORECASE).findall(xml)
-    for lang in sub_langs:
-        sub_url = ("http://www.youtube.com/api/timedtext?fmt=vtt&v=%s&lang=%s" % (video_id, lang))
-        sub_file = xbmc.translatePath('special://temp/%s.srt' % (lang))
-        urllib.urlretrieve(sub_url, sub_file)
-        subs.append(sub_file)
-    return subs

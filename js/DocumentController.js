@@ -207,34 +207,25 @@ function post(url, data) {
 
 function saveSettings(addon, settings) {
 	console.log("saving settings: "+JSON.stringify(settings));
-	var addonsSettings = localStorage.getItem("addonsSettings");
-	if (addonsSettings == null) {
-	    addonsSettings = "{}";
-    }
-	try {
-		addonsSettings = JSON.parse(addonsSettings);
-	} catch (e) {
-		console.log("Error getting addonsSettings from local storage");
-		addonsSettings = {};
-	}    
-    addonsSettings[addon] = settings;
-    localStorage.setItem('addonsSettings', JSON.stringify(addonsSettings));
+	localStorage.setItem(addon, JSON.stringify(settings));
 }
 
 function loadSettings(addon) {
 	var addonsSettings = localStorage.getItem("addonsSettings");
-	if (addonsSettings == null) {
-	    addonsSettings = "{}";
+	if (addonsSettings != null) {
+	    addonsSettings = JSON.parse(addonsSettings);
+	    for (var a in addonsSettings) {
+		    localStorage.setItem(a, JSON.stringify(addonsSettings[a]));		    
+	    }
+	    localStorage.removeItem("addonsSettings");
     }
-	try {
-		addonsSettings = JSON.parse(addonsSettings);
-	} catch (e) {
-		console.log("Error getting addonsSettings from local storage");
-		addonsSettings = {};
-	} 
-    
-    var addonSettings = addonsSettings[addon];
+	var addonSettings = localStorage.getItem(addon);
     if(addonSettings == null) {
+	    addonSettings = "{}";
+    }
+    try {
+	    addonSettings = JSON.parse(addonSettings);
+    } catch (e) {
 	    addonSettings = {};
     }
     console.log('Loaded addon settings '+JSON.stringify(addonSettings));

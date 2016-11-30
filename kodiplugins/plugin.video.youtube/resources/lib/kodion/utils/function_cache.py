@@ -13,11 +13,9 @@ class FunctionCache(Storage):
     ONE_MONTH = 4 * ONE_WEEK
 
     def __init__(self, filename, max_file_size_kb=-1):
-        print 'init FunctionCache'
         Storage.__init__(self, filename, max_file_size_kb=max_file_size_kb)
 
         self._enabled = True
-        print 'after init FunctionCache'
         pass
 
     def clear(self):

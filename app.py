@@ -34,27 +34,34 @@ except:
 	
 reload(sys)
 sys.setdefaultencoding('utf8')
-sys.path.append('scripts')
-sys.path.append(os.path.join('scripts', 'kodi'))
-sys.path.append('plugins')
-sys.path.append('kodiplugins')
+
 
 print sys.executable
 
+if getattr(sys, 'frozen', False):
+	# we are running in a bundle
+	bundle_dir = sys._MEIPASS
+else:
+	bundle_dir = '.'
 
-import kodi_utils
+sys.path.append(os.path.join(bundle_dir, 'scripts'))
+sys.path.append(os.path.join(bundle_dir, 'scripts', 'kodi'))
+sys.path.append(os.path.join(bundle_dir, 'plugins'))
+sys.path.append(os.path.join(bundle_dir, 'kodiplugins'))
+
+from scripts import kodi_utils
 import jinja2
-app = Flask(__name__)
+app = Flask(__name__, template_folder=os.path.join(bundle_dir, 'templates'))
 app.jinja_env.filters['base64encode'] = kodi_utils.b64encode
 #app.jinja_env.add_extension('jinja2.ext.do')
 	
 import threading
 
-from Plugin import Plugin, Item
-from KodiPlugin import *
-from bridge import bridge
+from scripts.Plugin import Plugin, Item
+from scripts.KodiPlugin import *
+from scripts.bridge import bridge
 
-import messages
+from scripts import messages
 
 
 
@@ -101,30 +108,36 @@ def route(pid, id, res=None):
 	else:
 		return 'OK', 206
 
+@app.route('{}/icon.png'.format(bundle_dir))
 @app.route('/icon.png')
 def icon():
-	return send_from_directory('.', 'icon.png')
+	return send_from_directory(bundle_dir, 'icon.png')
 	
+@app.route('{}/plugins/<path:filename>'.format(bundle_dir))
 @app.route('/plugins/<path:filename>')
 def plugin_icon(filename):
-	return send_from_directory('plugins', filename)
+	return send_from_directory(os.path.join(bundle_dir, 'plugins'), filename)
 
+@app.route('{}/cache/<path:filename>'.format(bundle_dir))
 @app.route('/cache/<path:filename>')
 def cache(filename):
 	return send_from_directory('cache', filename)
 	
+@app.route('{}/kodiplugins/<path:filename>'.format(bundle_dir))
 @app.route('/kodiplugins/<path:filename>')
 def kodiplugin_icon(filename):
-	return send_from_directory('kodiplugins', filename)
+	return send_from_directory(os.path.join(bundle_dir, 'kodiplugins'), filename)
 		
+@app.route('{}/js/<path:filename>'.format(bundle_dir))
 @app.route('/js/<path:filename>')
 def js(filename):
-	return send_from_directory('js', filename)
+	return send_from_directory(os.path.join(bundle_dir, 'js'), filename)
 	
 	
 @app.route('/templates/<path:filename>')
+@app.route('{}/templates/<path:filename>'.format(bundle_dir))
 def template(filename):
-	return send_from_directory('templates', filename)
+	return send_from_directory(os.path.join(bundle_dir, 'templates'), filename)
 
 
 @app.route('/menu/<pluginid>')
@@ -181,7 +194,7 @@ def catalog(pluginid, process=None):
 				continue
 			try:		
 				method = getattr(messages, msg['type'])
-				if msg['type'] == 'end' or msg['type'] == 'load':
+				if msg['type'] == 'end':
 					global PROCESSES
 					del PROCESSES[p.id]
 					#p.join()
@@ -212,7 +225,7 @@ def catalog(pluginid, process=None):
 				continue
 			try:
 				method = getattr(messages, msg['type'])
-				if msg['type'] == 'end' or msg['type'] == 'load':				
+				if msg['type'] == 'end':				
 					global PROCESSES
 					del PROCESSES[p.id]
 					#p.join()
@@ -404,26 +417,26 @@ def mmain():
 	
 	global CONTEXT
 	CONTEXT = manager.dict()
-	
-	for plugin in os.listdir('plugins'):
+		
+	for plugin in os.listdir(os.path.join(bundle_dir, 'plugins')):
 		try:
-			dir = os.path.join('plugins', plugin)
+			dir = os.path.join(bundle_dir, 'plugins', plugin)
 			if not os.path.isdir(dir):
 				continue
 			print 'Loading plugin {}'.format(plugin)
-			p = Plugin.Plugin(dir)
+			p = Plugin.Plugin(os.path.join('plugins', plugin))
 			PLUGINS.append(p)
 			print 'Successfully loaded plugin: {}'.format(p)
 		except Exception:
 			traceback.print_exc(file=sys.stdout)
 			print 'Failed to load plugin {}'.format(plugin)
-	for plugin in os.listdir('kodiplugins'):
+	for plugin in os.listdir(os.path.join(bundle_dir, 'kodiplugins')):
 		try:
-			dir = os.path.join('kodiplugins', plugin)
+			dir = os.path.join(bundle_dir, 'kodiplugins', plugin)
 			if not os.path.isdir(dir):
 				continue
 			print 'Loading kodi plugin {}'.format(plugin)
-			p = KodiPlugin(dir)
+			p = KodiPlugin(os.path.join('kodiplugins', plugin))
 			PLUGINS.append(p)
 			print 'Successfully loaded plugin: {}'.format(p)
 		except Exception as e:

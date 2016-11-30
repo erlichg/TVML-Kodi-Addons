@@ -13,6 +13,8 @@ class imageCache:
 			return 'file={}, size={}, time={}'.format(self.file, self.size, self.time)
 			
 	def __init__(self, dir, limit=0):
+		if not os.path.exists(dir):
+			os.mkdir(dir)
 		if not os.path.isdir(dir):
 			raise Exception('dir must be a directory')
 		self.cache = {}
