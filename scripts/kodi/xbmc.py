@@ -1025,7 +1025,7 @@ def executebuiltin(function, wait=False):
 		return str()
 	m = re.search('.*Container.Refresh.*', function)
 	if m:
-		bridge._message({'type':'load', 'url':'/catalog/{}'.format(kodi_utils.b64encode(Container.plugin.id))})
+		bridge._message({'type':'load', 'url':'/catalog/{}'.format(kodi_utils.b64encode(Container.plugin.id)), 'replace':True})
 		return str()
 	m = re.search('.*RunPlugin\(plugin://([^/]*)(.*)\)', function)
 	if m:
