@@ -20,7 +20,6 @@ class Storage(object):
 		if not self._filename.endswith('.sqlite'):
 			self._filename += '.sqlite'
 			pass
-		self._filename = ":memory:"
 		self._file = None
 		self._cursor = None
 		self._max_item_count = max_item_count

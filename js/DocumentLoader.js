@@ -174,6 +174,9 @@ DocumentLoader.prototype.fetchPost = function(options) {
 				options.type = "POST";
 				options.data = msg['data'];			
 			}
+			if (typeof msg['replace'] == 'boolean' && msg['replace']) {
+				
+			}
 			this.fetchPost(options);	
 	    } else {
         	const responseDoc = xhr.response;
