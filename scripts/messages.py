@@ -20,7 +20,7 @@ def run_parallel_in_threads(target, args_list):
 		t.join()
 
 
-CACHE=imageCache.imageCache('cache', limit=314572800) #30MB
+CACHE=imageCache.imageCache('cache')
 
 def end(plugin, msg, url=None):
 	"""Called on plugin end (i.e. when run function returns). 
@@ -59,9 +59,20 @@ def end(plugin, msg, url=None):
 			item.width = 300
 			item.height = 300
 		item.context['Item info'] = 'ItemInfo({})'.format(json.dumps(item.info))			
-	print 'parallel start'
-	run_parallel_in_threads(work, items)
-	print 'parallel end'
+	#print 'parallel start'
+	#run_parallel_in_threads(work, items)
+	#print 'parallel end'
+	for item in items:
+		if item.icon:
+			if item.icon.startswith('kodiplugins') or item.icon.startswith('plugins'):
+				item.icon = '/{}'.format(item.icon)
+			elif item.icon.startswith('/'):
+				pass
+			else:
+				item.icon = '/cache/{}'.format(CACHE.add(item.icon))
+			item.info['poster'] = item.icon
+		item.width = 300
+		item.height = 300
 	widths = [item.width for item in items]
 	heights = [item.height for item in items]
 	avg_width = reduce(lambda x, y: x + y, widths) / len(widths)

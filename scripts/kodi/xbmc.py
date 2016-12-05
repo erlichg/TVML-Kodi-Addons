@@ -7,7 +7,7 @@ Various classes and functions to interact with Kodi.
 
 import xbmcgui as _xbmcgui
 import xbmcplugin as _xbmcplugin
-import time, re, os, sys
+import time, re, os, sys, tempfile
 import app, kodi_utils
 
 if getattr(sys, 'frozen', False):
@@ -1446,9 +1446,9 @@ def translatePath(path):
 	if "special://home/addons" in path :
 		return path.replace("special://home/addons", os.path.join(bundle_dir, 'kodiplugins'))
 	if 'special://profile/addon_data/' in path:
-		return path.replace('special://profile/addon_data/', '{}{}'.format(os.path.join(bundle_dir, 'kodiplugins'), os.path.sep))
+		return path.replace('special://profile/addon_data/', '{}{}'.format(os.path.join(tempfile.gettempdir(), 'TVMLServer'), os.path.sep))
 	if 'special://temp/' in path:
-		return path.replace('special://temp/', '{}{}'.format(os.path.join(bundle_dir, 'kodiplugins'), os.path.sep))
+		return path.replace('special://temp/', '{}{}'.format(tempfile.gettempdir(), os.path.sep))
 	return path
 
 

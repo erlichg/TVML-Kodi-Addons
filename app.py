@@ -2,7 +2,7 @@ from __future__ import division
 import sys, os, imp, urllib, json, time, traceback, re
 from threading import Timer
 try:
-	from flask import Flask, render_template, send_from_directory, request
+	from flask import Flask, render_template, send_from_directory, request, send_file
 except:
 	print 'TVML Server requires flask module.\nPlease install it via "pip install flask"'
 	sys.exit(1)
@@ -119,9 +119,10 @@ def plugin_icon(filename):
 	return send_from_directory(os.path.join(bundle_dir, 'plugins'), filename)
 
 #@app.route('/{}cache/<path:filename>'.format(bundle_dir))
-@app.route('/cache/<path:filename>')
-def cache(filename):
-	return send_from_directory('cache', filename)
+@app.route('/cache/<id>')
+def cache(id):
+	file=messages.CACHE.get(id)
+	return send_file(file)
 	
 #@app.route('/{}kodiplugins/<path:filename>'.format(bundle_dir))
 @app.route('/kodiplugins/<path:filename>')

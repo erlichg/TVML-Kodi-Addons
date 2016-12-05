@@ -102,10 +102,13 @@ class bridge:
 	def progressdialog(self, heading, text=''):
 		"""Shows a progress dialog to the user"""
 		_id = kodi_utils.randomword()
-		self.progress={'title': heading, 'id': _id}					
-		p = multiprocessing.Process(target=progress_stop, args=(self, _id))
-		p.daemon = True
-		p.start()
+		self.progress={'title': heading, 'id': _id}	
+		try:				
+			p = multiprocessing.Process(target=progress_stop, args=(self, _id))
+			p.daemon = True
+			p.start()
+		except:
+			print 'Failed to start stop progress process.'
 		self._message({'type':'progressdialog', 'title':heading, 'text':text, 'value':'0', 'id':'{}/{}'.format(self.thread.id, _id)}, False, _id)
 		
 	def updateprogressdialog(self, value, text=''):

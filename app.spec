@@ -22,6 +22,12 @@ a = Analysis(['app.py'],
              win_no_prefer_redirects=False,
              win_private_assemblies=False,
              cipher=block_cipher)
+for d in a.datas:
+    if 'pyconfig' in d[0]: 
+        a.datas.remove(d)
+for d in a.datas:
+	if 'Makefile' in d[0]:
+		a.datas.remove(d)
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
 exe = EXE(pyz,

@@ -45,7 +45,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
     xhr.responseType = "document";
     xhr.onload = function() {
 	    console.log('got status '+xhr.status);
-	    if (xhr.status == 202) {
+	    if (xhr.status == 202) { //play
 		    var msg = JSON.parse(xhr.responseText)		   
 		    console.log("got message: " + xhr.responseText);
 		    var time;
@@ -110,19 +110,17 @@ DocumentLoader.prototype.fetchPost = function(options) {
 			    console.log(e);
 		    } 
 					
-		} else if(xhr.status == 204) {
+		} else if(xhr.status == 204) { //empty select
 			//no message
-		} else if(xhr.status == 205) {
-			console.log('sent response')
-	    } else if(xhr.status == 206) {
+		} else if(xhr.status == 206) { //empty results
 		    if (typeof options.abort === "function") {
 		    	options.abort();
 		    }
-		} else if(xhr.status == 208) {
+		} else if(xhr.status == 208) { //modal results
 			const responseDoc = xhr.response;
 			this.prepareDocument(responseDoc);
 			options.success(responseDoc, true);
-		} else if (xhr.status == 210) {
+		} else if (xhr.status == 210) { //load/save settings
 			var msg = JSON.parse(xhr.responseText);
 			if (msg['type'] == 'saveSettings') {
 				saveSettings(msg['addon'], msg['settings']);
@@ -138,37 +136,8 @@ DocumentLoader.prototype.fetchPost = function(options) {
 				options.url = msg['url']
 				this.fetchPost(options);
 			}.bind(this), 1000)							
-		} else if (xhr.status == 212) {
+		} else if (xhr.status == 212) { //load url
 			var msg = JSON.parse(xhr.responseText);
-			/*var save_success = options.success;			
-			options.success = function(document, isModal) {
-				//if (typeof save_success != "undefined") {
-				//	save_success(document, isModal);
-				//}				
-				
-				options.url = msg['url'];
-				options.success = save_success;
-				if (typeof msg['data'] != "undefined") {
-					options.type = "POST";
-					options.data = msg['data'];			
-				}
-				this.fetchPost(options);
-			}.bind(this);
-			var save_abort = options.abort;			
-			options.abort = function() {
-				//if (typeof save_abort != "undefined") {
-					//save_abort();
-				//}				
-				options.url = msg['url'];
-				options.abort = save_abort;
-				if (typeof msg['data'] != "undefined") {
-					options.type = "POST";
-					options.data = msg['data'];			
-				}
-				this.fetchPost(options);
-			}.bind(this);
-			options.url = msg['cont'];
-			this.fetchPost(options);*/	
 			options.url = msg['url'];
 			if (typeof msg['data'] != "undefined") {
 				options.type = "POST";
@@ -178,7 +147,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
 				
 			}
 			this.fetchPost(options);	
-	    } else {
+	    } else { //regular document
         	const responseDoc = xhr.response;
         	if (typeof options.initial == "boolean" && options.initial) {
 	        	console.log("registering event handlers");
@@ -251,48 +220,52 @@ DocumentLoader.prototype.prepareDocument = function(document) {
     if (typeof document.getElementById("progress")!="undefined") { //progress dialog
 	    if (typeof this.progressDocument == "undefined") {
 		    this.progressDocument = document; //save progress
-	    }	    
+		    this.progressDocument.addEventListener("unload", function() { //in case of user cancel, send abort notification
+			    this.post({
+		 			url: "/response/" + id,
+		 			data: "blah"
+		 		});
+		    });
+	    }    
 	    var progress = this.progressDocument.getElementById("progress")
 	    var url = progress.getAttribute("documentURL");
 	    var id = progress.getAttribute("msgid");
-	    //setTimeout(function() {
-		    this.fetchPost({
-				url: url,
-				success: function(responseDoc) {
-					try {
-						console.log("updating progress dialog");
-						var updated_progress = responseDoc.getElementById("progress");
-						progress.setAttribute('value', updated_progress.getAttribute('value'))
-						var updated_text = responseDoc.getElementById("text");
-						this.progressDocument.getElementById("text").textContent = updated_text.textContent;
-						//navigationDocument.replaceDocument(responseDoc, document);
-					} catch (err) {
-						this.post({
-							url: "/response/" + id,
-							data: "blah"
-						});
-					}
-				}.bind(this),
-				abort: function() {
-					try {
-						console.log("Removing progress dialog");						
-						this.post({
-							url: "/response/" + id,
-							data: "blah",
-							abort: function() {
-								var loadingDocument = createLoadingDocument();
-								navigationDocument.replaceDocument(loadingDocument, this.progressDocument);
-								delete this.progressDocument;						
-								new DocumentController(this, url, loadingDocument);
-							}.bind(this)
-						});						
-						
-					} catch (err) {
-					}					
-					
-				}.bind(this)
-			});
-		//}.bind(this), 1000);	    
+		this.fetchPost({
+		 url: url,
+		 success: function(responseDoc) {
+		 	try {
+		 		console.log("updating progress dialog");
+		 		var updated_progress = responseDoc.getElementById("progress");
+		 		progress.setAttribute('value', updated_progress.getAttribute('value'))
+		 		var updated_text = responseDoc.getElementById("text");
+		 		this.progressDocument.getElementById("text").textContent = updated_text.textContent;
+		 		//navigationDocument.replaceDocument(responseDoc, document);
+		 	} catch (err) {
+		 		this.post({
+		 			url: "/response/" + id,
+		 			data: "blah"
+		 		});
+		 	}
+		 }.bind(this),
+		 abort: function() {
+		 	try {
+		 		console.log("Removing progress dialog");						
+		 		this.post({
+		 			url: "/response/" + id,
+		 			data: "blah",
+		 			abort: function() {
+		 				var loadingDocument = createLoadingDocument();
+		 				navigationDocument.replaceDocument(loadingDocument, this.progressDocument);
+		 				delete this.progressDocument;						
+		 				new DocumentController(this, url, loadingDocument);
+		 			}.bind(this)
+		 		});						
+		 		
+		 	} catch (err) {
+		 	}					
+		 	
+		 }.bind(this)
+		});
     }
     if (typeof document.getElementById("player")!="undefined") { //player
 	    console.log("in new player");
