@@ -3,3 +3,5 @@
 kodiplugins/*c
 !kodiplugins/*c/
 kodiplugins/*/*.db
+build/
+dist/
