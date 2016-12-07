@@ -144,9 +144,13 @@ DocumentLoader.prototype.fetchPost = function(options) {
 				options.data = msg['data'];			
 			}
 			if (typeof msg['replace'] == 'boolean' && msg['replace']) {
-				
+				navigationDocument.removeDocument(navigationDocument.documents[navigationDocument.documents.length-2]); //last document should be the loader so remove previous document
+				setTimeout(function() {
+					this.fetchPost(options);
+				}.bind(this), 500);
+			} else {
+				this.fetchPost(options);
 			}
-			this.fetchPost(options);
 		} else if (xhr.status == 214) { //progress
 			if (typeof this.progressDocument == "undefined") {
 		    	this.progressDocument = xhr.response; //save progress

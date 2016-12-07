@@ -4,6 +4,12 @@ import importlib
 from xml.sax.saxutils import escape
 import bridge
 
+if getattr(sys, 'frozen', False):
+	# we are running in a bundle
+	bundle_dir = sys._MEIPASS
+else:
+	bundle_dir = '.'
+
 class Item:
 	def __init__(self, url, title, subtitle=None, icon=None, details=None, menuurl='', info={}, context={}):
 		self.url = url
@@ -22,12 +28,16 @@ class Plugin:
 	def __init__(self, dir):
 		self.id = dir.split(os.path.sep)[1]			
 		self.dir = dir
-		tree = ET.parse(os.path.join(dir, 'addon.xml'))
+		tree = ET.parse(os.path.join(bundle_dir, dir, 'addon.xml'))
 		for e in tree.iter('addon'):
 			self.name = e.attrib['name']
 			self.script = e.attrib['script']
-			self.icon = os.path.join(self.dir, e.attrib['icon'])			
-		sys.path.append(os.path.join(os.getcwd(), self.dir))
+			self.icon = os.path.join(bundle_dir, self.dir, e.attrib['icon'])			
+		sys.path.append(os.path.join(bundle_dir, self.dir))
+		sys.path.append(os.path.join(bundle_dir, 'scripts'))
+		sys.path.append(os.path.join(bundle_dir, 'scripts', 'kodi'))
+		sys.path.append(os.path.join(bundle_dir, 'plugins'))
+		sys.path.append(os.path.join(bundle_dir, 'kodiplugins'))
 		self.module = self.script[:-3] #remove the .py
 		self.menuurl = ''
 		
