@@ -150,7 +150,10 @@ def template(filename):
 def catalog(pluginid, process=None):
 	url = None
 	if request.method == 'POST':
-		url = request.form.keys()[0]		
+		try:
+			url = request.form.keys()[0]		
+		except:
+			url = None
 	try:
 		if not url:
 			decoded_url = ''

@@ -8,8 +8,10 @@ __date__ = 'Fri May 01 16:22:23 BST 2015'
 __platform__ = 'ALL'
 __version__ = '2.20.0'
 
-import os, traceback
+import os, traceback, tempfile
 import xbmc
+
+
 
 class File(object):
 	"""
@@ -139,7 +141,7 @@ def delete(file):
 
 		xbmcvfs.delete(file)
 	"""
-	if file.startswith('/') and not file.startswith(os.path.join(os.getcwd(), 'kodiplugins', xbmc.Container.plugin.id)):
+	if not file.startswith(tempfile.gettempdir()):
 		return
 	return os.remove(file)
 
@@ -153,9 +155,7 @@ def rename(file, newFile):
 	Example::
 
 		success = xbmcvfs.rename(file,newFileName)"""
-	if file.startswith('/') and not file.startswith(os.path.join(os.getcwd(), 'kodiplugins', xbmc.Container.plugin.id)):
-		return
-	if newFile.startswith('/') and not newFile.startswith(os.path.join(os.getcwd(), 'kodiplugins', xbmc.Container.plugin.id)):
+	if not file.startswith(tempfile.gettempdir()) or not newFile.startswith(tempfile.gettempdir()):
 		return
 	return os.rename(file, newFile)
 
@@ -170,7 +170,7 @@ def mkdir(path):
 		success = xbmcfvs.mkdir(path)
 	"""
 	
-	if path.startswith('/') and not path.startswith(os.path.join(os.getcwd(), 'kodiplugins', xbmc.Container.plugin.id)):
+	if not path.startswith(tempfile.gettempdir()):
 		return
 	if exists(path):
 		return True
@@ -188,8 +188,11 @@ def mkdirs(path):
 
 		success = xbmcvfs.mkdirs(path)
 	"""
-	if path.startswith('/') and not path.startswith(os.path.join(os.getcwd(), 'kodiplugins', xbmc.Container.plugin.id)):
+	if not path.startswith(tempfile.gettempdir()):
 		return
+	if exists(path):
+		return True
+	print 'Creating directory {}'.format(path)
 	return os.makedirs(path)
 
 
@@ -202,7 +205,7 @@ def rmdir(path, force=False):
 
 		success = xbmcfvs.rmdir(path)
 	"""
-	if path.startswith('/') and not path.startswith(os.path.join(os.getcwd(), 'kodiplugins', xbmc.Container.plugin.id)):
+	if not path.startswith(tempfile.gettempdir()):
 		return
 	return os.rmdir(path)
 
@@ -216,7 +219,7 @@ def exists(path):
 
 		success = xbmcvfs.exists(path)
 	"""
-	if path.startswith('/') and not path.startswith(os.path.join(os.getcwd(), 'kodiplugins', xbmc.Container.plugin.id)):
+	if not path.startswith(tempfile.gettempdir()):
 		return False
 	return os.path.exists(path)
 
@@ -231,7 +234,7 @@ def listdir(path):
 
 		dirs, files = xbmcvfs.listdir(path)
 	"""
-	if path.startswith('/') and not path.startswith(os.path.join(os.getcwd(), 'kodiplugins', xbmc.Container.plugin.id)):
+	if not path.startswith(tempfile.gettempdir()):
 		return None
 	return os.listdir(path)
 

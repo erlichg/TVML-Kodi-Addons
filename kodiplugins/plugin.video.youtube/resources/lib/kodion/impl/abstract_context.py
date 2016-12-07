@@ -1,5 +1,6 @@
 import os
 import urllib
+import xbmcvfs
 
 from .. import constants
 from ..logging import *
@@ -47,6 +48,7 @@ class AbstractContext(object):
     def _get_cache_path(self):
         if not self._cache_path:
             self._cache_path = os.path.join(self.get_data_path(), 'kodion')
+            xbmcvfs.mkdirs(self._cache_path)
             pass
         return self._cache_path
 

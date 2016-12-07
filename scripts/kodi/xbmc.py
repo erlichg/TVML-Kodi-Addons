@@ -1025,7 +1025,7 @@ def executebuiltin(function, wait=False):
 		return str()
 	m = re.search('.*Container.Refresh.*', function)
 	if m:
-		bridge._message({'type':'load', 'url':'/catalog/{}'.format(kodi_utils.b64encode(Container.plugin.id)), 'replace':True})
+		bridge._message({'type':'load', 'url':'/catalog/{}'.format(kodi_utils.b64encode(Container.plugin.id)), 'data':'', 'replace':True})
 		return str()
 	m = re.search('.*RunPlugin\(plugin://([^/]*)(.*)\)', function)
 	if m:
@@ -1446,7 +1446,10 @@ def translatePath(path):
 	if "special://home/addons" in path :
 		return path.replace("special://home/addons", os.path.join(bundle_dir, 'kodiplugins'))
 	if 'special://profile/addon_data/' in path:
-		return path.replace('special://profile/addon_data/', '{}{}'.format(os.path.join(tempfile.gettempdir(), 'TVMLServer'), os.path.sep))
+		ans = path.replace('special://profile/addon_data/', '{}{}'.format(os.path.join(tempfile.gettempdir(), 'TVMLServer'), os.path.sep))
+		if not os.path.isdir(ans):
+			os.makedirs(ans)
+		return ans
 	if 'special://temp/' in path:
 		return path.replace('special://temp/', '{}{}'.format(tempfile.gettempdir(), os.path.sep))
 	return path
