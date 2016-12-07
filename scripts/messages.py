@@ -29,39 +29,10 @@ def end(plugin, msg, url=None):
 	items = msg['ans']
 	#print items
 	if not items or len(items) == 0:
+		print 'end sending 206'
 		return '', 206
 	template = None
 		
-	def work(item):
-		if item.icon:
-			print 'thread start'
-			if item.icon.startswith('kodiplugins') or item.icon.startswith('plugins'):
-				item.icon = '/{}'.format(item.icon)
-			elif item.icon.startswith('/'):
-				pass
-			else:
-				item.icon = CACHE.get(item.icon)
-			item.info['poster'] = item.icon
-			try:
-				item.width, item.height = kodi_utils.get_image_size('.{}'.format(item.icon))
-				if item.width > 600 or item.height > 600:
-					item.width = item.width / 2
-					item.height = item.height / 2
-				if item.width < 200 or item.height < 200:
-					item.width = item.width * 2
-					item.height = item.height * 2
-			except:
-				#traceback.print_exc(file=sys.stdout)
-				item.width = 300
-				item.height = 300
-			print 'thread done'
-		else:
-			item.width = 300
-			item.height = 300
-		item.context['Item info'] = 'ItemInfo({})'.format(json.dumps(item.info))			
-	#print 'parallel start'
-	#run_parallel_in_threads(work, items)
-	#print 'parallel end'
 	for item in items:
 		if item.icon:
 			if item.icon.startswith('kodiplugins') or item.icon.startswith('plugins'):
@@ -73,13 +44,13 @@ def end(plugin, msg, url=None):
 			item.info['poster'] = item.icon
 		item.width = 300
 		item.height = 300
-	widths = [item.width for item in items]
-	heights = [item.height for item in items]
-	avg_width = reduce(lambda x, y: x + y, widths) / len(widths)
-	avg_height = reduce(lambda x, y: x + y, heights) / len(heights)
-	for item in items:
-		item.width = avg_width
-		item.height = avg_height		
+	#widths = [item.width for item in items]
+	#heights = [item.height for item in items]
+	#avg_width = reduce(lambda x, y: x + y, widths) / len(widths)
+	#avg_height = reduce(lambda x, y: x + y, heights) / len(heights)
+	#for item in items:
+	#	item.width = avg_width
+	#	item.height = avg_height		
 	#print items
 	return render_template("dynamic.xml", menu=items, plugin = plugin)
 
@@ -110,7 +81,7 @@ def alertdialog(plugin, msg, url=None):
 def progressdialog(plugin, msg, url=None):
 	"""Shows a progress dialog. Initially with progress 0"""
 	print 'returning progress template with {}'.format(msg)
-	return render_template('progressdialog.xml', title=msg['title'], text=msg['text'], value=msg['value'], url=url, msgid=msg['id'])
+	return render_template('progressdialog.xml', title=msg['title'], text=msg['text'], value=msg['value'], url=url, msgid=msg['id']), 214
 	
 def selectdialog(plugin, msg, url=None):
 	items = msg['list']

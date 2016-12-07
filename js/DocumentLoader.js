@@ -110,10 +110,10 @@ DocumentLoader.prototype.fetchPost = function(options) {
 			    console.log(e);
 		    } 
 					
-		} else if(xhr.status == 204) { //empty select
+		} else if(xhr.status == 204) { //do nothing
 			//no message
 		} else if(xhr.status == 206) { //empty results
-		    if (typeof options.abort === "function") {
+		    if (typeof options.abort == "function") {
 		    	options.abort();
 		    }
 		} else if(xhr.status == 208) { //modal results
@@ -146,7 +146,58 @@ DocumentLoader.prototype.fetchPost = function(options) {
 			if (typeof msg['replace'] == 'boolean' && msg['replace']) {
 				
 			}
-			this.fetchPost(options);	
+			this.fetchPost(options);
+		} else if (xhr.status == 214) { //progress
+			if (typeof this.progressDocument == "undefined") {
+		    	this.progressDocument = xhr.response; //save progress
+		    	this.progressDocument.addEventListener("unload", function() { //in case of user cancel, send abort notification
+			    	if (typeof this.progressDocument != "undefined") {
+				    	delete this.progressDocument;
+						this.post({
+		 					url: "/response/" + id,
+		 					data: "blah"
+		 				});
+		 				new DocumentController(this, url, getActiveDocument());
+		 			}
+		    	}.bind(this));
+		    	//display progress document
+		    	if (typeof options.success === "function") {
+            		options.success(this.progressDocument);
+        		} else {
+            		navigationDocument.pushDocument(this.progressDocument);
+        		}
+	    	}    
+			var progress = this.progressDocument.getElementById("progress")
+			var url = progress.getAttribute("documentURL");
+			var id = progress.getAttribute("msgid");
+			//update progress document with updated values
+			try {
+				console.log("updating progress dialog");
+				var updated_progress = xhr.response.getElementById("progress");
+				progress.setAttribute('value', updated_progress.getAttribute('value'))
+				var updated_text = xhr.response.getElementById("text");
+				this.progressDocument.getElementById("text").textContent = updated_text.textContent;
+			} catch (err) {
+				this.post({
+					url: "/response/" + id,
+					data: "blah"
+				});
+			}
+			//fetch new message
+			this.fetchPost({
+				url: url,
+				abort: function() {
+					try {
+						if (typeof this.progressDocument != "undefined") {
+							console.log("Removing progress dialog");						
+							var loadingDocument = createLoadingDocument();
+							navigationDocument.replaceDocument(loadingDocument, this.progressDocument);
+						}					
+					} catch (err) {
+					}					
+				}.bind(this)
+			});
+			
 	    } else { //regular document
         	const responseDoc = xhr.response;
         	if (typeof options.initial == "boolean" && options.initial) {
@@ -217,56 +268,6 @@ DocumentLoader.prototype.prepareURL = function(url) {
  */
 DocumentLoader.prototype.prepareDocument = function(document) {
     traverseElements(document.documentElement, this.prepareElement);   
-    if (typeof document.getElementById("progress")!="undefined") { //progress dialog
-	    if (typeof this.progressDocument == "undefined") {
-		    this.progressDocument = document; //save progress
-		    this.progressDocument.addEventListener("unload", function() { //in case of user cancel, send abort notification
-			    this.post({
-		 			url: "/response/" + id,
-		 			data: "blah"
-		 		});
-		    });
-	    }    
-	    var progress = this.progressDocument.getElementById("progress")
-	    var url = progress.getAttribute("documentURL");
-	    var id = progress.getAttribute("msgid");
-		this.fetchPost({
-		 url: url,
-		 success: function(responseDoc) {
-		 	try {
-		 		console.log("updating progress dialog");
-		 		var updated_progress = responseDoc.getElementById("progress");
-		 		progress.setAttribute('value', updated_progress.getAttribute('value'))
-		 		var updated_text = responseDoc.getElementById("text");
-		 		this.progressDocument.getElementById("text").textContent = updated_text.textContent;
-		 		//navigationDocument.replaceDocument(responseDoc, document);
-		 	} catch (err) {
-		 		this.post({
-		 			url: "/response/" + id,
-		 			data: "blah"
-		 		});
-		 	}
-		 }.bind(this),
-		 abort: function() {
-		 	try {
-		 		console.log("Removing progress dialog");						
-		 		this.post({
-		 			url: "/response/" + id,
-		 			data: "blah",
-		 			abort: function() {
-		 				var loadingDocument = createLoadingDocument();
-		 				navigationDocument.replaceDocument(loadingDocument, this.progressDocument);
-		 				delete this.progressDocument;						
-		 				new DocumentController(this, url, loadingDocument);
-		 			}.bind(this)
-		 		});						
-		 		
-		 	} catch (err) {
-		 	}					
-		 	
-		 }.bind(this)
-		});
-    }
     if (typeof document.getElementById("player")!="undefined") { //player
 	    console.log("in new player");
 	    var m = document.getElementById("player");

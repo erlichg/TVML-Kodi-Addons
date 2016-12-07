@@ -1,5 +1,5 @@
 from __future__ import division
-import sys, os, imp, urllib, json, time, traceback, re
+import sys, os, imp, urllib, json, time, traceback, re, getopt, tempfile
 from threading import Timer
 try:
 	from flask import Flask, render_template, send_from_directory, request, send_file
@@ -36,7 +36,7 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 
 
-print sys.executable
+#print sys.executable
 
 if getattr(sys, 'frozen', False):
 	# we are running in a bundle
@@ -103,10 +103,10 @@ def route(pid, id, res=None):
 		print 'received response on process {}'.format(pid)
 		if p is not None:
 			p.responses.put({'id':id, 'response':res})
-			return 'OK', 206
+			return 'OK', 204
 		return render_template('alert.xml', title='Communication error', description="Failed to load page.\nThis could mean the server had a problem, or the request dialog timed-out\nPlease try again")
 	else:
-		return 'OK', 206
+		return 'OK', 204
 
 #@app.route('/{}icon.png'.format(bundle_dir))
 @app.route('/icon.png')
@@ -406,8 +406,37 @@ def load_plugin(id):
 			print 'Failed to load kodi plugin {}. Error: {}'.format(plugin, e)
 	print 'Failed to find plugin id {}'.format(id)
 	return None
+	
+def help(argv):
+	print 'Usage: {} [-p <port>] [-d <dir>]'.format(argv[0])
+	print
+	print '-p <port>, --port=<port>		Run the server on <port>. Default is 5000'
+	print '-d <dir>, --dir=<dir>			Specify alternate temp directory. Default is {}'.format(tempfile.gettempdir())
+	sys.exit()
 
-def mmain():
+
+def mmain(argv):
+	port = 5000 #default
+	try:
+		opts, args = getopt.getopt(argv[1:],"hp:d:",["port=", "dir="])
+	except getopt.GetoptError:
+		help(argv)
+	for opt, arg in opts:
+		if opt == '-h':
+			help(argv)
+		elif opt in ("-p", "--port"):
+			try:
+				port = int(arg)		
+			except:
+				print '<port> option must be an integer'
+				sys.exit(2)
+		elif opt in ("-d", "--dir"):
+			if os.path.isdir(arg):
+				tempfile.tempdir = arg
+			else:
+				print '{} is not a valid directory'.format(arg)
+				sys.exit(2)
+			
 	manager = multiprocessing.Manager()
 	
 	global PROCESSES
@@ -443,7 +472,7 @@ def mmain():
 		except Exception as e:
 			print 'Failed to load kodi plugin {}. Error: {}'.format(plugin, e)
 	global http_server		
-	http_server = WSGIServer(('',5000), app)
+	http_server = WSGIServer(('',port), app)
 	#http_server.log = open('http.log', 'w')
 	http_server.serve_forever()
 	#app.run(debug=True, host='0.0.0.0')
@@ -484,4 +513,4 @@ if __name__ == '__main__':
 
 		# Second override 'Popen' class with our modified version.
 		forking.Popen = _Popen		
-	mmain()
+	mmain(sys.argv)

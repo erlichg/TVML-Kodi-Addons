@@ -102,20 +102,21 @@ class bridge:
 	def progressdialog(self, heading, text=''):
 		"""Shows a progress dialog to the user"""
 		_id = kodi_utils.randomword()
-		self.progress={'title': heading, 'id': _id}	
+		self.progress={'title': heading, 'id': _id, 'text': text}	
 		try:				
 			p = multiprocessing.Process(target=progress_stop, args=(self, _id))
+			self.progress['process'] = p
 			p.daemon = True
 			p.start()
 		except:
 			print 'Failed to start stop progress process.'
 		self._message({'type':'progressdialog', 'title':heading, 'text':text, 'value':'0', 'id':'{}/{}'.format(self.thread.id, _id)}, False, _id)
 		
-	def updateprogressdialog(self, value, text=''):
+	def updateprogressdialog(self, value, text=None):
 		"""Updates the progress dialog"""
 		if self.progress:
 			print 'updating progress with {}, {}'.format(value, text)
-			return self._message({'type':'progressdialog', 'title':self.progress['title'], 'text':text, 'value':value, 'id':'{}/{}'.format(self.thread.id, self.progress['id'])}, False, self.progress['id'])
+			return self._message({'type':'progressdialog', 'title':self.progress['title'], 'text':text if text else self.progress['text'], 'value':value, 'id':'{}/{}'.format(self.thread.id, self.progress['id'])}, False, self.progress['id'])
 	
 	def isprogresscanceled(self):
 		"""Returns whether the progress dialog is still showing or canceled by user"""
@@ -123,9 +124,12 @@ class bridge:
 		return not self.progress
 	
 	def closeprogress(self):
-		"""Closes the progress dialog"""
+		"""Closes the progress dialog"""		
+		self._message({'type':'closeprogress'})
+		while self.progress['process'] and self.progress['process'].is_alive():
+			gevent.sleep(1)
 		self.progress = None
-		return self._message({'type':'closeprogress'})
+		return None
 		
 	def selectdialog(self, title, text='', list_=[]):
 		"""Shows a selection dialog"""
