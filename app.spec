@@ -1,9 +1,19 @@
 # -*- mode: python -*-
 
 block_cipher = None
+import os, fnmatch
 
+matches = ['app.py']
+for p in os.listdir('kodiplugins'):
+    if os.path.isdir(os.path.join('kodiplugins', p)):
+        for pp in fnmatch.filter(os.listdir(os.path.join('kodiplugins', p)), '*.py'):
+            matches.append(os.path.join('kodiplugins', p, pp))
+for p in os.listdir('plugins'):
+    if os.path.isdir(os.path.join('plugins', p)):
+        for pp in fnmatch.filter(os.listdir(os.path.join('plugins', p)), '*.py'):
+            matches.append(os.path.join('plugins', p, pp))
 
-a = Analysis(['app.py'],
+a = Analysis(matches,
              pathex=['scripts/', 'scripts/kodi'],
              binaries=None,
              datas=[
@@ -15,7 +25,7 @@ a = Analysis(['app.py'],
                 ('scripts', 'scripts'),
                 ('LICENSE', '.'),
              ],
-             hiddenimports=['xml.etree.ElementTree', 'AdvancedHTMLParser', 'StringIO'],
+             hiddenimports=[],
              hookspath=[],
              runtime_hooks=[],
              excludes=[],
@@ -35,7 +45,7 @@ exe = EXE(pyz,
           a.binaries,
           a.zipfiles,
           a.datas,
-          name='app',
+          name='TVMLServer',
           debug=False,
           strip=False,
           upx=True,

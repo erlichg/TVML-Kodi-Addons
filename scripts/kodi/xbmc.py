@@ -1035,13 +1035,14 @@ def executebuiltin(function, wait=False):
 	if m:
 		bridge._message({'type':'load', 'url':'/catalog/{}'.format(kodi_utils.b64encode(Container.plugin.id)), 'data':kodi_utils.b64encode(m.group(1))})
 		return str()
-	m = re.search('Notification\((.*), (.*)(, (.*), (.*))*\)', function)
+	m = re.search('Notification\(([^,]*), ([^,]*)(, ([^,]*), ([^,]*))*\)', function)
 	if m:
 		title = m.group(1)
 		message = m.group(2)
 		time = m.group(4)
 		icon = m.group(5)
-	#Need to implement
+		bridge.alertdialog(title, message)
+		return str()
 	return str()
 
 
