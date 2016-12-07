@@ -46,6 +46,7 @@ class KodiPlugin:
 		if url.startswith('http') or url.startswith('https'):
 			bridge.play(url, type_='video')
 			return
+		orig = sys.path
 		sys.path.append(os.path.join(bundle_dir, self.dir))
 		sys.path.append(os.path.join(bundle_dir, 'scripts'))
 		sys.path.append(os.path.join(bundle_dir, 'scripts', 'kodi'))
@@ -104,6 +105,7 @@ class KodiPlugin:
 			print 'Failure in plugin run'
 			traceback.print_exc(file=sys.stdout)
 		fp.close()
+		sys.path = orig
 		#sys.argv = old_sys_argv
 		items = xbmcplugin.items
 		print 'Plugin {} ended with: {}'.format(self.name, items)

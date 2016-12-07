@@ -32,12 +32,7 @@ class Plugin:
 		for e in tree.iter('addon'):
 			self.name = e.attrib['name']
 			self.script = e.attrib['script']
-			self.icon = os.path.join(bundle_dir, self.dir, e.attrib['icon'])			
-		sys.path.append(os.path.join(bundle_dir, self.dir))
-		sys.path.append(os.path.join(bundle_dir, 'scripts'))
-		sys.path.append(os.path.join(bundle_dir, 'scripts', 'kodi'))
-		sys.path.append(os.path.join(bundle_dir, 'plugins'))
-		sys.path.append(os.path.join(bundle_dir, 'kodiplugins'))
+			self.icon = os.path.join(bundle_dir, self.dir, e.attrib['icon'])					
 		self.module = self.script[:-3] #remove the .py
 		self.menuurl = ''
 		
@@ -50,8 +45,16 @@ class Plugin:
 		Example::
 
 		plugin.run('')"""
+		orig = sys.path
+		sys.path.append(os.path.join(bundle_dir, self.dir))
+		sys.path.append(os.path.join(bundle_dir, 'scripts'))
+		sys.path.append(os.path.join(bundle_dir, 'scripts', 'kodi'))
+		sys.path.append(os.path.join(bundle_dir, 'plugins'))
+		sys.path.append(os.path.join(bundle_dir, 'kodiplugins'))
 		m = importlib.import_module(self.module)
-		return m.main(bridge, url)	
+		ans = m.main(bridge, url)	
+		sys.path = orig
+		return ans
 		
 	def __repr__(self):
 		return str({'name':self.name, 'dir':self.dir, 'script':self.script, 'icon':self.icon, 'module':self.module})
