@@ -2,12 +2,6 @@
 Working TVML server written in python(flask) and javascript serving original KODI addons!!
 I've created a bridge from the kodi plugins to the server using the excellent [Kodi stubs](https://github.com/romanvm/Kodistubs)
 
-##Prerequistes
-- Python 2.7
-- Flask http://flask.pocoo.org
-- Gevent
-- That's it!!
-
 ##Screenshots
 ![alt tag](https://raw.githubusercontent.com/ggyeh/TVML-Kodi-Addons/master/images/screenshot1.png)
 ![alt tag](https://raw.githubusercontent.com/ggyeh/TVML-Kodi-Addons/master/images/screenshot2.png)
@@ -15,8 +9,8 @@ I've created a bridge from the kodi plugins to the server using the excellent [K
 ![alt tag](https://raw.githubusercontent.com/ggyeh/TVML-Kodi-Addons/master/images/screenshot4.png)
 
 ##How to use
-1. Simply run the app.py located in repository root directory.
-2. This will run the server on port 5000.
+1. You can use the pre-compiled executable (for windows 64bit and mac currently)
+2. This will run the server on port 5000. (You can run with -p switch to select different port)
 3. Fire up a TVML client on the apple TV like: TVML Explorer (available in TVOS appstore)
 4. Add your IP of the server
 5. Have fun
@@ -31,19 +25,13 @@ What I've got working so far are:
 
 Most (simple) addons should work immediately (Simply place the unzipped kodi addon under the kodiplugins folder).
 
-###XML templates
-The main page of the app is the main.xml template which shows a grid view of all plugins available.
+###How it works
+The main page of the app shows a grid view of all plugins available.
 
-Once you select a plugin, the plugin will be called with an empty string and all consequent templates will be rendered based on plugin returns.
+Once you select a plugin, the server runs the plugin with an empty string and returs the list back to the client.
 
-The app will transform the list of items to a template with this logic:
-- If items have title, subtitle, icon and details, it will render the richest template available (list.xml) which shows all these details
-- If items have only title and icon, it will render the grid.xml template (i.e. just a grid of images without details)
-- if items have only title, it will render the barest template possible (nakedlist.xml) which is basically just a list of items
+Subsequent calls will run the plugin with the list item url
 
-
-##Example
-Please check available plugins in the kodiplugins folder
 
 ##What's working and what's not
 The server is based on python flask and is relatively small scale.
@@ -65,9 +53,18 @@ Addon data path (for saving local files) is currently on server so all clients w
 ##What's next
 A lot more work to be done:
 - Implement more of kodi stubs to fit more addons
-- Make use of VLC as a player to support streams that Apple built-in player does not. This will require AppStore app support off course 
 - Modify the server to be able to accept many multiple connections. Think about the possibility to have multiple central servers on the web so everyone can connect to them without having to install anything locally!!
 - If your interested in coding (python/javascript), I'd love the help
+
+##Building from source
+To build from source, you need python 2.7, and the following python modules:
+- flask
+- gevent
+- pyintaller
+
+To run from source, simply run the app.py file located at the root dir of this repo.
+
+To build an executable issue `pyinstaller app.spec` from an appropriate OS (i.e. running on windows will build windows EXE, etc.)
 
 ## License
 
