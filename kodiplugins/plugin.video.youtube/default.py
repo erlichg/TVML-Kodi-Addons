@@ -1,6 +1,4 @@
 __author__ = 'bromix'
-import sys
-print sys.path
 from resources.lib.kodion import runner
 from resources.lib import youtube
 
