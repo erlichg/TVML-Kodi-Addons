@@ -473,6 +473,11 @@ def mmain(argv):
 			print 'Failed to load kodi plugin {}. Error: {}'.format(plugin, e)
 	global http_server		
 	http_server = WSGIServer(('',port), app)
+	import socket
+	addr = socket.gethostbyname(socket.gethostname())
+	print
+	print 'Server now running on port {}'.format(port)
+	print 'Connect your TVML client to: http://{}:{}'.format(addr, port)
 	#http_server.log = open('http.log', 'w')
 	http_server.serve_forever()
 	#app.run(debug=True, host='0.0.0.0')
