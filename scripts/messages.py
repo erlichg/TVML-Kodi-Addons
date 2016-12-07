@@ -6,7 +6,6 @@ import traceback, sys
 
 import time
 import threading
-import Queue
 
 # utility - spawn a thread to execute target for each args
 def run_parallel_in_threads(target, args_list):
