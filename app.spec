@@ -12,6 +12,12 @@ for p in os.listdir('plugins'):
     if os.path.isdir(os.path.join('plugins', p)):
         for pp in fnmatch.filter(os.listdir(os.path.join('plugins', p)), '*.py'):
             matches.append(os.path.join('plugins', p, pp))
+for p in fnmatch.filter(os.listdir('scripts'), '*.py'):
+    if not p.startswith('__init__'):
+        matches.append(os.path.join('scripts', p))
+for p in fnmatch.filter(os.listdir(os.path.join('scripts', 'kodi')), '*.py'):
+    if not p.startswith('__init__'):
+        matches.append(os.path.join('scripts', 'kodi', p))
 
 a = Analysis(matches,
              pathex=['scripts/', 'scripts/kodi'],
