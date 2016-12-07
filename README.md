@@ -23,7 +23,7 @@ What I've got working so far are:
 - Channel10
 - and more
 
-Most (simple) addons should work immediately (Simply place the unzipped kodi addon under the kodiplugins folder).
+Most (simple) addons should work immediately (Simply place the unzipped kodi addon under the kodiplugins folder. This will require running/building from source).
 
 ###How it works
 The main page of the app shows a grid view of all plugins available.
@@ -53,6 +53,7 @@ Addon data path (for saving local files) is currently on server so all clients w
 ##What's next
 A lot more work to be done:
 - Implement more of kodi stubs to fit more addons
+- Implement an addon manager to be able to automatically install/update addons
 - Modify the server to be able to accept many multiple connections. Think about the possibility to have multiple central servers on the web so everyone can connect to them without having to install anything locally!!
 - If your interested in coding (python/javascript), I'd love the help
 
