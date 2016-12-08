@@ -141,7 +141,7 @@ def delete(file):
 
 		xbmcvfs.delete(file)
 	"""
-	if not file.startswith(tempfile.gettempdir()):
+	if not _ispermitteddir(file):
 		return
 	return os.remove(file)
 
@@ -155,7 +155,7 @@ def rename(file, newFile):
 	Example::
 
 		success = xbmcvfs.rename(file,newFileName)"""
-	if not file.startswith(tempfile.gettempdir()) or not newFile.startswith(tempfile.gettempdir()):
+	if not _ispermitteddir(file) or not _ispermitteddir(newFile):
 		return
 	return os.rename(file, newFile)
 
@@ -170,7 +170,7 @@ def mkdir(path):
 		success = xbmcfvs.mkdir(path)
 	"""
 	
-	if not path.startswith(tempfile.gettempdir()):
+	if not _ispermitteddir(path):
 		return
 	if exists(path):
 		return True
@@ -188,7 +188,7 @@ def mkdirs(path):
 
 		success = xbmcvfs.mkdirs(path)
 	"""
-	if not path.startswith(tempfile.gettempdir()):
+	if not _ispermitteddir(path):
 		return
 	if exists(path):
 		return True
@@ -205,7 +205,7 @@ def rmdir(path, force=False):
 
 		success = xbmcfvs.rmdir(path)
 	"""
-	if not path.startswith(tempfile.gettempdir()):
+	if not _ispermitteddir(path):
 		return
 	return os.rmdir(path)
 
@@ -219,7 +219,7 @@ def exists(path):
 
 		success = xbmcvfs.exists(path)
 	"""
-	if not path.startswith(tempfile.gettempdir()):
+	if not _ispermitteddir(path):
 		return False
 	return os.path.exists(path)
 
@@ -234,9 +234,13 @@ def listdir(path):
 
 		dirs, files = xbmcvfs.listdir(path)
 	"""
-	if not path.startswith(tempfile.gettempdir()):
+	if not _ispermitteddir(path):
 		return None
 	return os.listdir(path)
+	
+def _ispermitteddir(path):
+	return path.startswith(tempfile.gettempdir()) or path.startswith(os.path.join(os.path.expanduser.expanduser("~"), '.TVMLSERVER'))
+
 
 
 class Stat(object):

@@ -414,14 +414,20 @@ def help(argv):
 	print 'Usage: {} [-p <port>] [-d <dir>]'.format(argv[0])
 	print
 	print '-p <port>, --port=<port>		Run the server on <port>. Default is 5000'
-	print '-d <dir>, --dir=<dir>			Specify alternate temp directory. Default is {}'.format(tempfile.gettempdir())
+	print '-t <dir>, --temp=<dir>			Specify alternate temp directory. Default is {}'.format(tempfile.gettempdir())
 	sys.exit()
 
 
 def mmain(argv):
 	port = 5000 #default
+	data_dir = os.path.join(os.path.expanduser("~"), '.TVMLSERVER')
+	if not os.path.exists(data_dir):
+		os.makedirs(data_dir)
+	if not os.path.isdir(data_dir):
+		print '{} not a directory or cannot be created'
+		sys.exit(2)	
 	try:
-		opts, args = getopt.getopt(argv[1:],"hp:d:",["port=", "dir="])
+		opts, args = getopt.getopt(argv[1:],"hp:t:d:",["port=", "temp=", "dir="])
 	except getopt.GetoptError:
 		help(argv)
 	for opt, arg in opts:
@@ -433,7 +439,7 @@ def mmain(argv):
 			except:
 				print '<port> option must be an integer'
 				sys.exit(2)
-		elif opt in ("-d", "--dir"):
+		elif opt in ("-t", "--temp"):
 			if os.path.isdir(arg):
 				tempfile.tempdir = arg
 			else:

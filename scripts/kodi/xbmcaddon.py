@@ -268,10 +268,13 @@ class Addon(object):
 
 			version = self.Addon.getAddonInfo('version')
 		"""
-		if id=='path':
-			return os.path.join('kodiplugins', self.id)
-		if id=='profile':
-			return os.path.join('kodiplugins', self.id)
+		if id=='path': #addon orig path
+			return os.path.join(bundle_dir, 'kodiplugins', self.id)
+		if id=='profile': #user data dir
+			ans = os.path.join(os.path.expanduser("~"), '.TVMLSERVER', self.id)
+			if not os.path.exists(ans):
+				os.makedirs(ans)
+			return ans
 		if id=='name':
 			return self.id
 		if id=='id':

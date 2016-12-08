@@ -151,7 +151,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
 			} else {
 				this.fetchPost(options);
 			}
-		} else if (xhr.status == 214) { //progress
+		} else if (xhr.status == 214) { //new progress
 			if (typeof this.progressDocument == "undefined") {
 		    	this.progressDocument = xhr.response; //save progress
 		    	this.progressDocument.addEventListener("unload", function() { //in case of user cancel, send abort notification
@@ -169,23 +169,37 @@ DocumentLoader.prototype.fetchPost = function(options) {
             		options.success(this.progressDocument);
         		} else {
             		navigationDocument.pushDocument(this.progressDocument);
-        		}
-	    	}    
-			var progress = this.progressDocument.getElementById("progress")
-			var url = progress.getAttribute("documentURL");
-			var id = progress.getAttribute("msgid");
-			//update progress document with updated values
-			try {
-				console.log("updating progress dialog");
-				var updated_progress = xhr.response.getElementById("progress");
-				progress.setAttribute('value', updated_progress.getAttribute('value'))
-				var updated_text = xhr.response.getElementById("text");
-				this.progressDocument.getElementById("text").textContent = updated_text.textContent;
-			} catch (err) {
-				this.post({
-					url: "/response/" + id,
-					data: "blah"
-				});
+        		}        		
+	    	}
+	    	//fetch new message
+			this.fetchPost({
+				url: url,
+				abort: function() {
+					try {
+						if (typeof this.progressDocument != "undefined") {
+							console.log("Removing progress dialog");						
+							var loadingDocument = createLoadingDocument();
+							navigationDocument.replaceDocument(loadingDocument, this.progressDocument);
+						}					
+					} catch (err) {
+					}					
+				}.bind(this)
+			});			
+		} else if (xhr.status == 216) { //update progress
+			if (typeof this.progressDocument != "undefined") {
+				var progress = this.progressDocument.getElementById("progress")
+				var url = progress.getAttribute("documentURL");
+				var id = progress.getAttribute("msgid");
+				//update progress document with updated values
+				try {
+					console.log("updating progress dialog");
+					var updated_progress = xhr.response.getElementById("progress");
+					progress.setAttribute('value', updated_progress.getAttribute('value'))
+					var updated_text = xhr.response.getElementById("text");
+					this.progressDocument.getElementById("text").textContent = updated_text.textContent;
+				} catch (err) {
+					console.log("Failed to update progress dialog");
+				}
 			}
 			//fetch new message
 			this.fetchPost({
@@ -201,7 +215,6 @@ DocumentLoader.prototype.fetchPost = function(options) {
 					}					
 				}.bind(this)
 			});
-			
 	    } else { //regular document
         	const responseDoc = xhr.response;
         	if (typeof options.initial == "boolean" && options.initial) {
