@@ -1,5 +1,5 @@
 import xml.etree.ElementTree as ET
-import os, sys, re, json
+import os, sys, re, json, time
 import importlib
 import bridge
 import kodi_utils
@@ -12,6 +12,7 @@ if getattr(sys, 'frozen', False):
 else:
 	bundle_dir = '.'
 
+ADDONS_DIR = os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'addons')
 
 def convert_kodi_tags_to_html_tags(s):
 	s = s.replace('[B]', '<b>')
@@ -22,16 +23,21 @@ def convert_kodi_tags_to_html_tags(s):
 
 
 class KodiPlugin:
-	def __init__(self, dir):
-		self.dir = dir
-		tree = ET.parse(os.path.join(bundle_dir, dir, 'addon.xml'))
+	def __init__(self, id):
+		self.dir = os.path.join(ADDONS_DIR, id)
+		tree = ET.parse(os.path.join(self.dir, 'addon.xml'))
 		for e in tree.iter('addon'):
 			self.name = e.attrib['name']
 			self.id = e.attrib['id']
 		for e2 in tree.iter('extension'):
 			if e2.attrib['point'] == 'xbmc.python.pluginsource':
 				self.script = e2.attrib['library']
-		self.icon = '{}/icon.png'.format(self.dir.replace('\\', '/'))
+				
+		self.requires = []
+		for e3 in tree.iter('import'):
+			if e3.attrib['addon'].startswith('script'):
+				self.requires.append(e3.attrib['addon'])
+		self.icon = '/addons/{}/icon.png'.format(self.id)
 		self.module = self.script[:-3]
 		self.menuurl = '/menu/{}'.format(kodi_utils.b64encode(self.id))
 		
@@ -47,11 +53,16 @@ class KodiPlugin:
 			bridge.play(url, type_='video')
 			return
 		orig = sys.path
-		sys.path.append(os.path.join(bundle_dir, self.dir))
+		sys.path.append(self.dir)
 		sys.path.append(os.path.join(bundle_dir, 'scripts'))
 		sys.path.append(os.path.join(bundle_dir, 'scripts', 'kodi'))
-		sys.path.append(os.path.join(bundle_dir, 'plugins'))
-		sys.path.append(os.path.join(bundle_dir, 'kodiplugins'))
+		
+		for r in self.requires:
+			if os.path.exists(os.path.join(ADDONS_DIR, r)):
+				tree = ET.parse(os.path.join(ADDONS_DIR, r, 'addon.xml'))
+				for e2 in tree.iter('extension'):
+					if e2.attrib['point'] == 'xbmc.python.module':
+						sys.path.append(os.path.join(ADDONS_DIR, r, e2.attrib['library']))
 		import xbmc
 		xbmc.bridge = bridge
 		import Container
@@ -87,9 +98,10 @@ class KodiPlugin:
 				sys.argv[0] = 'file://{}{}'.format(self.id, sys.argv[0])
 			#sys.argv = [script, '1', url]
 			print 'Calling plugin {} with {}'.format(self.name, sys.argv)
-			import xbmcplugin
+			import xbmcplugin, xbmcaddon
 			import imp
 			
+			#some patches for internal python funcs
 			import urllib			
 			quote_plus_orig = urllib.quote_plus
 			def quote_plus_patch(s, safe=''):
@@ -98,7 +110,46 @@ class KodiPlugin:
 					s = s.encode('utf-8')
 				return quote_plus_orig(s, safe)
 			urllib.quote_plus = quote_plus_patch
-			print sys.path
+			
+			import sqlite3			
+			sqlite3_connect_orig = sqlite3.connect
+			def sqlite3_connect_patch(*args, **kwargs):
+				print 'sqlite3 connect patch'
+				database = args[0]
+				dirname = os.path.dirname(database)
+				if not os.path.exists(dirname):
+					print 'creating non-existent directory {}'.format(dirname)
+					os.makedirs(dirname)
+				if not os.path.exists(database):
+					open(database, 'a').close()
+				for tries in range(5):
+					try:
+						return sqlite3_connect_orig(*args, **kwargs)
+					except:
+						time.sleep(1)
+						traceback.print_exc(file=sys.stdout)
+				raise Exception('Failed to open DB file {}'.format(database))
+			sqlite3.connect = sqlite3_connect_patch
+			
+			dbapi2_connect_orig = sqlite3.dbapi2.connect
+			def dbapi2_connect_patch(*args, **kwargs):
+				print 'sqlite3.dbapi2 connect patch'
+				database = args[0]
+				dirname = os.path.dirname(database)
+				if not os.path.exists(dirname):
+					print 'creating non-existent directory {}'.format(dirname)
+					os.makedirs(dirname)
+				if not os.path.exists(database):
+					open(database, 'a').close()
+				for tries in range(5):
+					try:
+						return dbapi2_connect_orig(*args, **kwargs)
+					except:
+						time.sleep(1)
+						traceback.print_exc(file=sys.stdout)
+				raise Exception('Failed to open DB file {}'.format(database))
+			sqlite3.dbapi2.connect = dbapi2_connect_patch
+			
 			xbmcplugin.items = []
 			imp.load_module(self.module, fp, self.dir, ('.py', 'rb', imp.PY_SOURCE))
 		except:
@@ -109,6 +160,9 @@ class KodiPlugin:
 		#sys.argv = old_sys_argv
 		items = xbmcplugin.items
 		print 'Plugin {} ended with: {}'.format(self.name, items)
+		if self.id in xbmcaddon.ADDON_CACHE:
+			print 'Saving settings {}'.format(xbmcaddon.ADDON_CACHE[self.id])
+			bridge._message({'type':'saveSettings','addon':self.id, 'settings':xbmcaddon.ADDON_CACHE[self.id]})
 		ans = []
 		items = xbmcplugin.items
 		from Plugin import Item

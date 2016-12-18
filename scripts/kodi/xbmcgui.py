@@ -2736,7 +2736,24 @@ class Dialog(object):
 			ret = dialog.select('Choose a playlist', ['Playlist #1', 'Playlist #2, 'Playlist #3'])
 		"""
 		print 'Calling bridge selectdialog'
-		return _xbmc.bridge.selectdialog(striptags(heading), list_)	
+		ans = []
+		from Plugin import Item
+		for item in list_:
+			#url, title, subtitle=None, icon=None, details=None, menuurl='', info={})
+			i = Item(url=item['url'], title=convert_kodi_tags_to_html_tags(item['listitem'].label), subtitle=item['listitem'].getProperty('subtitle'), icon=item['listitem'].thumbnailImage if item['listitem'].thumbnailImage != 'DefaultFolder.png' else '', details=item['listitem'].getProperty('details'),info=item['listitem'].infos, context=item['listitem'].context)
+			if type(i.context) is list: #needs to be dict
+				i.context = {x[0]:x[1] for x in i.context}
+			infos = item['listitem'].infos
+			if 'poster' in infos:
+				i.icon = infos['poster']
+			if 'plot' in infos:
+				i.details = infos['plot']
+			if 'year' in infos:
+				i.year = infos['year']
+			if 'trailer' in infos:
+				i.context['Watch trailer'] = 'RunPlugin({})'.format(infos['trailer'])			
+			ans.append(i)
+		return _xbmc.bridge.selectdialog(striptags(heading), ans)	
 
 	def contextmenu(self, list_):
 		"""

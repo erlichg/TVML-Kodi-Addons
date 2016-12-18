@@ -15,11 +15,9 @@
 								};
 								this.post({
 									url: "/response/{{msgid}}",
-									data: btoa(JSON.stringify(ans)),
-									abort: function() {
-										if ("{{url}}" != "") load("{{url}}");
-									}
+									data: btoa(JSON.stringify(ans))
 								});
+								if ("{{url}}" != "") load("{{url}}");
 								'>
 		<banner>
 			<title style="color:rgb(241,241,241)">{{title}}</title>

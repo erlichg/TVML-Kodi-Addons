@@ -1110,9 +1110,9 @@ def getCondVisibility(condition):
 	if m:
 		neg = m.group(1) == '!'
 		if neg:
-			return not os.path.isdir(os.path.join('kodiplugins', m.group(2)))
+			return not os.path.isdir(os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'addons', m.group(2)))
 		else:
-			return os.path.isdir(os.path.join('kodiplugins', m.group(2)))
+			return os.path.isdir(os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'addons', m.group(2)))
 		
 		
 	return bool(1)
@@ -1444,10 +1444,10 @@ def translatePath(path):
 
 		fpath = xbmc.translatePath('special://masterprofile/script_data')
 	"""
-	if "special://home/addons" in path :
-		return path.replace("special://home/addons", os.path.join(bundle_dir, 'kodiplugins'))
+	if "special://home" in path :
+		return path.replace("special://home", os.path.join(os.path.expanduser("~"), '.TVMLSERVER'))
 	if 'special://profile/addon_data/' in path:
-		ans = path.replace('special://profile/addon_data/', '{}{}'.format(os.path.join(tempfile.gettempdir(), 'TVMLServer'), os.path.sep))
+		ans = path.replace('special://profile/addon_data/', '{}{}'.format(os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'userdata'), os.path.sep))
 		if not os.path.isdir(ans):
 			os.makedirs(ans)
 		return ans

@@ -1,9 +1,19 @@
 <document>
+	<head>
+	  <style>
+	  @media tv-template and (tv-theme:light) {
+      	.foo { color:rgb(0, 0, 0); tv-highlight-color:rgb(255, 255, 255); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+	  }
+	  @media tv-template and (tv-theme:dark) {
+      	.foo { color:rgb(255, 255, 255); tv-highlight-color:rgb(0,0,0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+	  }
+	</style>
+	</head>
    <alertTemplate>
 	   <background>
 			<img src="/templates/background.png"/>
 		</background>
-      <title style="color:rgb(241,241,241)">{{title}}</title>
-      <description style="color: rgb(241,241,241);">{{description}}</description>      
+      <title class="foo">{{title}}</title>
+      <description class="foo">{{description}}</description>      
    </alertTemplate>
 </document>

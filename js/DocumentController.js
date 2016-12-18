@@ -267,6 +267,10 @@ function removeFromFavourites(addon) {
 	saveFavourites(favs);
 }
 
+function removeAddon(addon) {
+	post('/removeAddon', btoa(addon));
+}
+
 function showInputDialog(title, description, placeholder, button, secure, callback) {
 	if(typeof description == "undefined") {
 		description = '';

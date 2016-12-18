@@ -34,7 +34,7 @@ def end(plugin, msg, url=None):
 		
 	for item in items:
 		if item.icon:
-			if item.icon.startswith('kodiplugins') or item.icon.startswith('plugins'):
+			if item.icon.startswith('addons'):
 				item.icon = '/{}'.format(item.icon)
 			elif item.icon.startswith('/'):
 				pass
@@ -56,7 +56,7 @@ def end(plugin, msg, url=None):
 def play(plugin, msg, url=None):
 	"""Opens the player on msg url attribute"""
 	if msg['image']:
-		if msg['image'].startswith('kodiplugins') or msg['image'].startswith('plugins'):
+		if msg['image'].startswith('addons'):
 			msg['image'] = '/{}'.format(msg['image'])
 		else:
 			msg['image'] = CACHE.get(msg['image'])
@@ -81,6 +81,7 @@ def progressdialog(plugin, msg, url=None):
 	"""Shows a progress dialog. Initially with progress 0"""
 	print 'returning progress template with {}'.format(msg)
 	return render_template('progressdialog.xml', title=msg['title'], text=msg['text'], value=msg['value'], url=url, msgid=msg['id']), 214
+
 	
 def selectdialog(plugin, msg, url=None):
 	items = msg['list']

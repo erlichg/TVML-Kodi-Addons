@@ -1,5 +1,5 @@
 from __future__ import division
-import sys, os, imp, urllib, json, time, traceback, re, getopt, tempfile
+import sys, os, imp, urllib, json, time, traceback, re, getopt, tempfile, AdvancedHTMLParser, urllib2, urlparse, zipfile
 from threading import Timer
 try:
 	from flask import Flask, render_template, send_from_directory, request, send_file
@@ -44,10 +44,34 @@ if getattr(sys, 'frozen', False):
 else:
 	bundle_dir = ''
 
+DATA_DIR = os.path.join(os.path.expanduser("~"), '.TVMLSERVER')
+if not os.path.exists(DATA_DIR):
+	os.makedirs(DATA_DIR)
+if not os.path.isdir(DATA_DIR):
+	print '{} not a directory or cannot be created'.format(DATA_DIR)
+	sys.exit(2)
+
+if not os.path.exists(os.path.join(DATA_DIR, 'addons')):
+	os.makedirs(os.path.join(DATA_DIR, 'addons'))
+if not os.path.isdir(os.path.join(DATA_DIR, 'addons')):
+	print '{} not a directory or cannot be created'.format(os.path.join(DATA_DIR, 'addons'))
+	sys.exit(2)	
+	
+if not os.path.exists(os.path.join(DATA_DIR, 'userdata')):
+	os.makedirs(os.path.join(DATA_DIR, 'userdata'))
+if not os.path.isdir(os.path.join(DATA_DIR, 'userdata')):
+	print '{} not a directory or cannot be created'.format(os.path.join(DATA_DIR, 'userdata'))
+	sys.exit(2)
+	
+if not os.path.exists(os.path.join(DATA_DIR, 'addons', 'packages')):
+	os.makedirs(os.path.join(DATA_DIR, 'addons', 'packages'))
+if not os.path.isdir(os.path.join(DATA_DIR, 'addons', 'packages')):
+	print '{} not a directory or cannot be created'.format(os.path.join(DATA_DIR, 'addons', 'packages'))
+	sys.exit(2)	
+
 sys.path.append(os.path.join(bundle_dir, 'scripts'))
 sys.path.append(os.path.join(bundle_dir, 'scripts', 'kodi'))
-sys.path.append(os.path.join(bundle_dir, 'plugins'))
-sys.path.append(os.path.join(bundle_dir, 'kodiplugins'))
+sys.path.append(os.path.join(DATA_DIR, 'addons'))
 
 from scripts import kodi_utils
 import jinja2
@@ -108,35 +132,25 @@ def route(pid, id, res=None):
 	else:
 		return 'OK', 204
 
-#@app.route('/{}icon.png'.format(bundle_dir))
 @app.route('/icon.png')
 def icon():
 	return send_from_directory(bundle_dir, 'icon.png')
 	
-#@app.route('/{}plugins/<path:filename>'.format(bundle_dir))
-@app.route('/plugins/<path:filename>')
-def plugin_icon(filename):
-	return send_from_directory(os.path.join(bundle_dir, 'plugins'), filename)
-
-#@app.route('/{}cache/<path:filename>'.format(bundle_dir))
 @app.route('/cache/<id>')
 def cache(id):
 	file=messages.CACHE.get(id)
 	return send_file(file)
 	
-#@app.route('/{}kodiplugins/<path:filename>'.format(bundle_dir))
-@app.route('/kodiplugins/<path:filename>')
+@app.route('/addons/<path:filename>')
 def kodiplugin_icon(filename):
-	return send_from_directory(os.path.join(bundle_dir, 'kodiplugins'), filename)
+	return send_from_directory(os.path.join(DATA_DIR, 'addons'), filename)
 		
-#@app.route('/{}js/<path:filename>'.format(bundle_dir))
 @app.route('/js/<path:filename>')
 def js(filename):
 	return send_from_directory(os.path.join(bundle_dir, 'js'), filename)
 	
 	
 @app.route('/templates/<path:filename>')
-#@app.route('/{}templates/<path:filename>'.format(bundle_dir))
 def template(filename):
 	return send_from_directory(os.path.join(bundle_dir, 'templates'), filename)
 
@@ -177,7 +191,6 @@ def catalog(pluginid, process=None):
 			p = PROCESSES[process]
 		else:
 			if request.full_path.startswith('/catalog'):
-				sqlite3.connect(':memory:').close()
 				p = Process(target=get_items, args=(plugin.id, decoded_url, CONTEXT, PLUGINS))
 			else:
 				p = Process(target=get_menu, args=(plugin.id, decoded_url))	
@@ -220,7 +233,7 @@ def catalog(pluginid, process=None):
 		print 'exiting while alive and entering 5s wait'
 		#Check for possible last message which could have appeared after the thread has died. This could happen if message was sent during time.sleep in while and loop exited immediately afterwards
 		start = 0
-		while start < 10: #wait at most 5 seconds
+		while start < 5: #wait at most 5 seconds
 			try:
 				msg = p.messages.get(False)
 			except:
@@ -330,8 +343,22 @@ def main():
 		favs = [[p for p in PLUGINS if p.id == id][0] for id in favs]
 	else:
 		favs = []
-	return render_template('main.xml', menu=PLUGINS, favs=favs, url=request.full_path)
+	while not AVAILABLE_ADDONS:
+		print 'Waiting for repository refresh...'
+		time.sleep(1)
+	return render_template('main.xml', menu=PLUGINS, favs=favs, url=request.full_path, all=AVAILABLE_ADDONS)
 	
+@app.route('/removeAddon', methods=['POST'])
+def removeAddon():
+	if request.method == 'POST':
+		id = kodi_utils.b64decode(request.form.keys()[0])
+		print 'deleting plugin {}'.format(id)
+		path = os.path.join(DATA_DIR, 'addons', id)
+		os.rmdir(path)
+		global PLUGINS
+		plugin = [p for p in PLUGINS if p.id == id][0]
+		PLUGINS.remove(plugin)
+	return 'OK', 204
 
 def get_items(plugin_id, url, context, PLUGINS):
 	if 'setproctitle' in sys.modules:
@@ -383,33 +410,85 @@ def load_plugin(id):
 	p = [p for p in PLUGINS if p.id == id][0]
 	print 'returning plugin {}'.format(p)
 	return p
-	for plugin in os.listdir('plugins'):
+	for plugin in os.listdir(os.path.join(DATA_DIR, 'addons')):
+		if not plugin.startswith('plugin.video.'):
+			continue
 		try:
-			dir = os.path.join('plugins', plugin)
+			dir = os.path.join(DATA_DIR, 'addons', plugin)
 			if not os.path.isdir(dir):
 				continue
-			if id == plugin:
-				print 'Loading plugin {}'.format(plugin)
-				p = Plugin.Plugin(dir)
-				print 'Successfully loaded plugin: {}'.format(p)
-				return p
-		except Exception as e:
-			print 'Failed to load plugin {}. Error: {}'.format(plugin, e)
-	for plugin in os.listdir('kodiplugins'):
-		try:
-			dir = os.path.join('kodiplugins', plugin)
-			if not os.path.isdir(dir):
-				continue
-			if id == plugin:
-				print 'Loading kodi plugin {}'.format(plugin)
-				p = KodiPlugin(dir)
-				print 'Successfully loaded kodi plugin: {}'.format(p)
-				return p
+			print 'Loading kodi plugin {}'.format(plugin)
+			p = KodiPlugin(plugin)
+			PLUGINS.append(p)
+			print 'Successfully loaded plugin: {}'.format(p)
 		except Exception as e:
 			print 'Failed to load kodi plugin {}. Error: {}'.format(plugin, e)
 	print 'Failed to find plugin id {}'.format(id)
 	return None
 	
+def getAvailableAddons(ans, REPOSITORIES):
+	print 'Refreshing repositories. Please wait...'	
+	parser = AdvancedHTMLParser.Parser.AdvancedHTMLParser()
+	for r in REPOSITORIES:
+		try:
+			p = urlparse.urlparse(r)
+			base = '{}://{}'.format(p.scheme, p.netloc)
+			req = urllib2.Request(r)
+			response = urllib2.urlopen(req, timeout=100)
+			link = response.read()
+			response.close()
+			parser.feed(link)
+			available = {a.attributes['title']: '{}{}'.format(base, a.attributes['href']) if a.attributes['href'].startswith('/') else a.attributes['href'] for a in parser.getElementsByTagName('a') if 'plugin.video.' in a.attributes['href']}
+			ans.update(available)
+		except Exception as e:
+			print 'Couldn\'t read repository {} because of {}'.format(r, e)
+	
+	
+def getDataOfAddon(href):
+	if not href:
+		return None
+	try:
+		parser = AdvancedHTMLParser.Parser.AdvancedHTMLParser()
+		req = urllib2.Request('{}/addon.xml'.format(href.replace('tree', 'raw')))
+		response = urllib2.urlopen(req, timeout=100)
+		link = response.read()
+		response.close()
+		parser.feed(link)
+		addon = parser.getElementsByTagName('addon')[0]
+		ans = addon.attributes
+		meta = [t for t in parser.getElementsByTagName('extension') if t.attributes['point'] == 'xbmc.addon.metadata'][0]
+		ans.update({t.tagName:t.text for t in meta.children})
+		return ans
+	except:
+		return None
+	
+@app.route('/addonInfo/<id>')
+def addonInfo(id):
+	return getDataOfAddon(AVAILABLE_ADDONS[id])
+	
+@app.route('/installAddon', methods=['POST'])
+def installAddon():
+	if request.method == 'POST':
+		url = kodi_utils.b64decode(request.form.keys()[0])
+		try:
+			data = getDataOfAddon(url)
+			print 'installing plugin {}'.format(data)
+			path = os.path.join(DATA_DIR, 'addons', data['id'])
+			os.makedirs(path)
+			temp = os.path.join(tempfile.gettempdir(), '{}.zip'.format(id))
+			urllib.urlretrieve('{}/archive/master.zip'.format(data['source']), temp)
+			if not zipfile.is_zipfile(temp):
+				raise Exception('failed to download')
+			with zipfile.ZipFile(temp, 'r') as zip:
+				zip.extractall(path)
+			global PLUGINS
+			plugin = KodiPlugin(data['id'])
+			PLUGINS.append(plugin)
+		except Exception as e:
+			print e
+			return 'NOTOK'
+	return 'OK', 204
+
 def help(argv):
 	print 'Usage: {} [-p <port>] [-d <dir>]'.format(argv[0])
 	print
@@ -420,14 +499,9 @@ def help(argv):
 
 def mmain(argv):
 	port = 5000 #default
-	data_dir = os.path.join(os.path.expanduser("~"), '.TVMLSERVER')
-	if not os.path.exists(data_dir):
-		os.makedirs(data_dir)
-	if not os.path.isdir(data_dir):
-		print '{} not a directory or cannot be created'
-		sys.exit(2)	
+	
 	try:
-		opts, args = getopt.getopt(argv[1:],"hp:t:d:",["port=", "temp=", "dir="])
+		opts, args = getopt.getopt(argv[1:],"hp:t:",["port=", "temp="])
 	except getopt.GetoptError:
 		help(argv)
 	for opt, arg in opts:
@@ -456,26 +530,32 @@ def mmain(argv):
 	
 	global CONTEXT
 	CONTEXT = manager.dict()
-		
-	for plugin in os.listdir(os.path.join(bundle_dir, 'plugins')):
+	
+	global REPOSITORIES
+	REPOSITORIES = [
+	'https://github.com/xbmc/repo-plugins/tree/dharma',
+	'https://github.com/xbmc/repo-plugins/tree/eden',
+	'https://github.com/xbmc/repo-plugins/tree/frodo',
+	'https://github.com/xbmc/repo-plugins/tree/gotham',
+	'https://github.com/xbmc/repo-plugins/tree/helix',
+	'https://github.com/xbmc/repo-plugins/tree/isengard',
+	'https://github.com/xbmc/repo-plugins/tree/jarvis',
+	'https://github.com/xbmc/repo-plugins/tree/krypton',
+	]
+	
+	global AVAILABLE_ADDONS
+	AVAILABLE_ADDONS = manager.dict()
+	multiprocessing.Process(target=getAvailableAddons, args=(AVAILABLE_ADDONS, REPOSITORIES)).start()
+	
+	for plugin in os.listdir(os.path.join(DATA_DIR, 'addons')):
+		if not plugin.startswith('plugin.video.'):
+			continue
 		try:
-			dir = os.path.join(bundle_dir, 'plugins', plugin)
-			if not os.path.isdir(dir):
-				continue
-			print 'Loading plugin {}'.format(plugin)
-			p = Plugin.Plugin(os.path.join('plugins', plugin))
-			PLUGINS.append(p)
-			print 'Successfully loaded plugin: {}'.format(p)
-		except Exception:
-			traceback.print_exc(file=sys.stdout)
-			print 'Failed to load plugin {}'.format(plugin)
-	for plugin in os.listdir(os.path.join(bundle_dir, 'kodiplugins')):
-		try:
-			dir = os.path.join(bundle_dir, 'kodiplugins', plugin)
+			dir = os.path.join(DATA_DIR, 'addons', plugin)
 			if not os.path.isdir(dir):
 				continue
 			print 'Loading kodi plugin {}'.format(plugin)
-			p = KodiPlugin(os.path.join('kodiplugins', plugin))
+			p = KodiPlugin(plugin)
 			PLUGINS.append(p)
 			print 'Successfully loaded plugin: {}'.format(p)
 		except Exception as e:
@@ -483,15 +563,20 @@ def mmain(argv):
 	global http_server		
 	http_server = WSGIServer(('',port), app)
 	import socket
-	addr = socket.gethostbyname(socket.gethostname())
+	try:
+		addr = socket.gethostbyname(socket.gethostname())
+	except:
+		addr = socket.gethostname()
 	print
 	print 'Server now running on port {}'.format(port)
 	print 'Connect your TVML client to: http://{}:{}'.format(addr, port)
 	#http_server.log = open('http.log', 'w')
 	http_server.serve_forever()
+	
 	#app.run(debug=True, host='0.0.0.0')
 		
-if __name__ == '__main__':
+if __name__ == '__main__':	
+
 	multiprocessing.freeze_support()
 
 	# Module multiprocessing is organized differently in Python 3.4+
@@ -526,5 +611,39 @@ if __name__ == '__main__':
 							os.putenv('_MEIPASS2', '')
 
 		# Second override 'Popen' class with our modified version.
-		forking.Popen = _Popen		
+		forking.Popen = _Popen 	
+ 	
+#  	import pystray
+#  	from PIL import Image, ImageDraw
+#  	width=30
+#  	height=30
+#  	color1='red'
+#  	color2='blue'
+#  	
+#  	image = Image.new('RGB', (width, height), color1)
+#  	dc = ImageDraw.Draw(image)
+#  	dc.rectangle((width // 2, 0, width, height // 2), fill=color2)
+#  	dc.rectangle((0, height // 2, width // 2, height), fill=color2)
+#  	
+#  	
+#  	def f(*args):
+# 	 	print 'stopping http server'
+#  		http_server.stop()
+#  		server_process.join()
+#  		print 'http server stopped'
+#  		server_process = multiprocessing.Process(target=http_server.serve_forever, args=()).start()
+#  	
+#  	menu = pystray.MenuItem('Restart server', f)
+#  	
+#  	
+#  	
+#  	icon = pystray.Icon('test name', image, menu=[menu])
+#  	
+#  	def setup(icon):
+#  	    icon.visible = True
+#  	    mmain(sys.argv)
+# 	
+# 	icon.run(setup)
 	mmain(sys.argv)
+	
+	

@@ -117,8 +117,8 @@ DocumentLoader.prototype.fetchPost = function(options) {
 		    	options.abort();
 		    }
 		} else if(xhr.status == 208) { //modal results
-			const responseDoc = xhr.response;
-			this.prepareDocument(responseDoc);
+			var responseDoc = xhr.response;
+			responseDoc = this.prepareDocument(responseDoc);
 			options.success(responseDoc, true);
 		} else if (xhr.status == 210) { //load/save settings
 			var msg = JSON.parse(xhr.responseText);
@@ -164,12 +164,30 @@ DocumentLoader.prototype.fetchPost = function(options) {
 		 				new DocumentController(this, url, getActiveDocument());
 		 			}
 		    	}.bind(this));
+		    	var progress = this.progressDocument.getElementById("progress")
+		    	var url = progress.getAttribute("documentURL");
+				var id = progress.getAttribute("msgid");
+				//update progress document with updated 
 		    	//display progress document
 		    	if (typeof options.success === "function") {
             		options.success(this.progressDocument);
         		} else {
             		navigationDocument.pushDocument(this.progressDocument);
         		}        		
+	    	} else {
+		    	var progress = this.progressDocument.getElementById("progress");
+				var url = progress.getAttribute("documentURL");
+				var id = progress.getAttribute("msgid");
+				//update progress document with updated values
+				try {
+					console.log("updating progress dialog");
+					var updated_progress = xhr.response.getElementById("progress");
+					progress.setAttribute('value', updated_progress.getAttribute('value'))
+					var updated_text = xhr.response.getElementById("text");
+					this.progressDocument.getElementById("text").textContent = updated_text.textContent;
+				} catch (err) {
+					console.log("Failed to update progress dialog");
+				}
 	    	}
 	    	//fetch new message
 			this.fetchPost({
@@ -216,7 +234,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
 				}.bind(this)
 			});
 	    } else { //regular document
-        	const responseDoc = xhr.response;
+        	var responseDoc = xhr.response;
         	if (typeof options.initial == "boolean" && options.initial) {
 	        	console.log("registering event handlers");
 				responseDoc.addEventListener("disappear", function() {
@@ -226,7 +244,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
 					}
 				}.bind(this));				
     		}
-			this.prepareDocument(responseDoc);
+			responseDoc = this.prepareDocument(responseDoc);
 			if (typeof options.success === "function") {
             	options.success(responseDoc);
         	} else {
@@ -242,7 +260,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
             navigationDocument.presentModal(alertDocument);
         }
     };
-    xhr.timeout = 30000;
+    xhr.timeout = 60000;
     if (typeof options.data == "undefined") {
 	    xhr.send();
 	} else {
@@ -284,7 +302,17 @@ DocumentLoader.prototype.prepareURL = function(url) {
  * Helper method to mangle relative URLs in XMLHttpRequest response documents
  */
 DocumentLoader.prototype.prepareDocument = function(document) {
-    traverseElements(document.documentElement, this.prepareElement);   
+	const templates = {};
+    var i;
+    for (i=0; i<document.documentElement.children.length;i++) {
+		if (document.documentElement.children.item(i).tagName.indexOf("Template")!=-1) {			
+			templates[document.documentElement.children.item(i).getAttribute("id")] = document.documentElement.children.item(i);
+		}
+	}
+    traverseElements(document.documentElement, this.prepareElement);  
+    if (Object.keys(templates).length == 1 && document.getElementsByTagName("searchTemplate").length == 1) {
+	    return prepareSearchDocument(document);
+    } 
     if (typeof document.getElementById("player")!="undefined") { //player
 	    console.log("in new player");
 	    var m = document.getElementById("player");
@@ -337,50 +365,69 @@ DocumentLoader.prototype.prepareDocument = function(document) {
 			}
 		}.bind(this), false); 
     }
-    const templates = {};
-    var i;
-    for (i=0; i<document.documentElement.children.length;i++) {
-		if (document.documentElement.children.item(i).tagName.indexOf("Template")!=-1) {			
-			templates[document.documentElement.children.item(i).getAttribute("id")] = document.documentElement.children.item(i);
-		}
-	}
+    
     if (Object.keys(templates).length > 1) {
-		const items = {};
-		const segmentBar = document.createElement("segmentBarHeader");
-		segmentBar.setAttribute("autoHighlight", "true");
-		segmentBar.appendChild(document.createElement("segmentBar"));
-		segmentBar.firstChild.setAttribute("autoHighlight", "true");
-		
-		for (key in templates) {
-			var item = document.createElement("segmentBarItem");
-			item.setAttribute("class", key);
-			item.appendChild(document.createElement("title"));
-			item.firstChild.textContent = templates[key].getAttribute("title");
-			segmentBar.firstChild.appendChild(item);
-			items[key] = item;
-		}
-		
-		
-		segmentBar.firstChild.addEventListener('highlight', function(event) {
-            selectItem(event.target);
-        }); 
-		var selectItem = function(selectedElem) {			
-		    const cls = selectedElem.getAttribute("class");
-		    for (key in templates) {
-			    if (templates[key].parentNode == document.documentElement) {
-			    	document.documentElement.removeChild(templates[key]);
+	    const type = document.getElementsByTagName("head").item(0).getAttribute("id");
+	    if (type == "segmentBar") {
+			const items = {};
+			const segmentBar = document.createElement("segmentBarHeader");
+			segmentBar.setAttribute("autoHighlight", "true");
+			segmentBar.appendChild(document.createElement("segmentBar"));
+			segmentBar.firstChild.setAttribute("autoHighlight", "true");
+			
+			for (key in templates) {
+				var item = document.createElement("segmentBarItem");
+				item.setAttribute("class", key);
+				item.appendChild(document.createElement("title"));
+				item.firstChild.textContent = templates[key].getAttribute("title");
+				segmentBar.firstChild.appendChild(item);
+				items[key] = item;
+			}
+			
+			
+			segmentBar.firstChild.addEventListener('highlight', function(event) {
+        	    selectItem(event.target);
+        	}); 
+			var selectItem = function(selectedElem) {			
+			    const cls = selectedElem.getAttribute("class");
+			    for (key in templates) {
+				    if (templates[key].parentNode == document.documentElement) {
+				    	document.documentElement.removeChild(templates[key]);
+				    }
 			    }
-		    }
-		    var placeholder = templates[cls].getElementsByTagName("placeholder").item(0);
-		    for (item in items) {
-			    items[item].removeAttribute("autoHighlight");
-		    }
-		    items[cls].setAttribute("autoHighlight", "true");
-		    placeholder.parentNode.insertBefore(segmentBar, placeholder);
-		    document.documentElement.appendChild(templates[cls]);	    
-		}
-		
-		selectItem(segmentBar.firstChild.firstChild);		   			                		
+			    var placeholder = templates[cls].getElementsByTagName("placeholder").item(0);
+			    for (item in items) {
+				    items[item].removeAttribute("autoHighlight");
+			    }
+			    items[cls].setAttribute("autoHighlight", "true");
+			    placeholder.parentNode.insertBefore(segmentBar, placeholder);
+			    document.documentElement.appendChild(templates[cls]);	    
+			}
+			
+			selectItem(segmentBar.firstChild.firstChild);
+		} else if (type == "menuBar") {
+			const menuBarTemplate = new DOMParser().parseFromString("<document><menuBarTemplate></menuBarTemplate></document>", "application/xml");
+			const menuBar = menuBarTemplate.createElement("menuBar");
+			const menuBarFeature = menuBar.getFeature("MenuBarDocument");
+			//strip document from all templates
+			for (key in templates) {
+				if (templates[key].parentNode == document.documentElement) {
+				    document.documentElement.removeChild(templates[key]);
+				}
+			}			
+			
+			for (key in templates) {
+				var item = menuBarTemplate.createElement("menuItem");			
+				item.appendChild(menuBarTemplate.createElement("title"));
+				item.firstChild.textContent = templates[key].getAttribute("title");
+				menuBar.appendChild(item);
+				var doc = new DOMParser().parseFromString("<document>"+document.documentElement.innerHTML+templates[key].outerHTML+"</document>", "application/xml")
+				doc = this.prepareDocument(doc);
+				menuBarFeature.setDocument(doc, item);				
+			}
+			menuBarTemplate.documentElement.firstChild.appendChild(menuBar);												
+			return menuBarTemplate;
+		}   			                		
     }
     traverseElements(document.documentElement, function(elem) {
 	   if (elem.hasAttribute("notify")) {
@@ -410,6 +457,7 @@ DocumentLoader.prototype.prepareDocument = function(document) {
 		   	}.bind(this));
 	   	}
     }.bind(this));
+    return document;
 };
 
 /*

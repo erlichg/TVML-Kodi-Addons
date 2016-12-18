@@ -239,7 +239,7 @@ def listdir(path):
 	return os.listdir(path)
 	
 def _ispermitteddir(path):
-	return path.startswith(tempfile.gettempdir()) or path.startswith(os.path.join(os.path.expanduser.expanduser("~"), '.TVMLSERVER'))
+	return path.startswith(tempfile.gettempdir()) or path.startswith(os.path.join(os.path.expanduser("~"), '.TVMLSERVER'))
 
 
 

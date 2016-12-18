@@ -3,19 +3,7 @@ Copyright (C) 2016 Apple Inc. All Rights Reserved.
 See LICENSE.txt for this sample’s licensing information
 */
 
-function SearchController(documentLoader, documentURL, loadingDocument) {
-    DocumentController.apply(this, arguments);
-}
-
-registerAttributeName('searchDocumentURL', SearchController);
-
-SearchController.prototype.handleDocument = DocumentController.prototype.handleDocument;
-
-SearchController.prototype.handleEvent = DocumentController.prototype.handleEvent;
-
-SearchController.prototype.setupDocument = function(document) {
-    DocumentController.prototype.setupDocument.call(this, document);
-
+function prepareSearchDocument(document) {
     // Obtain references to some useful elements in the searchTemplate
     const searchTemplateElem = document.getElementsByTagName('searchTemplate').item(0);
     const searchFieldElem = document.getElementsByTagName('searchField').item(0);
@@ -23,54 +11,24 @@ SearchController.prototype.setupDocument = function(document) {
     const messageElem = document.getElementById("message");
     const suggestionsElem = document.getElementById("suggestions");
     const defaultResultsElem = document.getElementById("defaultResults");
-    const resultsModeElem = document.getElementById("resultsMode");
     const resultsListElem = document.getElementById("resultsList");
-    const resultsShelfContainerElem = document.getElementById("resultsShelfContainer");
     const resultsGridContainerElem = document.getElementById("resultsGridContainer");
     const resultsSectionElem = document.getElementById("resultsSection");
 
     // Clean up the document for initial presentation
-    var resultsContainerElem = resultsShelfContainerElem;
-    resultsListElem.removeChild(resultsGridContainerElem);
-    toggleDefaultResults(true);
+    var resultsContainerElem = resultsGridContainerElem;
+    
+    // Show the new results container in the collectionList
+    //resultsListElem.appendChild(resultsContainerElem);
+    //resultsContainerElem.appendChild(resultsSectionElem);
+    toggleDefaultResults(true);	
 
-    // Define some search-related constants
-    const searchBaseURL = "https://itunes.apple.com/search?";
-    const searchResultsLimit = 25;
-    const searchMediaType = "movie";
-    const searchMediaArtworkWidth = 250;
-    const searchMediaArtworkAspectRatio = 1.5;
-    const searchMediaTitleFunc = function(item) {
-        return item.trackCensoredName || item.trackName ||
-               item.collectionCensoredName || item.collectionName;
-    };
-    const searchMediaArtworkURLFunc = function(item) {
-        var result = item.artworkUrl60;
-        if (typeof result === "string") {
-            // WORKAROUND: Obtain high-resolution artwork
-            result = result.replace("/60x60", "/600x600");
-        }
-        return result;
-    };
-
-    // Retain the XHR between searches so it can be cancelled mid-flight
-    var searchRequest;
-    // Retain the query between searches to determine changes
-    var searchTextCache;
-    // Retain the result items to handle selection events
-    const searchResultsCache = [];
-
+	const searchResultsCache = [];
     const searchKeyboard = searchFieldElem.getFeature("Keyboard");
     // Register an event handler for search input changes
     searchKeyboard.onTextChange = performSearchRequest;
 
-    // Register an event handler for search result mode selection
-    resultsModeElem.addEventListener("highlight", function(event) {
-        const selectedElement = event.target;
-        const selectedMode = selectedElement.getAttribute("value");
-        setResultsMode(selectedMode);
-    });
-
+    
     // Register an event handler for search suggestions selection
     suggestionsElem.addEventListener("select", function(event) {
         const selectedElement = event.target;
@@ -82,9 +40,20 @@ SearchController.prototype.setupDocument = function(document) {
     // Register an event handler for search result selection
     resultsSectionElem.addEventListener("select", function(event) {
         const selectedElement = event.target;
-        const resultIndex = selectedElement.getAttribute("resultIndex");
-        const resultItem = searchResultsCache[resultIndex];
-        handleSelectionForItem(resultItem);
+        handleSelectionForItem(selectedElement);
+    });
+    resultsSectionElem.addEventListener("holdselect", function(event) {
+        const selectedElement = event.target;
+        handleHoldSelectionForItem(selectedElement);
+    });
+    
+    defaultResultsElem.addEventListener("select", function(event) {
+	    const selectedElement = event.target;
+        handleSelectionForItem(selectedElement);
+    });
+    defaultResultsElem.addEventListener("holdselect", function(event) {
+	    const selectedElement = event.target;
+        handleHoldSelectionForItem(selectedElement);
     });
 
     /*
@@ -160,60 +129,24 @@ SearchController.prototype.setupDocument = function(document) {
         }
     }
 
-    function setResultsMode(mode) {
-        // Remove existing results container
-        while (resultsListElem.firstChild) {
-            resultsListElem.removeChild(resultsListElem.firstChild);
-        }
-        // Determine the new results container element
-        if (mode === "shelf") {
-            resultsContainerElem = resultsShelfContainerElem;
-        }
-        if (mode === "grid") {
-            resultsContainerElem = resultsGridContainerElem;
-        }
-        // Show the new results container in the collectionList
-        resultsListElem.appendChild(resultsContainerElem);
-        resultsContainerElem.appendChild(resultsSectionElem);
-    }
-
     function performSearchRequest() {
         // Strip leading, trailing, and multiple whitespaces from the query
-        const searchText = searchKeyboard.text.trim().replace(/\s+/g, " ");
-
-        // Do nothing if the query hasn't meaningfully changed
-        if (searchTextCache && searchText === searchTextCache) {
-            return;
-        }
-        // Retain this query for the next time the input changes
-        searchTextCache = searchText;
-
-        // If there's already a search in-progress, cancel it.
-        if (searchRequest && searchRequest.readyState !== XMLHttpRequest.DONE) {
-            searchRequest.abort();
-        }
+        const searchText = new RegExp(searchKeyboard.text.trim().replace(/\s+/g, " "), "gi");
 
         // Show the initial message and stop if there's no search query
         if (searchText.length === 0) {
             toggleDefaultResults(true);
             return;
         }
-
-        // Build the URL for the search query
-        const searchParams = [
-            `media=${searchMediaType}`,
-            `limit=${searchResultsLimit}`,
-            `term=${encodeURIComponent(searchText)}`
-        ].join("&");
-        const searchURL = searchBaseURL + searchParams;
-
-        // Perform the search request
-        searchRequest = new XMLHttpRequest();
-        searchRequest.open("GET", searchURL);
-        searchRequest.responseType = "json";
-        searchRequest.onload = showSearchResponse;
-        searchRequest.onerror = showSearchError;
-        searchRequest.send();
+		const searchResults = [];
+		var lockups = defaultResultsElem.getElementsByTagName("lockup");
+        for (var i=0; i<lockups.length; i++) {
+	        var elem = lockups.item(i);
+	        if (searchText.test(elem.getElementsByTagName("title").item(0).textContent)) {
+		        searchResults.push(elem);
+	        }
+        }
+        showSearchResponse(searchKeyboard.text, searchResults);
     }
 
     /*
@@ -226,21 +159,19 @@ SearchController.prototype.setupDocument = function(document) {
     /*
      * Parse the XHR response and show the results or a message
      */
-    function showSearchResponse() {
+    function showSearchResponse(text, searchResults) {
         // Prepare the document for new search results
         toggleDefaultResults(false);
         toggleSearchSuggestions(false);
         clearSearchResults();
 
         // Show the results (or lack thereof)
-        const searchResponse = searchRequest.response;
-        const searchResults = searchResponse.results;
         if (searchResults.length > 0) {
             appendSearchResults(searchResults);
             toggleSearchMessage(false);
         } else {
-            if (searchTextCache.length > 3) {
-                toggleSearchMessage(true, `No results for ${searchTextCache}.`);
+            if (text.length > 3) {
+                toggleSearchMessage(true, `No results for ${text}.`);
             } else {
                 toggleSearchSuggestions(true);
             }
@@ -272,7 +203,11 @@ SearchController.prototype.setupDocument = function(document) {
             // Set the result array index on the lockup
             lockupElem.setAttribute("resultIndex", index);
             // Populate the lockup element details
-            populateLockupWithItem(lockupElem, item);
+            lockupElem.appendChild(item.cloneNode(true));
+            //lockupElem.addEventListener("select", function(event) {
+	        //   handleSelectionForItem(item); 
+            //});
+            //populateLockupWithItem(lockupElem, item);
             // Add the lockup to the results collection
             resultsSectionElem.appendChild(lockupElem);
             // Add the item to the search results cache
@@ -290,11 +225,6 @@ SearchController.prototype.setupDocument = function(document) {
         const imgElem = document.createElement("img");
         const titleElem = document.createElement("title");
         // Determine the lockup image attributes
-        const titleText = searchMediaTitleFunc(item);
-        const imgURL = searchMediaArtworkURLFunc(item);
-        const imgWidth = searchMediaArtworkWidth;
-        const imgHeight = imgWidth * searchMediaArtworkAspectRatio;
-        // Set the lockup image attributes
         imgElem.setAttribute("src", imgURL);
         imgElem.setAttribute("width", imgWidth);
         imgElem.setAttribute("height", imgHeight);
@@ -311,7 +241,13 @@ SearchController.prototype.setupDocument = function(document) {
      * JSON Object that was returned by the API for the result.
      */
     function handleSelectionForItem(item) {
-        console.log("handleSelectionForItem: " + JSON.stringify(item));
-        // TODO Something more interesting than logging
+        documentLoader.post({
+	       data:btoa(item.getElementsByTagName("placeholder").item(0).textContent),
+	       url:'/installAddon'
+        });
     }
-};
+    function handleHoldSelectionForItem(item) {
+        
+    }
+    return document;
+}
