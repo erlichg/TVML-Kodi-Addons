@@ -167,7 +167,7 @@ class KodiPlugin:
 		if self.id in xbmcaddon.ADDON_CACHE:
 			print 'Saving settings {}'.format(xbmcaddon.ADDON_CACHE[self.id])
 			bridge._message({'type':'saveSettings','addon':self.id, 'settings':xbmcaddon.ADDON_CACHE[self.id]})
-		if bridge.progress:
+		if hasattr(bridge, 'progress') and bridge.progress:
 			print 'Closing left over progress'
 			bridge.closeprogress()
 		ans = []
