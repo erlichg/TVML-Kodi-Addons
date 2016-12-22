@@ -48,5 +48,6 @@ class imageCache:
 			print 'Failed to download {}'.format(url)
 			return None
 		except:
-			traceback.print_exc(file=sys.stdout)
+			#traceback.print_exc(file=sys.stdout)
+			print 'Failed to download image'
 			return None

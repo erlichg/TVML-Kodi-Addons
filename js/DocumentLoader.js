@@ -138,19 +138,22 @@ DocumentLoader.prototype.fetchPost = function(options) {
 			}.bind(this), 1000)							
 		} else if (xhr.status == 212) { //load url
 			var msg = JSON.parse(xhr.responseText);
-			options.url = msg['url'];
+			var url = msg['url'];
+			var data = null;
 			if (typeof msg['data'] != "undefined") {
-				options.type = "POST";
-				options.data = msg['data'];			
+				data = msg['data'];			
 			}
-			if (typeof msg['replace'] == 'boolean' && msg['replace']) {
-				navigationDocument.removeDocument(navigationDocument.documents[navigationDocument.documents.length-2]); //last document should be the loader so remove previous document
-				setTimeout(function() {
-					this.fetchPost(options);
-				}.bind(this), 500);
-			} else {
-				this.fetchPost(options);
+			var initial = false;
+			if (typeof msg['initial'] != "undefined") {
+				initial = msg['initial']
 			}
+			if (typeof msg['replace'] == 'boolean' && msg['replace'] && navigationDocument.documents.length > 1) {
+				navigationDocument.removeDocument(navigationDocument.documents[navigationDocument.documents.length-2]); //last document should be the loader so remove previous document				
+			}
+			setTimeout(function() {
+				//this.fetchPost(options);
+				new DocumentController(this, url, navigationDocument.documents[navigationDocument.documents.length-1], initial, data);
+			}.bind(this), 500);
 		} else if (xhr.status == 214) { //new progress
 			if (typeof this.progressDocument == "undefined") {
 		    	this.progressDocument = xhr.response; //save progress
@@ -234,21 +237,29 @@ DocumentLoader.prototype.fetchPost = function(options) {
 				}.bind(this)
 			});
 	    } else { //regular document
-        	var responseDoc = xhr.response;
-        	if (typeof options.initial == "boolean" && options.initial) {
+        	var responseDoc = xhr.response;        	
+			responseDoc = this.prepareDocument(responseDoc);
+			if (typeof options.initial == "boolean" && options.initial) {
 	        	console.log("registering event handlers");
 				responseDoc.addEventListener("disappear", function() {
 					if(navigationDocument.documents.length==1) {
 						//if we got here than we've exited from the web server since the only page (root) has disappeared
 						App.onExit({});
 					}
-				}.bind(this));				
-    		}
-			responseDoc = this.prepareDocument(responseDoc);
-			if (typeof options.success === "function") {
-            	options.success(responseDoc);
-        	} else {
-            	navigationDocument.pushDocument(responseDoc);
+				}.bind(this));	
+				setTimeout(function() {
+					if (typeof options.success === "function") {
+            			options.success(responseDoc);
+        			} else {
+            			navigationDocument.pushDocument(responseDoc);
+        			}
+				}, 1000);			
+    		} else {
+				if (typeof options.success === "function") {
+            		options.success(responseDoc);
+        		} else {
+            		navigationDocument.pushDocument(responseDoc);
+        		}
         	}
         }
     }.bind(this);

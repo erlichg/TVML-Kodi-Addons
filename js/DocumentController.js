@@ -30,7 +30,9 @@ function DocumentController(documentLoader, documentURL, loadingDocument, initia
     this.handleHoldSelect = this.handleHoldSelect.bind(this);
     this._documentLoader = documentLoader;
     if (typeof initial == "boolean" && initial) {
-	    var favs = loadFavourites();
+	    console.log("Clearing all documents");
+		navigationDocument.clear();
+		var favs = loadFavourites();
 		documentLoader.post({
 	    	initial: initial,	    	
         	url: documentURL,
@@ -105,10 +107,12 @@ DocumentController.prototype.setupDocument = function(document) {
 
 DocumentController.prototype.handleDocument = function(document, loadingDocument, isModal) {	
     if (loadingDocument && navigationDocument.documents.indexOf(loadingDocument)!=-1) {
-	    if (typeof isModal == "undefined") {   
+	    if (typeof isModal == "undefined") {  
+		    console.log("Replacing loading document");
         	navigationDocument.replaceDocument(document, loadingDocument);
         } else {
 	        //navigationDocument.removeDocument(loadingDocument);
+	        console.log("Presenting modal document");
 	        navigationDocument.presentModal(document);
 	        document.addEventListener("unload", function(e) {
 		       navigationDocument.removeDocument(loadingDocument); 
@@ -118,9 +122,11 @@ DocumentController.prototype.handleDocument = function(document, loadingDocument
 	        });
         }     
     } else {
-	    if (typeof isModal == "undefined") { 
+	    if (typeof isModal == "undefined") {
+		    console.log("pushing document");
         	navigationDocument.pushDocument(document);
         } else {
+	        console.log("presenting modal document") ;
 	        navigationDocument.presentModal(document);
 	        document.addEventListener("select", function(e) {
 		       navigationDocument.dismissModal();
@@ -188,10 +194,7 @@ function notify(url) {
 }
 
 function load(url, initial) {
-	console.log("loading "+url);
-	if (typeof initial == "boolean" && initial) {
-		navigationDocument.clear();
-	}
+	console.log("loading "+url);	
 	var loadingDocument = createLoadingDocument();
 	navigationDocument.pushDocument(loadingDocument);	
 	new DocumentController(documentLoader, url, loadingDocument, initial);
@@ -341,10 +344,10 @@ function showSelectDialog(title, choices, index, callback) {
   	var dialog = new DOMParser().parseFromString(template, "application/xml");
 	var sent_answer = false;
 	dialog.addEventListener("select", function(event) {
-		var ans = event.target.childNodes.item(0).textContent;
-		callback(ans);
 		sent_answer = true;
 		navigationDocument.dismissModal(dialog);
+		var ans = event.target.childNodes.item(0).textContent;
+		callback(ans);				
 	});
 	dialog.addEventListener("unload", function() {
 		if(!sent_answer) {

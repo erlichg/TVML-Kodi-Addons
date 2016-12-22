@@ -41,6 +41,9 @@ class KodiPlugin:
 		self.module = self.script[:-3]
 		self.menuurl = '/menu/{}'.format(kodi_utils.b64encode(self.id))
 		
+	def __repr__(self):
+		return json.dumps({'id':self.id, 'name':self.name, 'module':self.module})
+		
 	def settings(self, bridge, url):
 		import xbmc
 		xbmc.bridge = bridge
@@ -106,7 +109,6 @@ class KodiPlugin:
 			quote_plus_orig = urllib.quote_plus
 			def quote_plus_patch(s, safe=''):
 				if type(s) == unicode:
-					print 'decoding into utf-8'
 					s = s.encode('utf-8')
 				return quote_plus_orig(s, safe)
 			urllib.quote_plus = quote_plus_patch

@@ -38,19 +38,23 @@ function prepareSearchDocument(document) {
     });
 
     // Register an event handler for search result selection
+/*
     resultsSectionElem.addEventListener("select", function(event) {
         const selectedElement = event.target;
         handleSelectionForItem(selectedElement);
     });
+*/
     resultsSectionElem.addEventListener("holdselect", function(event) {
         const selectedElement = event.target;
         handleHoldSelectionForItem(selectedElement);
     });
     
+/*
     defaultResultsElem.addEventListener("select", function(event) {
 	    const selectedElement = event.target;
         handleSelectionForItem(selectedElement);
     });
+*/
     defaultResultsElem.addEventListener("holdselect", function(event) {
 	    const selectedElement = event.target;
         handleHoldSelectionForItem(selectedElement);
@@ -197,57 +201,12 @@ function prepareSearchDocument(document) {
         const startIndex = searchResultsCache.length;
         // Create new lockups for the results
         results.forEach(function(item, index) {
-            index += startIndex;
-            // Create item lockup element
-            const lockupElem = document.createElement("lockup");
-            // Set the result array index on the lockup
-            lockupElem.setAttribute("resultIndex", index);
-            // Populate the lockup element details
-            lockupElem.appendChild(item.cloneNode(true));
-            //lockupElem.addEventListener("select", function(event) {
-	        //   handleSelectionForItem(item); 
-            //});
-            //populateLockupWithItem(lockupElem, item);
-            // Add the lockup to the results collection
-            resultsSectionElem.appendChild(lockupElem);
+            resultsSectionElem.appendChild(item.cloneNode(true));
             // Add the item to the search results cache
             searchResultsCache.push(item);
         });
     }
 
-    /*
-     * Inserts elements containing data from a search result into the
-     * empty lockup element created to display the result.
-     * Shows an image, title, and subtitle in the lockup.
-     */
-    function populateLockupWithItem(lockupElem, item) {
-        // Create the child nodes of the lockup element
-        const imgElem = document.createElement("img");
-        const titleElem = document.createElement("title");
-        // Determine the lockup image attributes
-        imgElem.setAttribute("src", imgURL);
-        imgElem.setAttribute("width", imgWidth);
-        imgElem.setAttribute("height", imgHeight);
-        // Set the lockup element text from the item
-        titleElem.setAttribute("class", "showTextOnHighlight");
-        titleElem.textContent = titleText;
-        // Put the child nodes into the lockup
-        lockupElem.appendChild(imgElem);
-        lockupElem.appendChild(titleElem);
-    }
 
-    /*
-     * Called when a search result is selected, passing in the
-     * JSON Object that was returned by the API for the result.
-     */
-    function handleSelectionForItem(item) {
-        documentLoader.post({
-	       data:btoa(item.getElementsByTagName("placeholder").item(0).textContent),
-	       url:'/installAddon'
-        });
-    }
-    function handleHoldSelectionForItem(item) {
-        
-    }
     return document;
 }

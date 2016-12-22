@@ -1,5 +1,5 @@
 from __future__ import division
-import sys, os, imp, urllib, json, time, traceback, re, getopt, tempfile, AdvancedHTMLParser, urllib2, urlparse, zipfile
+import sys, os, imp, urllib, json, time, traceback, re, getopt, tempfile, AdvancedHTMLParser, urllib2, urlparse, zipfile, shutil, requests
 from threading import Timer
 try:
 	from flask import Flask, render_template, send_from_directory, request, send_file
@@ -139,7 +139,10 @@ def icon():
 @app.route('/cache/<id>')
 def cache(id):
 	file=messages.CACHE.get(id)
-	return send_file(file)
+	if file:
+		return send_file(file)
+	else:
+		return 'Not found', 404
 	
 @app.route('/addons/<path:filename>')
 def kodiplugin_icon(filename):
@@ -338,11 +341,21 @@ def helloworld():
 
 @app.route('/main', methods=['POST', 'GET'])
 def main():
+	favs = []
 	if request.method == 'POST':
-		favs = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
-		favs = [[p for p in PLUGINS if p.id == id][0] for id in favs]
-	else:
-		favs = []
+		try:
+			favs_json = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
+			for id in favs_json:
+				matching = [p for p in PLUGINS if p.id == id]
+				if len(matching) == 0:
+					continue #no match found
+				if len(matching) == 1:
+					favs.append(matching[0])
+					continue
+				print 'More than one addons found that match id {}'.format()
+			favs = [[p for p in PLUGINS if p.id == id][0] for id in favs]
+		except:
+			pass
 	while not AVAILABLE_ADDONS:
 		print 'Waiting for repository refresh...'
 		time.sleep(1)
@@ -350,15 +363,21 @@ def main():
 	
 @app.route('/removeAddon', methods=['POST'])
 def removeAddon():
-	if request.method == 'POST':
-		id = kodi_utils.b64decode(request.form.keys()[0])
-		print 'deleting plugin {}'.format(id)
-		path = os.path.join(DATA_DIR, 'addons', id)
-		os.rmdir(path)
-		global PLUGINS
-		plugin = [p for p in PLUGINS if p.id == id][0]
-		PLUGINS.remove(plugin)
-	return 'OK', 204
+	try:
+		if request.method == 'POST':
+			id = kodi_utils.b64decode(request.form.keys()[0])
+			print 'deleting plugin {}'.format(id)
+			path = os.path.join(DATA_DIR, 'addons', id)
+			shutil.rmtree(path)
+			global PLUGINS
+			for i, p in enumerate(PLUGINS):
+				 if p.id == id:
+				 	del PLUGINS[i]
+				 	break
+		return json.dumps({'url':'/main', 'replace':True, 'initial':True}), 212
+	except:
+		traceback.print_exc(file=sys.stdout)
+		return 'NOTOK', 206
 
 def get_items(plugin_id, url, context, PLUGINS):
 	if 'setproctitle' in sys.modules:
@@ -431,19 +450,35 @@ def getAvailableAddons(ans, REPOSITORIES):
 	parser = AdvancedHTMLParser.Parser.AdvancedHTMLParser()
 	for r in REPOSITORIES:
 		try:
-			p = urlparse.urlparse(r)
+			p = urlparse.urlparse(r['list'])
 			base = '{}://{}'.format(p.scheme, p.netloc)
-			req = urllib2.Request(r)
+			req = urllib2.Request(r['list'])
 			response = urllib2.urlopen(req, timeout=100)
 			link = response.read()
 			response.close()
 			parser.feed(link)
-			available = {a.attributes['title']: '{}{}'.format(base, a.attributes['href']) if a.attributes['href'].startswith('/') else a.attributes['href'] for a in parser.getElementsByTagName('a') if 'plugin.video.' in a.attributes['href']}
-			ans.update(available)
+			for a in parser.getElementsByTagName('a'):
+				if 'plugin.video.' in a.attributes['href']:
+					href = '{}{}'.format(base, a.attributes['href']) if a.attributes['href'].startswith('/') else a.attributes['href']  
+					#data = getDataOfAddon(href)
+					title = a.text
+					ans[title] = {'href':href, 'repo':r}
 		except Exception as e:
 			print 'Couldn\'t read repository {} because of {}'.format(r, e)
+			traceback.print_exc(file=sys.stdout)
+	print 'Finished refreshing repositories'
 	
-	
+@app.route('/getAddonData', methods=['POST'])
+def getAddonData():
+	if request.method == 'POST':
+		try:
+			data = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
+			addon_data = getDataOfAddon(data['href'])
+			return render_template('descriptiveAlert.xml', _dict=addon_data, title=addon_data['id'])
+		except:
+			traceback.print_exc(file=sys.stdout)
+			return render_template('alert.xml', title='Error', description="Failed to get addon data")
+
 def getDataOfAddon(href):
 	if not href:
 		return None
@@ -468,26 +503,35 @@ def addonInfo(id):
 	
 @app.route('/installAddon', methods=['POST'])
 def installAddon():
-	if request.method == 'POST':
-		url = kodi_utils.b64decode(request.form.keys()[0])
+	if request.method == 'POST':		
 		try:
-			data = getDataOfAddon(url)
-			print 'installing plugin {}'.format(data)
-			path = os.path.join(DATA_DIR, 'addons', data['id'])
-			os.makedirs(path)
-			temp = os.path.join(tempfile.gettempdir(), '{}.zip'.format(id))
-			urllib.urlretrieve('{}/archive/master.zip'.format(data['source']), temp)
+			data = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
+			addon_data = getDataOfAddon(data['href'])
+			alreadyInstalled = [p for p in PLUGINS if p.id == addon_data['id']]
+			if alreadyInstalled:
+				return render_template('alert.xml', title='Already installed', description="This addon is already installed")
+			download_url = '{0}/{1}/{1}-{2}.zip'.format(data['repo']['download'], addon_data['id'], addon_data['version'])
+			print 'downloading plugin {}'.format(download_url)			
+			temp = os.path.join(tempfile.gettempdir(), '{}.zip'.format(addon_data['id']))
+			r = requests.get(download_url, stream=True)
+			if not r.status_code == 200:
+				raise Exception('Failed to download')
+			with open(temp, 'wb') as f:
+				r.raw.decode_content = True
+				shutil.copyfileobj(r.raw, f)			
 			if not zipfile.is_zipfile(temp):
 				raise Exception('failed to download')
+			path = os.path.join(DATA_DIR, 'addons')
 			with zipfile.ZipFile(temp, 'r') as zip:
 				zip.extractall(path)
 			global PLUGINS
-			plugin = KodiPlugin(data['id'])
+			plugin = KodiPlugin(addon_data['id'])
 			PLUGINS.append(plugin)
-		except Exception as e:
-			print e
-			return 'NOTOK'
-	return 'OK', 204
+			return render_template('alert.xml', title='Installation complete', description="Successfully installed addon {}.\nPlease reload the main screen in order to view the new addon".format(addon_data['name']))
+		except Exception:
+			traceback.print_exc(file=sys.stdout)
+			return render_template('alert.xml', title='Install error', description="Failed to install addon.\nThis could be due to a network error or bad repository parsing")
+	return render_template('alert.xml', title='URL error', description='This URL is invalid')
 
 def help(argv):
 	print 'Usage: {} [-p <port>] [-d <dir>]'.format(argv[0])
@@ -533,14 +577,15 @@ def mmain(argv):
 	
 	global REPOSITORIES
 	REPOSITORIES = [
-	'https://github.com/xbmc/repo-plugins/tree/dharma',
-	'https://github.com/xbmc/repo-plugins/tree/eden',
-	'https://github.com/xbmc/repo-plugins/tree/frodo',
-	'https://github.com/xbmc/repo-plugins/tree/gotham',
-	'https://github.com/xbmc/repo-plugins/tree/helix',
-	'https://github.com/xbmc/repo-plugins/tree/isengard',
-	'https://github.com/xbmc/repo-plugins/tree/jarvis',
-	'https://github.com/xbmc/repo-plugins/tree/krypton',
+	{'list':'https://github.com/xbmc/repo-plugins/tree/dharma', 'download':'http://mirrors.kodi.tv/addons/dharma'},
+	{'list':'https://github.com/xbmc/repo-plugins/tree/eden', 'download':'http://mirrors.kodi.tv/addons/eden'},
+	{'list':'https://github.com/xbmc/repo-plugins/tree/frodo', 'download':'http://mirrors.kodi.tv/addons/frodo'},
+	{'list':'https://github.com/xbmc/repo-plugins/tree/gotham', 'download':'http://mirrors.kodi.tv/addons/gotham'},
+	{'list':'https://github.com/xbmc/repo-plugins/tree/helix', 'download':'http://mirrors.kodi.tv/addons/helix'},
+	{'list':'https://github.com/xbmc/repo-plugins/tree/isengard', 'download':'http://mirrors.kodi.tv/addons/isengard'},
+	{'list':'https://github.com/xbmc/repo-plugins/tree/jarvis', 'download':'http://mirrors.kodi.tv/addons/jarvis'},
+	{'list':'https://github.com/xbmc/repo-plugins/tree/krypton', 'download':'http://mirrors.kodi.tv/addons/krypton'},
+	{'list':'https://github.com/cubicle-vdo/xbmc-israel', 'download':'https://github.com/cubicle-vdo/xbmc-israel/raw/master/repo'}
 	]
 	
 	global AVAILABLE_ADDONS

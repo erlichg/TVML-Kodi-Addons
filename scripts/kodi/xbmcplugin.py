@@ -74,7 +74,7 @@ def addDirectoryItem(handle, url, listitem, isFolder=False, totalItems=0):
 	return True
 
 
-def addDirectoryItems(handle, items, totalItems=0):
+def addDirectoryItems(handle, listitems, totalItems=0):
 	"""Callback function to pass directory contents back to XBMC as a list.
 
 	Returns a bool for successful completion.
@@ -92,7 +92,10 @@ def addDirectoryItems(handle, items, totalItems=0):
 		if not xbmcplugin.addDirectoryItems(int(sys.argv[1]), [(url, listitem, False,)]:
 			raise
 	"""
-	return bool(1)
+	global items
+	for (url, listitem, isFolder) in listitems:
+		items.append({'url':url, 'listitem':listitem,'isFolder':isFolder,'totalItems':totalItems})
+	return True
 
 
 def endOfDirectory(handle, succeeded=True, updateListing=False, cacheToDisc=True):
