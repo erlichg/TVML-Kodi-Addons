@@ -590,7 +590,9 @@ def mmain(argv):
 	
 	global AVAILABLE_ADDONS
 	AVAILABLE_ADDONS = manager.dict()
-	multiprocessing.Process(target=getAvailableAddons, args=(AVAILABLE_ADDONS, REPOSITORIES)).start()
+	p = multiprocessing.Process(target=getAvailableAddons, args=(AVAILABLE_ADDONS, REPOSITORIES))
+	p.start()
+	p.join()
 	
 	for plugin in os.listdir(os.path.join(DATA_DIR, 'addons')):
 		if not plugin.startswith('plugin.video.'):

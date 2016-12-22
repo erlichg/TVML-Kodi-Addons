@@ -162,9 +162,14 @@ class KodiPlugin:
 		#sys.argv = old_sys_argv
 		items = xbmcplugin.items
 		print 'Plugin {} ended with: {}'.format(self.name, items)
+		
+		#some cleanup
 		if self.id in xbmcaddon.ADDON_CACHE:
 			print 'Saving settings {}'.format(xbmcaddon.ADDON_CACHE[self.id])
 			bridge._message({'type':'saveSettings','addon':self.id, 'settings':xbmcaddon.ADDON_CACHE[self.id]})
+		if bridge.progress:
+			print 'Closing left over progress'
+			bridge.closeprogress()
 		ans = []
 		items = xbmcplugin.items
 		from Plugin import Item
