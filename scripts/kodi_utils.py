@@ -1,4 +1,4 @@
-import base64, random, string, sys, os
+import base64, random, string, sys, os, logging
 from StringIO import StringIO
 import struct
 
@@ -84,3 +84,4 @@ def get_image_size(file_path):
             )
 
     return width, height
+    

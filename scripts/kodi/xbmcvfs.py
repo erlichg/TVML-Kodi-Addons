@@ -8,7 +8,8 @@ __date__ = 'Fri May 01 16:22:23 BST 2015'
 __platform__ = 'ALL'
 __version__ = '2.20.0'
 
-import os, traceback, tempfile
+import os, traceback, tempfile, sys, logging
+logger = logging.getLogger('TVMLServer')
 import xbmc
 
 
@@ -35,6 +36,7 @@ class File(object):
 
 			f = xbmcvfs.File(file, 'w')
 		"""
+		logger.debug('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def close(self):
@@ -46,6 +48,7 @@ class File(object):
 			f = xbmcvfs.File(file)
 			f.close()
 		"""
+		logger.debug('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def read(self, numBytes=0):
@@ -61,6 +64,7 @@ class File(object):
 			b = f.read()
 			f.close()
 		"""
+		logger.debug('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def readBytes(self, numBytes=0):
@@ -75,6 +79,7 @@ class File(object):
 			b = f.read()
 			f.close()
 		"""
+		logger.debug('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return bytearray()
 
 	def seek(self, seekBytes, iWhence):
@@ -90,6 +95,7 @@ class File(object):
 			result = f.seek(8129, 0)
 			f.close()
 		"""
+		logger.debug('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()
 
 	def size(self):
@@ -102,6 +108,7 @@ class File(object):
 			s = f.size()
 			f.close()
 		"""
+		logger.debug('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()
 
 	def write(self, buffer):
@@ -116,6 +123,7 @@ class File(object):
 			result = f.write(buffer)
 			f.close()
 		"""
+		logger.debug('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return bool(1)
 
 
@@ -129,6 +137,7 @@ def copy(strSource, strDestnation):
 
 		success = xbmcvfs.copy(source, destination)
 	"""
+	logger.debug('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	return bool(1)
 
 
@@ -174,7 +183,7 @@ def mkdir(path):
 		return
 	if exists(path):
 		return True
-	print 'Creating directory {}'.format(path)
+	logger.debug('Creating directory {}'.format(path))
 	return os.mkdir(path)
 
 
@@ -192,7 +201,7 @@ def mkdirs(path):
 		return
 	if exists(path):
 		return True
-	print 'Creating directory {}'.format(path)
+	logger.debug('Creating directory {}'.format(path))
 	return os.makedirs(path)
 
 
@@ -265,30 +274,41 @@ class Stat(object):
 
 			print xbmcvfs.Stat(path).st_mtime()
 		"""
+		logger.debug('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
+		pass
 
 	def st_mode(self):
+		logger.debug('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()
 
 	def st_ino(self):
+		logger.debug('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()
 
 	def st_nlink(self):
+		logger.debug('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()
 
 	def st_uid(self):
+		logger.debug('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()
 
 	def st_gid(self):
+		logger.debug('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()
 
 	def st_size(self):
+		logger.debug('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()
 
 	def st_atime(self):
+		logger.debug('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()
 
 	def st_mtime(self):
+		logger.debug('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()
 
 	def st_ctime(self):
+		logger.debug('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()

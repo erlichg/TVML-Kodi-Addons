@@ -2,7 +2,8 @@ from flask import Flask, render_template, send_from_directory, request
 import json
 import imageCache
 import kodi_utils
-import traceback, sys
+import traceback, sys, logging
+logger = logging.getLogger('TVMLServer')
 
 import time
 import threading
@@ -28,7 +29,7 @@ def end(plugin, msg, url=None):
 	items = msg['ans']
 	#print items
 	if not items or len(items) == 0:
-		print 'end sending 206'
+		logger.debug('end sending 206')
 		return '', 206
 	template = None
 		
@@ -60,7 +61,7 @@ def play(plugin, msg, url=None):
 			msg['image'] = '/{}'.format(msg['image'])
 		else:
 			msg['image'] = CACHE.get(msg['image'])
-	print 'image after cache = {}'.format(msg['image'])
+	logger.debug('image after cache = {}'.format(msg['image']))
 	#since url paremeter is the original url that was called which resulted in a play message, we can save this url for time
 	#return render_template('player.xml', url=msg['url'], type=msg['playtype'])
 	return json.dumps({'continue': url, 'url': msg['url'], 'stop': msg['stop'], 'type':msg['playtype'], 'imdb':msg['imdb'], 'title':msg['title'], 'description':msg['description'], 'image':msg['image'], 'season':msg['season'], 'episode':msg['episode']}), 202
@@ -79,13 +80,13 @@ def alertdialog(plugin, msg, url=None):
 		
 def progressdialog(plugin, msg, url=None):
 	"""Shows a progress dialog. Initially with progress 0"""
-	print 'returning progress template with {}'.format(msg)
+	logger.debug('returning progress template with {}'.format(msg))
 	return render_template('progressdialog.xml', title=msg['title'], text=msg['text'], value=msg['value'], url=url, msgid=msg['id']), 214
 
 	
 def selectdialog(plugin, msg, url=None):
 	items = msg['list']
-	print items
+	logger.debug(items)
 	if not items or len(items) == 0:
 		return '', 204
 	if items[0].title and items[0].subtitle and items[0].icon and items[0].details:
@@ -97,7 +98,7 @@ def selectdialog(plugin, msg, url=None):
 
 def closeprogress(plugin, msg, url=None):
 	"""Close the progress dialog"""
-	print 'close progress message'
+	logger.debug('close progress message')
 	return '', 206
 	
 def formdialog(plugin, msg, url=None):
@@ -105,12 +106,12 @@ def formdialog(plugin, msg, url=None):
 	return render_template('multiformdialog2.xml', title=msg['title'], sections=msg['sections'], msgid=msg['id'], url=url if msg['cont'] else '')
 
 def saveSettings(plugin, msg, url=None):
-	print 'SaveSettings in messages'
+	logger.debug('SaveSettings in messages')
 	msg['url'] = url
 	return json.dumps(msg), 210
 	
 def loadSettings(plugin, msg, url=None):
-	print 'loadSettings in messages'
+	logger.debug('loadSettings in messages')
 	return json.dumps({'type':'loadSettings', 'addon':plugin.id, 'msgid':msg['id'], 'url': url }), 210
 	
 def load(plugin, msg, url=None):

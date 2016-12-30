@@ -5,6 +5,7 @@ import bridge
 import kodi_utils
 import Plugin
 import traceback
+import logging
 
 if getattr(sys, 'frozen', False):
 	# we are running in a bundle
@@ -52,6 +53,7 @@ class KodiPlugin:
 			
 	
 	def run(self, bridge, url):
+		logger = logging.getLogger(self.id)
 		if url.startswith('http') or url.startswith('https'):
 			bridge.play(url, type_='video')
 			return
@@ -100,7 +102,7 @@ class KodiPlugin:
 			if not sys.argv[0].startswith('file://') and not sys.argv[0].startswith('plugin://'):
 				sys.argv[0] = 'file://{}{}'.format(self.id, sys.argv[0])
 			#sys.argv = [script, '1', url]
-			print 'Calling plugin {} with {}'.format(self.name, sys.argv)
+			logger.debug('Calling plugin {} with {}'.format(self.name, sys.argv))
 			import xbmcplugin, xbmcaddon
 			import imp
 			
@@ -116,59 +118,59 @@ class KodiPlugin:
 			import sqlite3			
 			sqlite3_connect_orig = sqlite3.connect
 			def sqlite3_connect_patch(*args, **kwargs):
-				print 'sqlite3 connect patch'
+				logger.debug('sqlite3 connect patch')
 				database = args[0]
 				dirname = os.path.dirname(database)
 				if not os.path.exists(dirname):
-					print 'creating non-existent directory {}'.format(dirname)
+					logger.debug('creating non-existent directory {}'.format(dirname))
 					os.makedirs(dirname)
 				if not os.path.exists(database):
 					open(database, 'a').close()
-				for tries in range(5):
+				for tries in range(10):
 					try:
 						return sqlite3_connect_orig(*args, **kwargs)
 					except:
 						time.sleep(1)
-						traceback.print_exc(file=sys.stdout)
+						logger.exception()
 				raise Exception('Failed to open DB file {}'.format(database))
 			sqlite3.connect = sqlite3_connect_patch
 			
 			dbapi2_connect_orig = sqlite3.dbapi2.connect
 			def dbapi2_connect_patch(*args, **kwargs):
-				print 'sqlite3.dbapi2 connect patch'
+				logger.debug('sqlite3.dbapi2 connect patch')
 				database = args[0]
 				dirname = os.path.dirname(database)
 				if not os.path.exists(dirname):
-					print 'creating non-existent directory {}'.format(dirname)
+					logger.debug('creating non-existent directory {}'.format(dirname))
 					os.makedirs(dirname)
 				if not os.path.exists(database):
 					open(database, 'a').close()
-				for tries in range(5):
+				for tries in range(10):
 					try:
 						return dbapi2_connect_orig(*args, **kwargs)
 					except:
 						time.sleep(1)
-						traceback.print_exc(file=sys.stdout)
+						logger.exception()
 				raise Exception('Failed to open DB file {}'.format(database))
 			sqlite3.dbapi2.connect = dbapi2_connect_patch
 			
 			xbmcplugin.items = []
 			imp.load_module(self.module, fp, self.dir, ('.py', 'rb', imp.PY_SOURCE))
 		except:
-			print 'Failure in plugin run'
-			traceback.print_exc(file=sys.stdout)
+			logger.exception('Failure in plugin run')
 		fp.close()
 		sys.path = orig
 		#sys.argv = old_sys_argv
 		items = xbmcplugin.items
-		print 'Plugin {} ended with: {}'.format(self.name, items)
+		logger.debug('Plugin {} ended with: {}'.format(self.name, items))
 		
 		#some cleanup
 		if self.id in xbmcaddon.ADDON_CACHE:
-			print 'Saving settings {}'.format(xbmcaddon.ADDON_CACHE[self.id])
+			#logger.debug('Saving settings {}'.format(xbmcaddon.ADDON_CACHE[self.id]))
+			logger.debug('Saving settings')
 			bridge._message({'type':'saveSettings','addon':self.id, 'settings':xbmcaddon.ADDON_CACHE[self.id]})
 		if hasattr(bridge, 'progress') and bridge.progress:
-			print 'Closing left over progress'
+			logger.debug('Closing left over progress')
 			bridge.closeprogress()
 		ans = []
 		items = xbmcplugin.items

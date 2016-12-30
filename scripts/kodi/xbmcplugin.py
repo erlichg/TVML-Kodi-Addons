@@ -4,6 +4,8 @@ Functions for Kodi plugins
 """
 
 import xbmc as _xbmc
+import sys, logging
+logger = logging.getLogger('TVMLServer')
 
 SORT_METHOD_ALBUM = 13
 SORT_METHOD_ALBUM_IGNORE_THE = 14
@@ -110,6 +112,7 @@ def endOfDirectory(handle, succeeded=True, updateListing=False, cacheToDisc=True
 
 		xbmcplugin.endOfDirectory(int(sys.argv[1]), cacheToDisc=False)
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	pass
 
 
@@ -124,7 +127,7 @@ def setResolvedUrl(handle, succeeded, listitem):
 
 		xbmcplugin.setResolvedUrl(int(sys.argv[1]), True, listitem)
 	"""
-	print 'Resolving item {}'.format(listitem)
+	logger.debug('Resolving item {}'.format(listitem))
 	image=listitem.thumbnailImage if listitem.thumbnailImage != 'DefaultFolder.png' else ''
 	if listitem.getProperty('poster'):
 		image = listitem.getProperty('poster')
@@ -148,6 +151,7 @@ def addSortMethod(handle, sortMethod, label2Mask=''):
 
 		xbmcplugin.addSortMethod(int(sys.argv[1]), xbmcplugin.SORT_METHOD_TITLE)
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	pass
 
 
@@ -161,6 +165,7 @@ def getSetting(handle, id):
 
 		apikey = xbmcplugin.getSetting(int(sys.argv[1]), 'apikey')
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	return str()
 
 
@@ -175,6 +180,7 @@ def setSetting(handle, id, value):
 
 		xbmcplugin.setSetting(int(sys.argv[1]), id='username', value='teamxbmc')
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	pass
 
 
@@ -191,6 +197,7 @@ def setContent(handle, content):
 
 		xbmcplugin.setContent(int(sys.argv[1]), 'movies')
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	pass
 
 
@@ -204,6 +211,7 @@ def setPluginCategory(handle, category):
 
 		xbmcplugin.setPluginCategory(int(sys.argv[1]), 'Comedy')
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	pass
 
 
@@ -221,6 +229,7 @@ def setPluginFanart(handle, image=None, color1=None, color2=None, color3=None):
 		xbmcplugin.setPluginFanart(int(sys.argv[1]),
 				'special://home/addons/plugins/video/Apple movie trailers II/fanart.png', color2='0xFFFF3300')
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	pass
 
 
@@ -238,4 +247,5 @@ def setProperty(handle, key, value):
 
 		xbmcplugin.setProperty(int(sys.argv[1]), 'Emulator', 'M.A.M.E.')
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	pass

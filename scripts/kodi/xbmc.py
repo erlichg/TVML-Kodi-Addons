@@ -7,7 +7,8 @@ Various classes and functions to interact with Kodi.
 
 import xbmcgui as _xbmcgui
 import xbmcplugin as _xbmcplugin
-import time, re, os, sys, tempfile
+import time, re, os, sys, tempfile, logging, zipfile
+logger = logging.getLogger('TVMLServer')
 import app, kodi_utils
 
 if getattr(sys, 'frozen', False):
@@ -57,6 +58,8 @@ __version__ = '2.20.0'
 abortRequested = False
 bridge=None
 
+
+
 """Returns ``True`` if Kodi prepares to close itself"""
 
 
@@ -95,7 +98,7 @@ class Keyboard(object):
 			if (kb.isConfirmed()):
 				text = kb.getText()
 		"""
-		print 'init keyboard'
+		logger.debug('init keyboard')
 		self.ans = None
 		self.line = line
 		self.placeholder=''	
@@ -114,7 +117,7 @@ class Keyboard(object):
 
 			kb.doModal(30000)
 		"""
-		print 'Showing inputdialog'
+		logger.debug('Showing inputdialog')
 		self.ans = bridge.inputdialog(self.heading, description=self.line, placeholder=self.placeholder, secure=self.hidden)
 
 	def setDefault(self, line=''):
@@ -211,18 +214,18 @@ class Player(object):
 			xbmc.Player().play(url, listitem, windowed)
 			xbmc.Player().play(playlist, listitem, windowed, startpos)
 		"""
-		print 'called Player.play with item={}, listitem={}'.format(item, listitem)
+		logger.debug('called Player.play with item={}, listitem={}'.format(item, listitem))
 		if listitem:
 			if listitem.path.startswith('plugin://'):
 				function = 'Container.Update({})'.format(listitem.path)
-				print 'calling execute on {}'.format(function)
+				logger.debug('calling execute on {}'.format(function))
 				executebuiltin(function)
 			else:
 				_xbmcplugin.setResolvedUrl(None, True, listitem)		
 		elif url:
 			if url.startswith('plugin://'):
 				function = 'Container.Update({})'.format(url)
-				print 'calling execute on {}'.format(function)
+				logger.debug('calling execute on {}'.format(function))
 				executebuiltin(function)
 			else:
 				bridge.play(url=url)
@@ -230,41 +233,51 @@ class Player(object):
 
 	def stop(self):
 		"""Stop playing."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def pause(self):
 		"""Pause playing."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def playnext(self):
 		"""Play next item in playlist."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def playprevious(self):
 		"""Play previous item in playlist."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def playselected(self, selected):
 		"""Play a certain item from the current playlist."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onPlayBackStarted(self):
 		"""Will be called when xbmc starts playing a file."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onPlayBackEnded(self):
 		"""Will be called when xbmc stops playing a file."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onPlayBackStopped(self):
 		"""Will be called when user stops xbmc playing a file."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 
 	def onPlayBackPaused(self):
 		"""Will be called when user pauses a playing file."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onPlayBackResumed(self):
 		"""Will be called when user resumes a paused file."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onPlayBackSeek(self, time, seekOffset):
@@ -276,6 +289,7 @@ class Player(object):
 
 		Will be called when user seeks to a time
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onPlayBackSeekChapter(self, chapter):
@@ -286,6 +300,7 @@ class Player(object):
 
 		Will be called when user performs a chapter seek
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onPlayBackSpeedChanged(self, speed):
@@ -298,6 +313,7 @@ class Player(object):
 
 		Will be called when players speed changes. (eg. user FF/RW)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onQueueNextItem(self):
@@ -306,6 +322,7 @@ class Player(object):
 
 		Will be called when player requests next item
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def isPlaying(self):
@@ -328,6 +345,7 @@ class Player(object):
 
 		:raises: Exception, if player is not playing a file.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getVideoInfoTag(self):
@@ -337,6 +355,7 @@ class Player(object):
 
 		.. note:: This doesn't work yet, it's not tested.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return InfoTagVideo()
 
 	def getMusicInfoTag(self):
@@ -344,6 +363,7 @@ class Player(object):
 
 		:raises: Exception: If player is not playing a file or current file is not a music file.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return InfoTagMusic()
 
 	def getTotalTime(self):
@@ -353,6 +373,7 @@ class Player(object):
 
 		:raises: Exception: If player is not playing a file.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return float()
 
 	def getTime(self):
@@ -360,6 +381,7 @@ class Player(object):
 
 		:raises: Exception: If player is not playing a file.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return float()
 
 	def seekTime(self, pTime):
@@ -369,6 +391,7 @@ class Player(object):
 
 		:raises: Exception: If player is not playing a file.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setSubtitles(self, subtitleFile):
@@ -380,24 +403,29 @@ class Player(object):
 
 			setSubtitles('/path/to/subtitle/test.srt')
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def getSubtitles(self):
 		"""Get subtitle stream name."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def disableSubtitles(self):
 		"""Disable subtitles."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def getAvailableAudioStreams(self):
 		"""Get audio stream names."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return list()
 
 	def getAvailableSubtitleStreams(self):
 		"""
 		get Subtitle stream names
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return list()
 
 	def setAudioStream(self, iStream):
@@ -405,6 +433,7 @@ class Player(object):
 
 		:param iStream: int
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setSubtitleStream(self, iStream):
@@ -417,6 +446,7 @@ class Player(object):
 
 			setSubtitleStream(1)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def showSubtitles(self, bVisible):
@@ -429,6 +459,7 @@ class Player(object):
 
 			xbmc.Player().showSubtitles(True)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 
@@ -456,14 +487,17 @@ class PlayList(object):
 
 		Use PlayList[int position] or __getitem__(int position) to get a PlayListItem.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def __getitem__(self, item):
 		"""x.__getitem__(y) <==> x[y]"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return _xbmcgui.ListItem()
 
 	def __len__(self):
 		"""x.__len__() <==> len(x)"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return int()
 
 	def add(self, url, listitem=None, index=-1):
@@ -481,6 +515,7 @@ class PlayList(object):
 			listitem.setInfo('video', {'Title': 'Ironman', 'Genre': 'Science Fiction'})
 			playlist.add(url=video, listitem=listitem, index=7)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def load(self, filename):
@@ -492,6 +527,7 @@ class PlayList(object):
 		:param filename:
 		:return: ``False`` if unable to load playlist, True otherwise.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return bool(1)
 
 	def remove(self, filename):
@@ -499,30 +535,37 @@ class PlayList(object):
 
 		:param filename:
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def clear(self):
 		"""Clear all items in the playlist."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def shuffle(self):
 		"""Shuffle the playlist."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def unshuffle(self):
 		"""Unshuffle the playlist."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def size(self):
 		"""Returns the total number of PlayListItems in this playlist."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return int()
 
 	def getposition(self):
 		"""Returns the position of the current song in this playlist."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return int()
 
 	def getPlayListId(self):
 		"""getPlayListId() --returns an integer."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return int()
 
 
@@ -531,14 +574,17 @@ class PlayListItem(object):
 
 	def getdescription(self):
 		"""Returns the description of this PlayListItem."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getduration(self):
 		"""Returns the duration of this PlayListItem."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()
 
 	def getfilename(self):
 		"""Returns the filename of this PlayListItem."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 
@@ -546,66 +592,82 @@ class InfoTagMusic(object):
 	"""InfoTagMusic class"""
 	def getURL(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getTitle(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getArtist(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getAlbumArtist(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getAlbum(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getGenre(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getDuration(self):
 		"""Returns an integer."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return int()
 
 	def getTrack(self):
 		"""Returns an integer."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return int()
 
 	def getDisc(self):
 		"""Returns an integer."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return int()
 
 	def getTrackAndDisc(self):
 		"""Returns an integer."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return int()
 
 	def getReleaseDate(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getListeners(self):
 		"""Returns an integer."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return int()
 
 	def getPlayCount(self):
 		"""Returns an integer."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return int()
 
 	def getLastPlayed(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getComment(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getLyrics(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 
@@ -613,98 +675,122 @@ class InfoTagVideo(object):
 	"""InfoTagVideo class"""
 	def getDirector(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getWritingCredits(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getGenre(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getTagLine(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getPlotOutline(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getPlot(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getPictureURL(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getTitle(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getOriginalTitle(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getVotes(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getCast(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getFile(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getPath(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getIMDBNumber(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getYear(self):
 		"""Returns an integer."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return int()
 
 	def getPremiered(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getFirstAired(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getRating(self):
 		"""Returns a float."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return float()
 
 	def getPlayCount(self):
 		"""Returns an integer."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return int()
 
 	def getLastPlayed(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getTVShowTitle(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getMediaType(self):
 		"""Returns a string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getSeason(self):
 		"""Returns an int."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return int()
 
 	def getEpisode(self):
 		"""Returns an int."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return int()
 
 
@@ -718,12 +804,14 @@ class Monitor(object):
 		"""
 		.. warning:: Deprecated!
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onDatabaseUpdated(self, database):
 		"""
 		.. warning:: Deprecated!
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onScreensaverActivated(self):
@@ -732,6 +820,7 @@ class Monitor(object):
 
 		Will be called when screensaver kicks in
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onScreensaverDeactivated(self):
@@ -740,6 +829,7 @@ class Monitor(object):
 
 		Will be called when screensaver goes off
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onSettingsChanged(self):
@@ -748,12 +838,14 @@ class Monitor(object):
 
 		Will be called when addon settings are changed
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onDatabaseScanStarted(self, database):
 		"""
 		.. warning:: Deprecated!
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onNotification(self, sender, method, data):
@@ -766,6 +858,7 @@ class Monitor(object):
 
 		Will be called when Kodi receives or sends a notification
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onCleanStarted(self, library):
@@ -777,6 +870,7 @@ class Monitor(object):
 		Will be called when library clean has started
 		and return video or music to indicate which library is being cleaned
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onCleanFinished(self, library):
@@ -788,6 +882,7 @@ class Monitor(object):
 		Will be called when library clean has ended
 		and return video or music to indicate which library has been cleaned
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onDPMSActivated(self):
@@ -796,6 +891,7 @@ class Monitor(object):
 
 		Will be called when energysaving/DPMS gets active
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onDPMSDeactivated(self):
@@ -804,6 +900,7 @@ class Monitor(object):
 
 		Will be called when energysaving/DPMS is turned off
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onScanFinished(self, library):
@@ -815,6 +912,7 @@ class Monitor(object):
 		Will be called when library scan has ended
 		and return video or music to indicate which library has been scanned
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onScanStarted(self, library):
@@ -826,6 +924,7 @@ class Monitor(object):
 		Will be called when library scan has started
 		and return video or music to indicate which library is being scanned
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def waitForAbort(self, timeout=-1):
@@ -839,12 +938,14 @@ class Monitor(object):
 		:param timeout: float - (optional) timeout in seconds. Default: no timeout.
 		:return: bool
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return bool(0)
 
 	def abortRequested(self):
 		"""
 		Returns ``True`` if abort has been requested.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return bool(0)
 
 
@@ -867,12 +968,14 @@ class RenderCapture(object):
 
 		.. warning:: As of Kodi 17.x (Krypton) ``flags`` option will be depreciated.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def getAspectRatio(self):
 		"""
 		:return: aspect ratio of currently displayed video as a float number.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return float()
 
 	def getCaptureState(self):
@@ -887,12 +990,14 @@ class RenderCapture(object):
 
 		.. warning:: Will be depreciated in Kodi 17.x (Krypton)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return int()
 
 	def getHeight(self):
 		"""
 		:return: height of captured image.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return int()
 
 	def getImage(self, msecs=0):
@@ -906,6 +1011,7 @@ class RenderCapture(object):
 
 		The size of the image isgetWidth() * getHeight() * 4
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return bytearray()
 
 	def getImageFormat(self):
@@ -914,12 +1020,14 @@ class RenderCapture(object):
 
 		.. note:: As of Kodi 17.x (Krypton) 'BRRA' will always be returned
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def getWidth(self):
 		"""
 		:return: width of captured image.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return int()
 
 	def waitForCaptureStateChangeEvent(self, msecs=0):
@@ -930,6 +1038,7 @@ class RenderCapture(object):
 
 		The method will return ``1`` if the Event was triggered. Otherwise it will return ``0``.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return int()
 
 
@@ -941,6 +1050,7 @@ def audioResume():
 
 		xbmc.audioResume()
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	pass
 
 
@@ -952,6 +1062,7 @@ def audioSuspend():
 
 		xbmc.audioSuspend()
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	pass
 
 
@@ -971,6 +1082,7 @@ def convertLanguage(language, format):
 
 		language = xbmc.convertLanguage(English, xbmc.ISO_639_2)
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	return str()
 
 
@@ -984,6 +1096,7 @@ def enableNavSounds(yesNo):
 
 		xbmc.enableNavSounds(True)
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	pass
 
 
@@ -999,6 +1112,7 @@ def executeJSONRPC(jsonrpccommand):
 
 		response = xbmc.executeJSONRPC('{ "jsonrpc": "2.0", "method": "JSONRPC.Introspect", "id": 1 }')
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	return str()
 
 
@@ -1014,7 +1128,7 @@ def executebuiltin(function, wait=False):
 
 		xbmc.executebuiltin('XBMC.RunXBE(c:\avalaunch.xbe)')
 	"""
-	print 'evaluating {}'.format(function)
+	logger.debug('evaluating {}'.format(function))
 	m = re.search('.*Container.Update\(plugin://([^/]*)(.*)\)', function)
 	if m:
 		bridge._message({'type':'load', 'url':'/catalog/{}'.format(kodi_utils.b64encode(m.group(1))), 'data':kodi_utils.b64encode(m.group(2))})
@@ -1043,6 +1157,20 @@ def executebuiltin(function, wait=False):
 		icon = m.group(5)
 		bridge.alertdialog(title, message)
 		return str()
+	m = re.search('.*Extract\(([^,]*), ([^,]*)\)', function)
+	if m:
+		zip = m.group(1)
+		dir = m.group(2)
+		if not zipfile.is_zipfile(zip):
+			raise Exception('{} is not a valid zip file'.format(zip))
+		if not os.path.exists(dir):
+			os.pmakedirs(dir)
+		if not os.path.isdir(dir):
+			raise Exception('{} is not a dir or cannot be created'.format(dir))
+		with zipfile.ZipFile(zip, 'r') as f:
+				f.extractall(dir)
+				return str()
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	return str()
 
 
@@ -1056,6 +1184,7 @@ def executescript(script):
 
 		xbmc.executescript('special://home/scripts/update.py')
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	pass
 
 
@@ -1069,6 +1198,7 @@ def getCacheThumbName(path):
 
 		thumb = xbmc.getCacheThumbName('f:\videos\movie.avi')
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	return str()
 
 
@@ -1083,6 +1213,7 @@ def getCleanMovieTitle(path, usefoldername=False):
 
 		title, year = xbmc.getCleanMovieTitle('/path/to/moviefolder/test.avi', True)
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	return tuple()
 
 
@@ -1114,7 +1245,7 @@ def getCondVisibility(condition):
 		else:
 			return os.path.isdir(os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'addons', m.group(2)))
 		
-		
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))	
 	return bool(1)
 
 
@@ -1133,6 +1264,7 @@ def getDVDState():
 
 		dvdstate = xbmc.getDVDState()
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	return long()
 
 
@@ -1144,6 +1276,7 @@ def getFreeMem():
 
 		freemem = xbmc.getFreeMem()
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	return long()
 
 
@@ -1155,6 +1288,7 @@ def getGlobalIdleTime():
 
 		t = xbmc.getGlobalIdleTime()
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	return long()
 
 
@@ -1166,6 +1300,7 @@ def getIPAddress():
 
 		ip = xbmc.getIPAddress()
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	return str()
 
 
@@ -1181,6 +1316,7 @@ def getInfoImage(infotag):
 
 		filename = xbmc.getInfoImage('Weather.Conditions')
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	return str()
 
 
@@ -1198,6 +1334,7 @@ def getInfoLabel(cLine):
 	"""
 	if cLine == 'Container.PluginName':
 		return Container.plugin.id
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	return str()
 
 
@@ -1218,6 +1355,7 @@ def getLanguage(format=ENGLISH_NAME, region=False):
 
 		language = xbmc.getLanguage(xbmc.ENGLISH_NAME)
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	return str()
 
 
@@ -1233,6 +1371,7 @@ def getLocalizedString(id):
 
 		locstr = xbmc.getLocalizedString(6)
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	return unicode()
 
 
@@ -1249,6 +1388,7 @@ def getRegion(id):
 
 		date_long_format = xbmc.getRegion('datelong')
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	return str()
 
 
@@ -1263,6 +1403,7 @@ def getSkinDir():
 
 		skindir = xbmc.getSkinDir()
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	return str()
 
 
@@ -1281,6 +1422,7 @@ def getSupportedMedia(mediaType):
 
 		mTypes = xbmc.getSupportedMedia('video')
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	return str()
 
 
@@ -1308,7 +1450,17 @@ def log(msg, level=LOGNOTICE):
 
 		xbmc.log('This is a test string.', level=xbmc.LOGDEBUG)
 	"""
-	pass
+	conv = {
+	LOGDEBUG: logging.DEBUG, 
+	LOGERROR: logging.ERROR,
+	LOGFATAL: logging.FATAL,
+	LOGINFO: logging.INFO,
+	LOGNONE: logging.DEBUG,
+	LOGNOTICE: logging.INFO,
+	LOGSEVERE: logging.ERROR,
+	LOGWARNING: logging.WARNING
+	}
+	logger.log(conv[level], msg)
 
 
 def makeLegalFilename(filename, fatX=True):
@@ -1329,6 +1481,7 @@ def makeLegalFilename(filename, fatX=True):
 
 		filename = xbmc.makeLegalFilename('F: Age: The Meltdown.avi')
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	return str()
 
 
@@ -1344,6 +1497,7 @@ def playSFX(filename, useCached=True):
 		xbmc.playSFX('special://xbmc/scripts/dingdong.wav')
 		xbmc.playSFX('special://xbmc/scripts/dingdong.wav',False)
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	pass
 
 
@@ -1355,6 +1509,7 @@ def stopSFX():
 
 		xbmc.stopSFX()
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	pass
 
 
@@ -1366,6 +1521,7 @@ def restart():
 
 		xbmc.restart()
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	pass
 
 def shutdown():
@@ -1376,6 +1532,7 @@ def shutdown():
 
 		xbmc.shutdown()
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	pass
 
 
@@ -1392,6 +1549,7 @@ def skinHasImage(image):
 
 		exists = xbmc.skinHasImage('ButtonFocusedTexture.png')
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	return bool(1)
 
 
@@ -1427,6 +1585,7 @@ def startServer(iTyp, bStart, bWait=False):
 
 		xbmc.startServer(xbmc.SERVER_AIRPLAYSERVER, False)
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	pass
 
 
@@ -1453,6 +1612,7 @@ def translatePath(path):
 		return ans
 	if 'special://temp/' in path:
 		return path.replace('special://temp/', '{}{}'.format(tempfile.gettempdir(), os.path.sep))
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	return path
 
 
@@ -1469,4 +1629,5 @@ def validatePath(path):
 
 		fpath = xbmc.validatePath(somepath)
 	"""
+	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	return unicode()

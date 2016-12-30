@@ -1,5 +1,5 @@
 from __future__ import division
-import sys, os, imp, urllib, json, time, traceback, re, getopt, tempfile, AdvancedHTMLParser, urllib2, urlparse, zipfile, shutil, requests
+import sys, os, imp, urllib, json, time, traceback, re, getopt, tempfile, AdvancedHTMLParser, urllib2, urlparse, zipfile, shutil, requests, logging, psutil, subprocess
 from threading import Timer
 try:
 	from flask import Flask, render_template, send_from_directory, request, send_file
@@ -36,7 +36,7 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 
 
-#print sys.executable
+
 
 if getattr(sys, 'frozen', False):
 	# we are running in a bundle
@@ -67,7 +67,14 @@ if not os.path.exists(os.path.join(DATA_DIR, 'addons', 'packages')):
 	os.makedirs(os.path.join(DATA_DIR, 'addons', 'packages'))
 if not os.path.isdir(os.path.join(DATA_DIR, 'addons', 'packages')):
 	print '{} not a directory or cannot be created'.format(os.path.join(DATA_DIR, 'addons', 'packages'))
+	sys.exit(2)
+
+if not os.path.exists(os.path.join(DATA_DIR, 'logs')):
+	os.makedirs(os.path.join(DATA_DIR, 'logs'))
+if not os.path.isdir(os.path.join(DATA_DIR, 'logs')):
+	print '{} not a directory or cannot be created'.format(os.path.join(DATA_DIR, 'logs'))
 	sys.exit(2)	
+LOGFILE = os.path.join(DATA_DIR, 'logs', 'tvmlserver.log')
 
 sys.path.append(os.path.join(bundle_dir, 'scripts'))
 sys.path.append(os.path.join(bundle_dir, 'scripts', 'kodi'))
@@ -87,12 +94,24 @@ from scripts.bridge import bridge
 
 from scripts import messages
 
-
+logging.basicConfig(
+	level=logging.DEBUG,
+	format='%(asctime)s:%(levelname)s:%(name)s:%(message)s',
+	filename=LOGFILE,
+	filemode='w'
+)
+root = logging.getLogger()
+ch = logging.StreamHandler(sys.stdout)
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+root.addHandler(ch)
+logger = logging.getLogger('TVMLServer')
 
 class MyProcess(multiprocessing.Process):
 	def run(self):		
 		ans = self._target(*self._args, **self._kwargs)		
-		print 'Thread adding end message'
+		logger.debug('Thread adding end message')
 		self.message({'type':'end', 'ans':ans})			
 		self.onStop()
 		self.stop = True
@@ -124,7 +143,7 @@ def route(pid, id, res=None):
 	global PROCESSES
 	if pid in PROCESSES:
 		p = PROCESSES[pid]
-		print 'received response on process {}'.format(pid)
+		logger.debug('received response on process {}'.format(pid))
 		if p is not None:
 			p.responses.put({'id':id, 'response':res})
 			return 'OK', 204
@@ -180,9 +199,9 @@ def catalog(pluginid, process=None):
 			decoded_url = kodi_utils.b64decode(url)
 		decoded_id = kodi_utils.b64decode(pluginid)
 		if request.full_path.startswith('/catalog'):
-			print 'catalog {}, {}, {}'.format(decoded_id, decoded_url, process)
+			logger.debug('catalog {}, {}, {}'.format(decoded_id, decoded_url, process))
 		else:
-			print 'menu {}, {}'.format(decoded_id, process)
+			logger.debug('menu {}, {}'.format(decoded_id, process))
 		plugin = [p for p in PLUGINS if p.id == decoded_id][0]
 		if not plugin:
 			return render_template('alert.xml', title='Communication error', description="Failed to load page.\nThis could mean the server had a problem, or the request dialog timed-out\nPlease try again")
@@ -197,7 +216,7 @@ def catalog(pluginid, process=None):
 				p = Process(target=get_items, args=(plugin.id, decoded_url, CONTEXT, PLUGINS))
 			else:
 				p = Process(target=get_menu, args=(plugin.id, decoded_url))	
-			print 'saving process id {}'.format(p.id)		
+			logger.debug('saving process id {}'.format(p.id))	
 			PROCESSES[p.id] = p
 			def stop():
 				time.sleep(5) #close bridge after 5s
@@ -205,7 +224,7 @@ def catalog(pluginid, process=None):
 				del PROCESSES[p.id]
 			#b.thread.onStop = stop
 			p.start()
-		print 'entering while alive'
+		logger.debug('entering while alive')
 		while p.is_alive():
 			try:
 				msg = p.messages.get(False)
@@ -219,7 +238,7 @@ def catalog(pluginid, process=None):
 					del PROCESSES[p.id]
 					#p.join()
 					#p.terminate()
-					print 'PROCESS {} TERMINATED'.format(p.id)
+					logger.debug('PROCESS {} TERMINATED'.format(p.id))
 				return_url = None
 				if process:
 					#return on same url for more
@@ -233,7 +252,7 @@ def catalog(pluginid, process=None):
 				return method(plugin, msg, return_url)
 			except:
 				traceback.print_exc(file=sys.stdout)
-		print 'exiting while alive and entering 5s wait'
+		logger.debug('exiting while alive and entering 5s wait')
 		#Check for possible last message which could have appeared after the thread has died. This could happen if message was sent during time.sleep in while and loop exited immediately afterwards
 		start = 0
 		while start < 5: #wait at most 5 seconds
@@ -250,30 +269,18 @@ def catalog(pluginid, process=None):
 					del PROCESSES[p.id]
 					#p.join()
 					#p.terminate()
-					print 'PROCESS {} TERMINATED'.format(p.id)
+					logger.debug('PROCESS {} TERMINATED'.format(p.id))
 				return method(plugin, msg, request.url) if process else method(plugin, msg, '{}/{}'.format(request.url, p.id))	
 			except:
 				traceback.print_exc(file=sys.stdout)
-		print 'finished 5 sec wait'
+		logger.debug('finished 5 sec wait')
 		#if we got here, this means thread has probably crashed.
 		global PROCESSES
 		del PROCESSES[p.id]
 		p.join()
 		p.terminate()
-		print 'PROCESS {} CRASHED'.format(p.id)
-# 		def restart():
-# 			print 'restarting app'
-# 			global http_server
-# 			http_server.stop()
-# 			try:
-# 				p = psutil.Process(os.getpid())
-# 				for handler in p.get_open_files() + p.connections():
-# 					os.close(handler.fd)
-# 			except Exception, e:
-# 				print e
-# 			python = sys.executable
-# 			os.execl(python, python, *sys.argv)
-# 		Timer(1, restart, ()).start()
+		logger.error('PROCESS {} CRASHED'.format(p.id))
+ 		
 		return render_template('alert.xml', title='Communication error', description="Failed to load page.\nThis could mean the server had a problem, or the request dialog timed-out\nPlease try again")
 	except:
 		traceback.print_exc(file=sys.stdout)
@@ -287,7 +294,7 @@ def settings(response=None):
 		p = PROCESSES[response]
 	else:
 		p = Process(target=get_settings)
-		print 'saving process id {}'.format(p.id)		
+		logger.debug('saving process id {}'.format(p.id))	
 		PROCESSES[p.id] = p
 		def stop():
 			time.sleep(5) #close bridge after 5s
@@ -332,7 +339,7 @@ def settings(response=None):
 @app.route('/subtitles/<msg>')
 def subtitles(msg):
 	msg = kodi_utils.b64decode(msg)
-	print msg
+	logger.debug(msg)
 
 
 @app.route('/helloworld')
@@ -352,13 +359,16 @@ def main():
 				if len(matching) == 1:
 					favs.append(matching[0])
 					continue
-				print 'More than one addons found that match id {}'.format()
+				logger.warning('More than one addons found that match id {}'.format())
 			favs = [[p for p in PLUGINS if p.id == id][0] for id in favs]
 		except:
 			pass
-	while not AVAILABLE_ADDONS:
-		print 'Waiting for repository refresh...'
+	now = time.time()
+	while not AVAILABLE_ADDONS and time.time() - now < 30:
+		logger.debug('Waiting for repository refresh...')
 		time.sleep(1)
+	if not AVAILABLE_ADDONS:
+		logger.error('Failed to fetch remote repositories. Installing addons may not be available')
 	return render_template('main.xml', menu=PLUGINS, favs=favs, url=request.full_path, all=AVAILABLE_ADDONS)
 	
 @app.route('/removeAddon', methods=['POST'])
@@ -366,7 +376,7 @@ def removeAddon():
 	try:
 		if request.method == 'POST':
 			id = kodi_utils.b64decode(request.form.keys()[0])
-			print 'deleting plugin {}'.format(id)
+			logger.debug('deleting plugin {}'.format(id))
 			path = os.path.join(DATA_DIR, 'addons', id)
 			shutil.rmtree(path)
 			global PLUGINS
@@ -382,7 +392,8 @@ def removeAddon():
 def get_items(plugin_id, url, context, PLUGINS):
 	if 'setproctitle' in sys.modules:
 		setproctitle.setproctitle('python TVMLServer ({}:{})'.format(plugin_id, url))
-	print('Getting items for: {}'.format(url))	
+	logger = logging.getLogger(plugin_id)
+	logger.debug('Getting items for: {}'.format(url))	
 	
 	try:
 		plugin = [p for p in PLUGINS if p.id == plugin_id][0]
@@ -392,10 +403,9 @@ def get_items(plugin_id, url, context, PLUGINS):
 		b.context = context
 		items = plugin.run(b, url)
 	except:
-		traceback.print_exc(file=sys.stdout)
-		print 'Encountered error in plugin: {}'.format(plugin_id)		
+		logger.exception('Encountered error in plugin: {}'.format(plugin_id))
 		items = None
-	#print 'get_items finished with {}'.format(items)
+	#logger.debug('get_items finished with {}'.format(items))
 	return items
 	
 def get_menu(plugin_id, url):
@@ -408,18 +418,16 @@ def get_menu(plugin_id, url):
 		b = bridge()
 		items = plugin.settings(b, url)
 	except:
-		traceback.print_exc(file=sys.stdout)
-		print 'Encountered error in plugin: {}'.format(plugin_id)		
+		logger.exception('Encountered error in plugin: {}'.format(plugin_id))		
 		items = None
 	return items
 	
 def get_settings():
-	print 'getting settings'
+	logger.debug('getting settings')
 	try:
 		b = bridge()
 	except:
-		traceback.print_exc(file=sys.stdout)
-		print 'Encountered error in settings'
+		logger.exception('Encountered error in settings')
 
 
 def is_ascii(s):
@@ -427,7 +435,7 @@ def is_ascii(s):
 	
 def load_plugin(id):
 	p = [p for p in PLUGINS if p.id == id][0]
-	print 'returning plugin {}'.format(p)
+	logger.debug('returning plugin {}'.format(p))
 	return p
 	for plugin in os.listdir(os.path.join(DATA_DIR, 'addons')):
 		if not plugin.startswith('plugin.video.'):
@@ -436,60 +444,80 @@ def load_plugin(id):
 			dir = os.path.join(DATA_DIR, 'addons', plugin)
 			if not os.path.isdir(dir):
 				continue
-			print 'Loading kodi plugin {}'.format(plugin)
+			logger.debug('Loading kodi plugin {}'.format(plugin))
 			p = KodiPlugin(plugin)
 			PLUGINS.append(p)
-			print 'Successfully loaded plugin: {}'.format(p)
+			logger.debug('Successfully loaded plugin: {}'.format(p))
 		except Exception as e:
-			print 'Failed to load kodi plugin {}. Error: {}'.format(plugin, e)
-	print 'Failed to find plugin id {}'.format(id)
+			logger.debug('Failed to load kodi plugin {}. Error: {}'.format(plugin, e))
+	logger.error('Failed to find plugin id {}'.format(id))
 	return None
 	
 def getAvailableAddons(ans, REPOSITORIES):
-	print 'Refreshing repositories. Please wait...'	
+	logger.debug('Refreshing repositories. Please wait...')
+	temp = {}
 	parser = AdvancedHTMLParser.Parser.AdvancedHTMLParser()
 	for r in REPOSITORIES:
 		try:
-			p = urlparse.urlparse(r['list'])
-			base = '{}://{}'.format(p.scheme, p.netloc)
-			req = urllib2.Request(r['list'])
-			response = urllib2.urlopen(req, timeout=100)
-			link = response.read()
-			response.close()
-			parser.feed(link)
-			for a in parser.getElementsByTagName('a'):
-				if 'plugin.video.' in a.attributes['href']:
-					href = '{}{}'.format(base, a.attributes['href']) if a.attributes['href'].startswith('/') else a.attributes['href']  
-					#data = getDataOfAddon(href)
-					title = a.text
-					ans[title] = {'href':href, 'repo':r}
+			if 'list' in r:
+				p = urlparse.urlparse(r['list'])
+				base = '{}://{}'.format(p.scheme, p.netloc)
+				req = urllib2.Request(r['list'])
+				response = urllib2.urlopen(req, timeout=100)
+				link = response.read()
+				response.close()
+				parser.feed(link)
+				for a in parser.getElementsByTagName('a'):
+					if 'plugin.video.' in a.attributes['href']:
+						href = '{}{}'.format(base, a.attributes['href']) if a.attributes['href'].startswith('/') else a.attributes['href']  
+						#data = getDataOfAddon(href)
+						title = a.text
+						temp[title] = {'href':href, 'repo':r}
+			elif 'xml' in r:
+				req = urllib2.Request(r['xml'])
+				response = urllib2.urlopen(req, timeout=100)
+				link = response.read()
+				response.close()
+				parser.feed(link)
+				for a in parser.getElementsByTagName('addon'):
+					if 'plugin.video.' in a.attributes['id']:
+						title = a.attributes['id']
+						temp[title] = {'xml':r['xml'], 'id':title, 'repo':r}
+						
 		except Exception as e:
-			print 'Couldn\'t read repository {} because of {}'.format(r, e)
-			traceback.print_exc(file=sys.stdout)
-	print 'Finished refreshing repositories'
+			logger.exception('Cannot read repository {} because of {}'.format(r, e))
+	ans.update(temp)
+	logger.debug('Finished refreshing repositories')
 	
 @app.route('/getAddonData', methods=['POST'])
 def getAddonData():
 	if request.method == 'POST':
 		try:
 			data = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
-			addon_data = getDataOfAddon(data['href'])
+			addon_data = getDataOfAddon(data)
 			return render_template('descriptiveAlert.xml', _dict=addon_data, title=addon_data['id'])
 		except:
 			traceback.print_exc(file=sys.stdout)
 			return render_template('alert.xml', title='Error', description="Failed to get addon data")
 
-def getDataOfAddon(href):
-	if not href:
+def getDataOfAddon(data):
+	if not 'href' in data and not 'xml' in data:
 		return None
 	try:
 		parser = AdvancedHTMLParser.Parser.AdvancedHTMLParser()
-		req = urllib2.Request('{}/addon.xml'.format(href.replace('tree', 'raw')))
+		req = urllib2.Request('{}/addon.xml'.format(data['href'].replace('tree', 'raw'))) if 'href' in data else urllib2.Request(data['xml'])
 		response = urllib2.urlopen(req, timeout=100)
 		link = response.read()
 		response.close()
 		parser.feed(link)
-		addon = parser.getElementsByTagName('addon')[0]
+		addons = parser.getElementsByTagName('addon')
+		if len(addons) == 1:
+			addon = addons[0]
+		elif 'id' in data:
+			addon = [a for a in addons if a.attributes['id'] == data['id']][0]
+		else:
+			logger.error('Could not find addon xml')
+			return None
 		ans = addon.attributes
 		meta = [t for t in parser.getElementsByTagName('extension') if t.attributes['point'] == 'xbmc.addon.metadata'][0]
 		ans.update({t.tagName:t.text for t in meta.children})
@@ -497,21 +525,17 @@ def getDataOfAddon(href):
 	except:
 		return None
 	
-@app.route('/addonInfo/<id>')
-def addonInfo(id):
-	return getDataOfAddon(AVAILABLE_ADDONS[id])
-	
 @app.route('/installAddon', methods=['POST'])
 def installAddon():
 	if request.method == 'POST':		
 		try:
 			data = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
-			addon_data = getDataOfAddon(data['href'])
+			addon_data = getDataOfAddon(data)
 			alreadyInstalled = [p for p in PLUGINS if p.id == addon_data['id']]
 			if alreadyInstalled:
 				return render_template('alert.xml', title='Already installed', description="This addon is already installed")
 			download_url = '{0}/{1}/{1}-{2}.zip'.format(data['repo']['download'], addon_data['id'], addon_data['version'])
-			print 'downloading plugin {}'.format(download_url)			
+			logger.debug('downloading plugin {}'.format(download_url))			
 			temp = os.path.join(tempfile.gettempdir(), '{}.zip'.format(addon_data['id']))
 			r = requests.get(download_url, stream=True)
 			if not r.status_code == 200:
@@ -532,6 +556,30 @@ def installAddon():
 			traceback.print_exc(file=sys.stdout)
 			return render_template('alert.xml', title='Install error', description="Failed to install addon.\nThis could be due to a network error or bad repository parsing")
 	return render_template('alert.xml', title='URL error', description='This URL is invalid')
+
+@app.route('/viewLog')
+def viewLog():
+	with open(LOGFILE, 'r') as f:
+		log = f.readlines()
+		log.reverse()
+		return render_template('logTemplate.xml', title='TVMLServer log', text=''.join(log))
+		
+@app.route('/restart')
+def restart():
+	print 'restarting app'
+	global http_server
+	http_server.stop()
+	#try:
+	#	p = psutil.Process(os.getpid())
+	#	for handler in p.open_files() + p.connections():
+	#		os.close(handler.fd)
+	#except Exception, e:
+	#	print e
+	exe = sys.executable
+	subprocess.Popen([exe]+sys.argv)
+	#os.execl(python, python, *sys.argv)
+	sys.exit(0)
+
 
 def help(argv):
 	print 'Usage: {} [-p <port>] [-d <dir>]'.format(argv[0])
@@ -585,14 +633,10 @@ def mmain(argv):
 	{'list':'https://github.com/xbmc/repo-plugins/tree/isengard', 'download':'http://mirrors.kodi.tv/addons/isengard'},
 	{'list':'https://github.com/xbmc/repo-plugins/tree/jarvis', 'download':'http://mirrors.kodi.tv/addons/jarvis'},
 	{'list':'https://github.com/xbmc/repo-plugins/tree/krypton', 'download':'http://mirrors.kodi.tv/addons/krypton'},
-	{'list':'https://github.com/cubicle-vdo/xbmc-israel', 'download':'https://github.com/cubicle-vdo/xbmc-israel/raw/master/repo'}
+	{'list':'https://github.com/cubicle-vdo/xbmc-israel', 'download':'https://github.com/cubicle-vdo/xbmc-israel/raw/master/repo'},
+	{'xml':'https://offshoregit.com/exodus/addons.xml', 'download':'https://offshoregit.com/exodus/'}
 	]
-	
-	global AVAILABLE_ADDONS
-	AVAILABLE_ADDONS = manager.dict()
-	p = multiprocessing.Process(target=getAvailableAddons, args=(AVAILABLE_ADDONS, REPOSITORIES))
-	p.start()
-	p.join()
+				
 	
 	for plugin in os.listdir(os.path.join(DATA_DIR, 'addons')):
 		if not plugin.startswith('plugin.video.'):
@@ -601,12 +645,12 @@ def mmain(argv):
 			dir = os.path.join(DATA_DIR, 'addons', plugin)
 			if not os.path.isdir(dir):
 				continue
-			print 'Loading kodi plugin {}'.format(plugin)
+			logger.debug('Loading kodi plugin {}'.format(plugin))
 			p = KodiPlugin(plugin)
 			PLUGINS.append(p)
-			print 'Successfully loaded plugin: {}'.format(p)
+			logger.debug('Successfully loaded plugin: {}'.format(p))
 		except Exception as e:
-			print 'Failed to load kodi plugin {}. Error: {}'.format(plugin, e)
+			logger.error('Failed to load kodi plugin {}. Error: {}'.format(plugin, e))
 	global http_server		
 	http_server = WSGIServer(('',port), app)
 	import socket
@@ -614,16 +658,26 @@ def mmain(argv):
 		addr = socket.gethostbyname(socket.gethostname())
 	except:
 		addr = socket.gethostname()
+	
+		
+
 	print
 	print 'Server now running on port {}'.format(port)
-	print 'Connect your TVML client to: http://{}:{}'.format(addr, port)
-	#http_server.log = open('http.log', 'w')
+	print 'Connect your TVML client to: http://{}:{}'.format(addr, port)	
+	
+	global AVAILABLE_ADDONS
+	AVAILABLE_ADDONS = manager.dict()
+	p = multiprocessing.Process(target=getAvailableAddons, args=(AVAILABLE_ADDONS, REPOSITORIES))
+	p.start()
+	#p.join()
+	
+		#http_server.log = open('http.log', 'w')
 	http_server.serve_forever()
 	
 	#app.run(debug=True, host='0.0.0.0')
 		
 if __name__ == '__main__':	
-
+	
 	multiprocessing.freeze_support()
 
 	# Module multiprocessing is organized differently in Python 3.4+

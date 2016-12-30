@@ -5,7 +5,8 @@ Classes and functions to work with Kodi GUI
 
 import xbmc as _xbmc
 from Plugin import Item
-import ast
+import ast, sys, logging
+logger = logging.getLogger('TVMLServer')
 
 ACTION_ANALOG_FORWARD = 113
 ACTION_ANALOG_MOVE = 49
@@ -371,6 +372,7 @@ class Window(object):
 		.. note:: If your script ends this window will be closed to. To show it forever,
 			make a loop at the end of your script and use ``doModal()`` instead.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def close(self):
@@ -379,6 +381,7 @@ class Window(object):
 		Closes this window by activating the old window.
 		The window is not deleted with this method.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onAction(self, action):
@@ -390,6 +393,7 @@ class Window(object):
 
 		Don't forget to capture ``ACTION_PREVIOUS_MENU``, else the user can't close this window.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onClick(self, controlId):
@@ -397,6 +401,7 @@ class Window(object):
 
 		This method will recieve all click events that the main program will send to this window.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onDoubleClick(self, controlId):
@@ -406,6 +411,7 @@ class Window(object):
 		This method will recieve all double click events that the main program will send
 		to this window.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onControl(self, control):
@@ -415,6 +421,7 @@ class Window(object):
 		This method will recieve all control events that the main program will send to this window.
 		'control' is an instance of a Control object.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onFocus(self, control):
@@ -422,6 +429,7 @@ class Window(object):
 
 		This method will recieve all focus events that the main program will send to this window.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onInit(self):
@@ -429,10 +437,12 @@ class Window(object):
 
 		This method will be called to initialize the window.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def doModal(self):
 		"""Display this window until ``close()`` is called."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def addControl(self, pControl):
@@ -455,6 +465,7 @@ class Window(object):
 			* ``ControlRadioButton``
 			* ``ControlProgress``
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def addControls(self, pControls):
@@ -465,6 +476,7 @@ class Window(object):
 		:raises: ``ReferenceError``, if control is already used in another window
 		:raises: ``RuntimeError``, should not happen :-)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def getControl(self, iControlId):
@@ -478,6 +490,7 @@ class Window(object):
 		.. note:: Non-Python controls are not completely usable yet.
 			You can only use the ``Control`` functions.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return Control()
 
 	def setFocus(self, pControl):
@@ -487,6 +500,7 @@ class Window(object):
 		:raises: ``SystemError``: On Internal error.
 		:raises: ``RuntimeError``: If control is not added to a window.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setFocusId(self, iControlId):
@@ -495,6 +509,7 @@ class Window(object):
 		:raises: ``SystemError``: On Internal error.
 		:raises: ``RuntimeError``: If control is not added to a window.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def getFocus(self):
@@ -503,6 +518,7 @@ class Window(object):
 		:raises: ``SystemError``: On Internal error.
 		:raises: ``RuntimeError``: If no control has focus.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return Control
 
 	def getFocusId(self):
@@ -511,6 +527,7 @@ class Window(object):
 		:raises: ``SystemError``: On Internal error.
 		:raises: ``RuntimeError``: If no control has focus.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()
 
 	def removeControl(self, pControl):
@@ -521,6 +538,7 @@ class Window(object):
 
 		This will not delete the control. It is only removed from the window.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def removeControls(self, pControls):
@@ -532,14 +550,17 @@ class Window(object):
 
 		This will not delete the controls. They are only removed from the window.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def getHeight(self):
 		"""Returns the height of this screen."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()
 
 	def getWidth(self):
 		"""Returns the width of this screen."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()
 
 	def getResolution(self):
@@ -569,6 +590,7 @@ class Window(object):
 
 		See: https://github.com/xbmc/xbmc/blob/master/xbmc/guilib/Resolution.h
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()
 
 	def setCoordinateResolution(self, res):
@@ -601,6 +623,7 @@ class Window(object):
 
 		See: https://github.com/xbmc/xbmc/blob/master/xbmc/guilib/Resolution.h
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setProperty(self, key, value):
@@ -673,6 +696,7 @@ class WindowDialog(Window):
 
 	Unlike Window, WindowDialog always stays on top of XBMC UI.
 	"""
+	logger.warning('WindowDialog not implemented')
 	pass
 
 
@@ -716,6 +740,7 @@ class WindowXML(Window):
 			ui.doModal()
 			del ui
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def removeItem(self, position):
@@ -723,6 +748,7 @@ class WindowXML(Window):
 
 		:param position: integer - position of item to remove.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def addItem(self, item, position=32767):
@@ -738,10 +764,12 @@ class WindowXML(Window):
 
 			self.addItem('Reboot XBMC', 0)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def clearList(self):
 		"""Clear the Window List."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setCurrentListPosition(self, position):
@@ -749,10 +777,12 @@ class WindowXML(Window):
 
 		:param position: integer - position of item to set.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def getCurrentListPosition(self):
 		"""Gets the current position in the Window List."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return int()
 
 	def getListItem(self, position):
@@ -760,10 +790,12 @@ class WindowXML(Window):
 
 		:param position: integer - position of item to return.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return ListItem()
 
 	def getListSize(self):
 		"""Returns the number of items in this Window List."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return int()
 
 	def setProperty(self, strProperty, strValue):
@@ -778,6 +810,7 @@ class WindowXML(Window):
 
 			self.setProperty('Category', 'Newest')
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def getCurrentContainerId(self):
@@ -788,6 +821,7 @@ class WindowXML(Window):
 
 			container_id = self.getCurrentContainerId()
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return int()
 
 
@@ -811,6 +845,7 @@ class WindowXMLDialog(WindowXML):
 		ui.doModal()
 		del ui
 	"""
+	logger.warning('WindowXMSDialog not implemented')
 	pass
 
 
@@ -844,12 +879,15 @@ class Control(object):
 	while the former will remain as deprecated functionality for Python.
 	"""
 	def addItem(self):
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def addItems(self):
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def canAcceptMessages(self):
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def controlDown(self, control):
@@ -867,6 +905,7 @@ class Control(object):
 
 			self.button.controlDown(self.button1)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def controlLeft(self, control):
@@ -884,6 +923,7 @@ class Control(object):
 
 			self.button.controlLeft(self.button1)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def controlRight(self, control):
@@ -901,6 +941,7 @@ class Control(object):
 
 			self.button.controlRight(self.button1)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def controlUp(self, control):
@@ -918,6 +959,7 @@ class Control(object):
 
 			self.button.controlUp(self.button1)
 		 """
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def getHeight(self):
@@ -928,6 +970,7 @@ class Control(object):
 
 			height = self.button.getHeight()
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()
 
 	def getId(self):
@@ -938,6 +981,7 @@ class Control(object):
 
 			id = self.button.getId()
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()
 
 	def getPosition(self):
@@ -948,6 +992,7 @@ class Control(object):
 
 			pos = self.button.getPosition()
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long(), long()
 
 	def getWidth(self):
@@ -958,18 +1003,21 @@ class Control(object):
 
 			width = self.button.getWidth()
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()
 
 	def getX(self):
 		"""
 		Get X coordinate of a control as an integer.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()
 
 	def getY(self):
 		"""
 		Get Y coordinate of a control as an integer.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()
 
 	def setAnimations(self, eventAttr):
@@ -987,6 +1035,7 @@ class Control(object):
 
 			self.button.setAnimations([('focus', 'effect=zoom end=90,247,220,56 time=0',)])
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setEnableCondition(self, enable):
@@ -1003,6 +1052,7 @@ class Control(object):
 
 			self.button.setEnableCondition('System.InternetState')
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setEnabled(self, enabled):
@@ -1015,6 +1065,7 @@ class Control(object):
 
 			self.button.setEnabled(False)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setHeight(self, height):
@@ -1027,6 +1078,7 @@ class Control(object):
 
 			self.image.setHeight(100)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setNavigation(self, up, down, left, right):
@@ -1048,6 +1100,7 @@ class Control(object):
 
 			self.button.setNavigation(self.button1, self.button2, self.button3, self.button4)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setPosition(self, x, y):
@@ -1063,6 +1116,7 @@ class Control(object):
 
 			self.button.setPosition(100, 250)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setVisible(self, visible):
@@ -1075,6 +1129,7 @@ class Control(object):
 
 			self.button.setVisible(False)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setVisibleCondition(self, condition, allowHiddenFocus=False):
@@ -1092,6 +1147,7 @@ class Control(object):
 
 			self.button.setVisibleCondition('[Control.IsVisible(41) + !Control.IsVisible(12)]', True)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setWidth(self, width):
@@ -1104,6 +1160,7 @@ class Control(object):
 
 			self.image.setWidth(100)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 
@@ -1164,15 +1221,15 @@ class ListItem(object):
 
 		Video Values::
 
-			codec		  : string (h264)
-			aspect		  : float (1.78)
-			width		  : integer (1280)
-			height		  : integer (720)
+			codec			: string (h264)
+			aspect			 : float (1.78)
+			width			: integer (1280)
+			height			 : integer (720)
 			duration	  : integer (seconds)
 
 		Audio Values::
 
-			codec		  : string (dts)
+			codec			: string (dts)
 			language	  : string (en)
 			channels	  : integer (2)
 
@@ -1192,6 +1249,7 @@ class ListItem(object):
 		"""
 		Returns the description of this PlayListItem.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return 'description'
 
 	def getduration(self):
@@ -1247,10 +1305,11 @@ class ListItem(object):
 
 		:param selected: bool - True=selected/False=not selected.
 		"""
-		print 'select item {}'.format(self.title)
+		logger.debug('select item {}'.format(self.title))
 
 	def isSelected(self):
 		"""Returns the listitem's selected status."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return False
 
 	def setInfo(self, type, infoLabels):
@@ -1344,7 +1403,7 @@ class ListItem(object):
 			Key is NOT case sensitive.
 
 		Some of these are treated internally by XBMC, such as the 'StartOffset' property, which is
-		the offset in seconds at which to start playback of an item.  Others may be used in the skin
+		the offset in seconds at which to start playback of an item.	Others may be used in the skin
 		to add extra information, such as 'WatchedCount' for tvshow items
 
 		Example::
@@ -1378,7 +1437,7 @@ class ListItem(object):
 			listitem.addContextMenuItems([('Theater Showtimes',
 					'XBMC.RunScript(special://home/scripts/showtimes/default.py,Iron Man)')])
 		"""
-		print 'adding contextmenus {}'.format(items)
+		logger.debug('adding contextmenus {}'.format(items))
 		if replaceItems:
 			self.context = items
 		else:
@@ -1443,6 +1502,7 @@ class ListItem(object):
 
 		If known prehand, this can avoid xbmc doing ``HEAD`` requests to http servers to figure out file type.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setSubtitles(self, subtitleFiles):
@@ -1535,6 +1595,7 @@ class ControlLabel(Control):
 
 			self.label = xbmcgui.ControlLabel(100, 250, 125, 75, 'Status', angle=45)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setLabel(self, label='', font=None, textColor=None, disabledColor=None, shadowColor=None,
@@ -1543,10 +1604,12 @@ class ControlLabel(Control):
 
 		:param label: string or unicode - text string.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def getLabel(self):
 		"""Returns the text value for this label."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return unicode()
 
 
@@ -1590,6 +1653,7 @@ class ControlFadeLabel(Control):
 
 			self.fadelabel = xbmcgui.ControlFadeLabel(100, 250, 200, 50, textColor='0xFFFFFFFF')
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def addLabel(self, label):
@@ -1597,10 +1661,12 @@ class ControlFadeLabel(Control):
 
 		:param label: string or unicode - text string.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def reset(self):
 		"""Clears this fadelabel."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 
@@ -1644,6 +1710,7 @@ class ControlTextBox(Control):
 
 			self.textbox = xbmcgui.ControlTextBox(100, 250, 300, 300, textColor='0xFFFFFFFF')
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def autoScroll(self, delay, time, repeat):
@@ -1658,6 +1725,7 @@ class ControlTextBox(Control):
 
 			self.textbox.autoScroll(1, 2, 1)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def getText(self):
@@ -1668,6 +1736,7 @@ class ControlTextBox(Control):
 
 			text = self.text.getText()
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return unicode()
 
 	def setText(self, text):
@@ -1675,6 +1744,7 @@ class ControlTextBox(Control):
 
 		:param text: string or unicode - text string.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def scroll(self, id):
@@ -1682,10 +1752,12 @@ class ControlTextBox(Control):
 
 		:param id: integer - position to scroll to.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def reset(self):
 		"""Clear's this textbox."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 
@@ -1754,6 +1826,7 @@ class ControlButton(Control):
 
 			self.button = xbmcgui.ControlButton(100, 250, 200, 50, 'Status', font='font14')
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setDisabledColor(self, color):
@@ -1761,6 +1834,7 @@ class ControlButton(Control):
 
 		:param color: hexstring - color of disabled button's label. (e.g. '0xFFFF3300')
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setLabel(self, label='', font=None, textColor=None, disabledColor=None, shadowColor=None,
@@ -1779,14 +1853,17 @@ class ControlButton(Control):
 
 			self.button.setLabel('Status', 'font14', '0xFFFFFFFF', '0xFFFF3300', '0xFF000000')
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def getLabel(self):
 		"""Returns the buttons label as a unicode string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return unicode()
 
 	def getLabel2(self):
 		"""Returns the buttons label2 as a unicode string."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return unicode()
 
 
@@ -1846,6 +1923,7 @@ class ControlCheckMark(Control):
 
 			self.checkmark = xbmcgui.ControlCheckMark(100, 250, 200, 50, 'Status', font='font14')
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setDisabledColor(self, color):
@@ -1853,6 +1931,7 @@ class ControlCheckMark(Control):
 
 		:param color: hexstring - color of disabled checkmark's label. (e.g. '0xFFFF3300')
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setLabel(self, label='', font=None, textColor=None, disabledColor=None,
@@ -1868,10 +1947,12 @@ class ControlCheckMark(Control):
 
 			self.checkmark.setLabel('Status', 'font14', '0xFFFFFFFF', '0xFFFF3300')
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def getSelected(self):
 		"""Returns the selected status for this checkmark as a bool."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return bool(1)
 
 	def setSelected(self, selected):
@@ -1879,6 +1960,7 @@ class ControlCheckMark(Control):
 
 		:param selected: bool - True=selected (on) / False=not selected (off)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 
@@ -1945,6 +2027,7 @@ class ControlList(Control):
 
 			self.cList = xbmcgui.ControlList(100, 250, 200, 250, 'font14', _space=5)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def addItem(self, item, sendMessage=True):
@@ -1952,6 +2035,7 @@ class ControlList(Control):
 
 		:param item: string, unicode or ListItem - item to add.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def addItems(self, items):
@@ -1959,6 +2043,7 @@ class ControlList(Control):
 
 		:param items: List - list of strings, unicode objects or ListItems to add.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def selectItem(self, item):
@@ -1966,10 +2051,12 @@ class ControlList(Control):
 
 		:param item: integer - index number of the item to select.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def reset(self):
 		"""Clear all ListItems in this control list."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def getSpinControl(self):
@@ -1979,6 +2066,7 @@ class ControlList(Control):
 			After adding this control list to a window it is not possible to change
 			the settings of this spin control.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return ControlSpin()
 
 	def setImageDimensions(self, imageWidth, imageHeight):
@@ -1987,6 +2075,7 @@ class ControlList(Control):
 		:param imageWidth: integer - width of items icon or thumbnail.
 		:param imageHeight: integer - height of items icon or thumbnail.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setItemHeight(self, itemHeight):
@@ -1994,6 +2083,7 @@ class ControlList(Control):
 
 		:param itemHeight: integer - height of items.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setPageControlVisible(self, visible):
@@ -2001,6 +2091,7 @@ class ControlList(Control):
 
 		:param visible: boolean - True=visible / False=hidden.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setSpace(self, space):
@@ -2008,6 +2099,7 @@ class ControlList(Control):
 
 		:param space: integer - space between items.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def getSelectedPosition(self):
@@ -2015,18 +2107,21 @@ class ControlList(Control):
 
 		.. note:: Returns ``-1`` for empty lists.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()
 
 	def getSelectedItem(self):
 		"""Returns the selected item as a ListItem object.
 
-	   .. note:: Same as ``getSelectedPosition()``, but instead of an integer a ``ListItem`` object is returned.
+		.. note:: Same as ``getSelectedPosition()``, but instead of an integer a ``ListItem`` object is returned.
 			Returns ``None`` for empty lists.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return ListItem()
 
 	def size(self):
 		"""Returns the total number of items in this list control as an integer."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()
 
 	def getListItem(self, index):
@@ -2036,14 +2131,17 @@ class ControlList(Control):
 
 		:raises ValueError: If index is out of range.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return ListItem()
 
 	def getItemHeight(self):
 		"""Returns the control's current item height as an integer."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()
 
 	def getSpace(self):
 		"""Returns the control's space between items as an integer."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()
 
 	def setStaticContent(self, items):
@@ -2051,6 +2149,7 @@ class ControlList(Control):
 
 		:param items: List - list of listitems to add.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def removeItem(self, index):
@@ -2063,6 +2162,7 @@ class ControlList(Control):
 
 			my_list.removeItem(12)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 
@@ -2109,6 +2209,7 @@ class ControlImage(Control):
 
 			self.image = xbmcgui.ControlImage(100, 250, 125, 75, aspectRatio=2)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setImage(self, imageFilename, useCache=True):
@@ -2116,6 +2217,7 @@ class ControlImage(Control):
 
 		:param imageFilename: string - image filename.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setColorDiffuse(self, hexString):
@@ -2123,6 +2225,7 @@ class ControlImage(Control):
 
 		:param hexString: - example -- '0xC0FF0000' (red tint).
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 
@@ -2176,6 +2279,7 @@ class ControlProgress(Control):
 
 			self.progress = xbmcgui.ControlProgress(100, 250, 125, 75)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setPercent(self, pct):
@@ -2186,10 +2290,12 @@ class ControlProgress(Control):
 		.. note::
 			Valid range for percent is 0-100.
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def getPercent(self):
 		"""Returns a float of the percent of the progress."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return float()
 
 
@@ -2235,10 +2341,12 @@ class ControlSlider(Control):
 
 			self.slider = xbmcgui.ControlSlider(100, 250, 350, 40)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def getPercent(self):
 		"""Returns a float of the percent of the slider."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return float()
 
 	def setPercent(self, percent):
@@ -2246,6 +2354,7 @@ class ControlSlider(Control):
 
 		:param percent: float -- slider % value
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 
@@ -2277,6 +2386,7 @@ class ControlGroup(Control):
 
 			self.group = xbmcgui.ControlGroup(100, 250, 125, 75)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 
@@ -2336,16 +2446,18 @@ class ControlEdit(Control):
 
 			self.edit = xbmcgui.ControlEdit(100, 250, 125, 75, 'Status')
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def getLabel(self):
 		"""
-	   Returns the text heading for this edit control.
+		Returns the text heading for this edit control.
 
 		example::
 
 			label = self.edit.getLabel()
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return unicode()
 
 	def getText(self):
@@ -2356,6 +2468,7 @@ class ControlEdit(Control):
 
 			value = self.edit.getText()
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return unicode()
 
 	def setLabel(self, label='', font=None, textColor=None, disabledColor=None, shadowColor=None,
@@ -2369,6 +2482,7 @@ class ControlEdit(Control):
 
 			self.edit.setLabel('Status')
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setText(self, text):
@@ -2381,6 +2495,7 @@ class ControlEdit(Control):
 
 			self.edit.setText('online')
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 
@@ -2425,6 +2540,7 @@ class ControlRadioButton(Control):
 		Example:
 			self.radiobutton = xbmcgui.ControlRadioButton(100, 250, 200, 50, 'Status', font='font14')
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setSelected(self, selected):
@@ -2432,6 +2548,7 @@ class ControlRadioButton(Control):
 
 		:param selected: bool - True=selected (on) / False=not selected (off)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def isSelected(self):
@@ -2452,6 +2569,7 @@ class ControlRadioButton(Control):
 
 			self.radiobutton.setLabel('Status', 'font14', '0xFFFFFFFF', '0xFFFF3300', '0xFF000000')
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def setRadioDimension(self, x, y, width, height):
@@ -2466,6 +2584,7 @@ class ControlRadioButton(Control):
 
 			radiobutton.setRadioDimension(x=100, y=5, width=20, height=20)
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 
@@ -2484,6 +2603,7 @@ class ControlSpin(Control):
 
 		texture are image files that are used for example in the skin
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 
@@ -2494,7 +2614,7 @@ class Dialog(object):
 	Then you need to call a method to open the respective dialog.
 	"""
 	def browse(self, type, heading, s_shares, mask='', useThumbs=False, treatAsFolder=False, defaultt='',
-			   enableMultiple=False):
+				  enableMultiple=False):
 		"""Show a 'Browse' dialog.
 
 		:param type: integer - the type of browse dialog.
@@ -2528,6 +2648,7 @@ class Dialog(object):
 			dialog = xbmcgui.Dialog()
 			fn = dialog.browse(3, 'XBMC', 'files', '', False, False, False, 'special://masterprofile/script_data/XBMC Lyrics')
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def browseMultiple(self, type, heading, shares, mask='', useThumbs=None, treatAsFolder=None, defaultt=''):
@@ -2557,6 +2678,7 @@ class Dialog(object):
 			dialog = xbmcgui.Dialog()
 			fn = dialog.browseMultiple(2, 'XBMC', 'files', '', False, False, 'special://masterprofile/script_data/XBMC Lyrics')
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return tuple()
 
 	def browseSingle(self, type, heading, shares, mask='', useThumbs=None, treatAsFolder=None, defaultt=''):
@@ -2587,6 +2709,7 @@ class Dialog(object):
 			dialog = xbmcgui.Dialog()
 			fn = dialog.browse(3, 'XBMC', 'files', '', False, False, 'special://masterprofile/script_data/XBMC Lyrics')
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def input(self, heading, default='', type=INPUT_ALPHANUM, option=0, autoclose=0):
@@ -2625,7 +2748,7 @@ class Dialog(object):
 			dialog = xbmcgui.Dialog()
 			d = dialog.input('Enter secret code', type=xbmcgui.INPUT_ALPHANUM, option=xbmcgui.ALPHANUM_HIDE_INPUT)
 		"""
-		print 'Calling bridge inputdialog'
+		logger.debug('Calling bridge inputdialog')
 		if options in [xbmcgui.PASSWORD_VERIFY, xbmcgui.ALPHANUM_HIDE_INPUT] or type == xbmcgui.INPUT_PASSWORD:
 			secure = True
 		else:
@@ -2641,9 +2764,9 @@ class Dialog(object):
 
 		Types::
 
-			0: ShowAndGetNumber	   (default format: #)
-			1: ShowAndGetDate	   (default format: DD/MM/YYYY)
-			2: ShowAndGetTime	   (default format: HH:MM)
+			0: ShowAndGetNumber		  (default format: #)
+			1: ShowAndGetDate		(default format: DD/MM/YYYY)
+			2: ShowAndGetTime		(default format: HH:MM)
 			3: ShowAndGetIPAddress (default format: #.#.#.#)
 
 		.. note::
@@ -2655,6 +2778,7 @@ class Dialog(object):
 			dialog = xbmcgui.Dialog()
 			d = dialog.numeric(1, 'Enter date of birth')
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
 	def notification(self, heading, message, icon='', time=0, sound=True):
@@ -2735,7 +2859,7 @@ class Dialog(object):
 			dialog = xbmcgui.Dialog()
 			ret = dialog.select('Choose a playlist', ['Playlist #1', 'Playlist #2, 'Playlist #3'])
 		"""
-		print 'Calling bridge selectdialog'
+		logger.debug('Calling bridge selectdialog')
 		ans = []
 		from Plugin import Item
 		for item in list_:
@@ -2766,6 +2890,7 @@ class Dialog(object):
 
 			res = xbmcgui.Dialog().contextmenu(list=['option1', 'option2'])
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return int()
 
 	def textviewer(self, heading, text):
@@ -2780,6 +2905,7 @@ class Dialog(object):
 			dialog = xbmcgui.Dialog()
 			dialog.textviewer('Plot', 'Some movie plot.')
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def multiselect(self, heading, options, autoclose=0):
@@ -2796,6 +2922,7 @@ class Dialog(object):
 			dialog = xbmcgui.Dialog()
 			ret = dialog.multiselect('Choose something', ['Foo', 'Bar', 'Baz'])
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return list()
 
 
@@ -2819,7 +2946,7 @@ class DialogProgress(object):
 			pDialog = xbmcgui.DialogProgress()
 			ret = pDialog.create('XBMC', 'Initializing script...')
 		"""
-		print 'Calling bridge progressdialog'
+		logger.debug('Calling bridge progressdialog')
 		self.line1 = line1
 		self.line2 = line2
 		self.line3 = line3
@@ -2872,6 +2999,7 @@ class DialogProgressBG(object):
 
 			pDialog.close()
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def create(self, heading, message=''):
@@ -2889,6 +3017,7 @@ class DialogProgressBG(object):
 			pDialog = xbmcgui.DialogProgressBG()
 			pDialog.create('Movie Trailers', 'Downloading Monsters Inc. ...')
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def isFinished(self):
@@ -2900,6 +3029,7 @@ class DialogProgressBG(object):
 			if (pDialog.isFinished()):
 				break
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return bool(1)
 
 	def update(self, percent=0, heading='', message=''):
@@ -2916,6 +3046,7 @@ class DialogProgressBG(object):
 
 			pDialog.update(25, message='Downloading Finding Nemo ...')
 		"""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 
@@ -2933,18 +3064,22 @@ class Action(object):
 
 	def getId(self):
 		"""Returns the action's current id as a long or 0 if no action is mapped in the xml's."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()
 
 	def getButtonCode(self):
 		"""Returns the button code for this action."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return long()
 
 	def getAmount1(self):
 		"""Returns the first amount of force applied to the thumbstick."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return float()
 
 	def getAmount2(self):
 		"""Returns the second amount of force applied to the thumbstick."""
+		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return float()
 
 
@@ -2956,6 +3091,7 @@ def getCurrentWindowId():
 
 		wid = xbmcgui.getCurrentWindowId()
 	"""
+	logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 	return long()
 
 
@@ -2967,4 +3103,5 @@ def getCurrentWindowDialogId():
 
 		wid = xbmcgui.getCurrentWindowDialogId()
 	"""
+	logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 	return long()

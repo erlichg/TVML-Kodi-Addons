@@ -1,4 +1,5 @@
-import os, urllib2, traceback, time, sys, tempfile
+import os, urllib2, traceback, time, sys, tempfile, logging
+logger = logging.getLogger('TVMLServer')
 import kodi_utils
 
 class imageCache:
@@ -24,9 +25,9 @@ class imageCache:
 		try:
 			url = self.cache[id]
 			if os.path.isfile(os.path.join(self.dir, id)): #if already downloaded
-				print 'cached {}'.format(url)
+				logger.debug('cached {}'.format(url))
 				return os.path.join(self.dir, id)						
-			print 'downloading {}'.format(url)
+			logger.debug('downloading {}'.format(url))
 			req = urllib2.Request(url)
 			req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.86 Safari/537.36')
 			req.add_header('Accept-encoding', 'gzip')
@@ -43,11 +44,10 @@ class imageCache:
 				output.write(link)
 			#urllib.urlretrieve(url, os.path.join(self.dir, name))
 			if os.path.isfile(os.path.join(self.dir, id)):
-				print 'downloaded {}'.format(url)
+				logger.debug('downloaded {}'.format(url))
 				return os.path.join(self.dir, id)
-			print 'Failed to download {}'.format(url)
+			logger.warning('Failed to download {}'.format(url))
 			return None
 		except:
-			#traceback.print_exc(file=sys.stdout)
-			print 'Failed to download image'
+			logger.exception('Failed to download image')
 			return None

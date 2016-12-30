@@ -274,6 +274,26 @@ function removeAddon(addon) {
 	post('/removeAddon', btoa(addon));
 }
 
+function restartServer() {
+	var loadingDocument = createLoadingDocument('Restarting. Please wait...');
+	navigationDocument.pushDocument(loadingDocument);
+	documentLoader.fetchPost({
+		url:'/restart',
+		success: function() {
+			
+		},
+		abort: function() {
+			
+		},
+		error: function() {
+			
+		}
+	});
+	setTimeout(function() {
+		new DocumentController(documentLoader, '/main', loadingDocument, true);
+	}, 5000);
+}
+
 function showInputDialog(title, description, placeholder, button, secure, callback) {
 	if(typeof description == "undefined") {
 		description = '';

@@ -8,7 +8,8 @@ __credits__ = 'Team Kodi'
 __date__ = 'Fri May 01 16:22:07 BST 2015'
 __platform__ = 'ALL'
 __version__ = '2.20.0'
-import os, sys, re, json, time
+import os, sys, re, json, time, logging
+logger = logging.getLogger('TVMLServer')
 import codecs
 import xml.etree.ElementTree as ET
 from xml.sax.saxutils import escape
@@ -111,10 +112,10 @@ class Addon(object):
 								e.attrib['value'] = ''
 							self.settings[label].append(e.attrib)
 				ADDON_CACHE[self.id] = 'lock'
-				print 'trakt.user before settings load is {}'.format(self.getSetting('trakt.user'))
+				#logger.debug('trakt.user before settings load is {}'.format(self.getSetting('trakt.user')))
 				loaded_settings = json.loads(kodi_utils.b64decode(xbmc.bridge._message({'type':'loadSettings'}, True)))
 				self.settings.update(loaded_settings)
-				print 'trakt.user after settings load is {}'.format(self.getSetting('trakt.user'))
+				#logger.debug('trakt.user after settings load is {}'.format(self.getSetting('trakt.user')))
 				ADDON_CACHE[self.id] = self.settings
 						
 
@@ -147,9 +148,9 @@ class Addon(object):
 			for s in self.settings[cat]:
 				if 'id' in s and s['id'] == id:
 					ans = unicode(s['value'])
-					print 'getSetting {}={}'.format(id, ans)
+					logger.debug('getSetting {}={}'.format(id, ans))
 					return ans
-		print 'getSetting {}='.format(id)
+		logger.debug('getSetting {}='.format(id))
 		return ''
 
 	def setSetting(self, id, value):
@@ -162,7 +163,7 @@ class Addon(object):
 
 			self.Settings.setSetting(id='username', value='teamxbmc')
 		"""
-		print 'setSetting {}={}'.format(id, value)
+		logger.debug('setSetting {}={}'.format(id, value))
 		for cat in self.settings:
 			for s in self.settings[cat]:
 				if 'id' in s and s['id'] == id:
