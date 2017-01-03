@@ -140,21 +140,23 @@ def Process(group=None, target=None, name=None, args=(), kwargs={}):
 	return p
 
 
-def updateAddons(available, plugins):
-	for p in plugins:
+def updateAddons():
+	global PLUGINS
+	global AVAILABLE_ADDONS
+	for p in PLUGINS:
 		try:
 			current_version = p.version
-			if not p.id in available:
+			if not p.id in AVAILABLE_ADDONS:
 				continue
-			remote_version = available[p.id]['data']['version']
+			remote_version = AVAILABLE_ADDONS[p.id]['data']['version']
 			if version.parse(current_version) < version.parse(remote_version):
 				logger.info('Found update for addon {}. Current version: {}, Remote version: {}'.format(p.id, current_version, remote_version))
 				install_addon(p.id)
 				plugin = KodiPlugin(p.id)
-				for i2, p2 in enumerate(plugins):
+				for i2, p2 in enumerate(PLUGINS):
 				 if p2.id == p.id:
-				 	del plugins[i2]
-				 	plugins.append(plugin)
+				 	del PLUGINS[i2]
+				 	PLUGINS.append(plugin)
 				 	break			
 		except:
 			logger.exception('Failed to update addon {}'.format(p.id))
@@ -207,12 +209,7 @@ def template(filename):
 @app.route('/catalog/<pluginid>/<process>', methods=['POST', 'GET'])
 #@app.route('/catalog/<pluginid>/<url>')
 #@app.route('/catalog/<pluginid>/<url>/<process>')
-def catalog(pluginid, process=None):
-	#try update
-	global UPDATE_PROCESS
-	if not UPDATE_PROCESS.is_alive():
-		UPDATE_PROCESS = multiprocessing.Process(target=updateAddons, args=(AVAILABLE_ADDONS, PLUGINS))
-		UPDATE_PROCESS.start()
+def catalog(pluginid, process=None):	
 	url = None
 	if request.method == 'POST':
 		try:
@@ -670,14 +667,8 @@ def mmain(argv):
 			
 	
 	global AVAILABLE_ADDONS
-	#q = multiprocessing.Queue()
-	#p = multiprocessing.Process(target=getAvailableAddons, args=(q, REPOSITORIES))
-	#p.start()
-	#p.join()
 	AVAILABLE_ADDONS = getAvailableAddons(REPOSITORIES)
-	global UPDATE_PROCESS
-	UPDATE_PROCESS = multiprocessing.Process(target=updateAddons, args=(AVAILABLE_ADDONS, PLUGINS))
-	UPDATE_PROCESS.start()
+	updateAddons()
 	print
 	print 'Server now running on port {}'.format(port)
 	print 'Connect your TVML client to: http://{}:{}'.format(addr, port)
