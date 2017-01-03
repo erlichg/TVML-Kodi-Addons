@@ -64,14 +64,8 @@ See LICENSE.txt for this sample’s licensing information
                 <listItemLockup value="youtube">
                     <title><span><b>yo</b></span>tube</title>
                 </listItemLockup>
-                <listItemLockup value="bad">
-                    <title><span><b>ba</b></span>d</title>
-                </listItemLockup>
-                <listItemLockup value="batman">
-                    <title><span><b>ba</b></span>tman</title>
-                </listItemLockup>
-                <listItemLockup value="back to the future">
-                    <title><span><b>ba</b></span>ck to the future</title>
+                <listItemLockup value="exodus">
+                    <title><span><b>exo</b></span>dus</title>
                 </listItemLockup>
             </section>
         </list>
@@ -80,11 +74,10 @@ See LICENSE.txt for this sample’s licensing information
                 <title>All Results</title>
             </header>
             <section>
-	            {% for title, data in all.items() %}
-              <lockup onselect="var data = event.target.children.item(0).textContent; post('/installAddon', btoa(data))" onholdselect="var data = event.target.children.item(0).textContent; post('/getAddonData', btoa(data))">
-                <placeholder>{{data | tojson}}</placeholder>
-                <img src="{{data['href'] | replace('tree', 'raw')}}/icon.png" width="308" height="308" />                
-                <title class="showTextOnHighlight">{{title}}</title>
+	            {% for id, data in all.items() %}
+              <lockup onselect="post('/installAddon', btoa('{{id}}'))" onholdselect="post('/getAddonData', btoa('{{id}}'))">
+                <img src="{{data['icon']}}" width="308" height="308" />                
+                <title class="showTextOnHighlight">{{data['name']}}</title>
               </lockup>
               {% endfor %}
             </section>
@@ -102,12 +95,15 @@ See LICENSE.txt for this sample’s licensing information
     <listTemplate title="Settings" id="settings">
 	    <list style="width: 1000; padding:200">
 	    <section>
+		    <listItemLockup onselect="selectLanguage()">
+			    <title>Language</title>
+		    </listItemLockup>
 		    <listItemLockup onselect="load('/viewLog')">
 			    <title>View server logs</title>
 		    </listItemLockup>
 		    <listItemLockup onselect="restartServer()">
 			    <title>Restart server</title>
-		    </listItemLockup>
+		    </listItemLockup>		    
 	    </section>
 	    </list>
     </listTemplate>

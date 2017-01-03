@@ -20,8 +20,6 @@ def run_parallel_in_threads(target, args_list):
 		t.join()
 
 
-CACHE=imageCache.imageCache('cache')
-
 def end(plugin, msg, url=None):
 	"""Called on plugin end (i.e. when run function returns). 
 		renders various templates based on items attributes (ans attribute in msg)
@@ -40,7 +38,7 @@ def end(plugin, msg, url=None):
 			elif item.icon.startswith('/'):
 				pass
 			else:
-				item.icon = '/cache/{}'.format(CACHE.add(item.icon))
+				item.icon = '/cache/{}'.format(kodi_utils.b64encode(item.icon))
 			item.info['poster'] = item.icon
 		item.width = 300
 		item.height = 300

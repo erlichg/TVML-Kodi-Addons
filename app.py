@@ -1,5 +1,5 @@
 from __future__ import division
-import sys, os, imp, urllib, json, time, traceback, re, getopt, tempfile, AdvancedHTMLParser, urllib2, urlparse, zipfile, shutil, requests, logging, psutil, subprocess
+import sys, os, imp, urllib, json, time, traceback, re, getopt, tempfile, AdvancedHTMLParser, urllib2, urlparse, zipfile, shutil, requests, logging, psutil, subprocess, schedule
 from threading import Timer
 try:
 	from flask import Flask, render_template, send_from_directory, request, send_file
@@ -13,6 +13,7 @@ except:
 
 import sqlite3
 
+from packaging import version
 
 # try:
 # 	import faulthandler
@@ -76,6 +77,8 @@ if not os.path.isdir(os.path.join(DATA_DIR, 'logs')):
 	sys.exit(2)	
 LOGFILE = os.path.join(DATA_DIR, 'logs', 'tvmlserver.log')
 
+LANGUAGE='English'
+
 sys.path.append(os.path.join(bundle_dir, 'scripts'))
 sys.path.append(os.path.join(bundle_dir, 'scripts', 'kodi'))
 sys.path.append(os.path.join(DATA_DIR, 'addons'))
@@ -93,6 +96,8 @@ from scripts.KodiPlugin import *
 from scripts.bridge import bridge
 
 from scripts import messages
+
+from scripts import imageCache
 
 logging.basicConfig(
 	level=logging.DEBUG,
@@ -135,6 +140,25 @@ def Process(group=None, target=None, name=None, args=(), kwargs={}):
 	return p
 
 
+def updateAddons(available, plugins):
+	for p in plugins:
+		try:
+			current_version = p.version
+			if not p.id in available:
+				continue
+			remote_version = available[p.id]['data']['version']
+			if version.parse(current_version) < version.parse(remote_version):
+				logger.info('Found update for addon {}. Current version: {}, Remote version: {}'.format(p.id, current_version, remote_version))
+				install_addon(p.id)
+				plugin = KodiPlugin(p.id)
+				for i2, p2 in enumerate(plugins):
+				 if p2.id == p.id:
+				 	del plugins[i2]
+				 	plugins.append(plugin)
+				 	break			
+		except:
+			logger.exception('Failed to update addon {}'.format(p.id))
+
 @app.route('/response/<pid>/<id>', methods=['POST', 'GET'])
 @app.route('/response/<pid>/<id>/<res>')
 def route(pid, id, res=None):
@@ -157,7 +181,7 @@ def icon():
 	
 @app.route('/cache/<id>')
 def cache(id):
-	file=messages.CACHE.get(id)
+	file=imageCache.get(id)
 	if file:
 		return send_file(file)
 	else:
@@ -184,6 +208,11 @@ def template(filename):
 #@app.route('/catalog/<pluginid>/<url>')
 #@app.route('/catalog/<pluginid>/<url>/<process>')
 def catalog(pluginid, process=None):
+	#try update
+	global UPDATE_PROCESS
+	if not UPDATE_PROCESS.is_alive():
+		UPDATE_PROCESS = multiprocessing.Process(target=updateAddons, args=(AVAILABLE_ADDONS, PLUGINS))
+		UPDATE_PROCESS.start()
 	url = None
 	if request.method == 'POST':
 		try:
@@ -213,9 +242,9 @@ def catalog(pluginid, process=None):
 			p = PROCESSES[process]
 		else:
 			if request.full_path.startswith('/catalog'):
-				p = Process(target=get_items, args=(plugin.id, decoded_url, CONTEXT, PLUGINS))
+				p = Process(target=get_items, args=(plugin.id, decoded_url, CONTEXT, PLUGINS, LANGUAGE))
 			else:
-				p = Process(target=get_menu, args=(plugin.id, decoded_url))	
+				p = Process(target=get_menu, args=(plugin.id, decoded_url, LANGUAGE))	
 			logger.debug('saving process id {}'.format(p.id))	
 			PROCESSES[p.id] = p
 			def stop():
@@ -351,7 +380,9 @@ def main():
 	favs = []
 	if request.method == 'POST':
 		try:
-			favs_json = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
+			post_data = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
+			logger.debug(post_data)
+			favs_json = post_data['favs']
 			for id in favs_json:
 				matching = [p for p in PLUGINS if p.id == id]
 				if len(matching) == 0:
@@ -361,6 +392,9 @@ def main():
 					continue
 				logger.warning('More than one addons found that match id {}'.format())
 			favs = [[p for p in PLUGINS if p.id == id][0] for id in favs]
+			
+			global LANGUAGE
+			LANGUAGE = post_data['lang']			
 		except:
 			pass
 	now = time.time()
@@ -389,7 +423,7 @@ def removeAddon():
 		traceback.print_exc(file=sys.stdout)
 		return 'NOTOK', 206
 
-def get_items(plugin_id, url, context, PLUGINS):
+def get_items(plugin_id, url, context, PLUGINS, LANGUAGE):
 	if 'setproctitle' in sys.modules:
 		setproctitle.setproctitle('python TVMLServer ({}:{})'.format(plugin_id, url))
 	logger = logging.getLogger(plugin_id)
@@ -401,14 +435,14 @@ def get_items(plugin_id, url, context, PLUGINS):
 			raise Exception('could not load plugin')
 		b = bridge()
 		b.context = context
-		items = plugin.run(b, url)
+		items = plugin.run(b, url, LANGUAGE)
 	except:
 		logger.exception('Encountered error in plugin: {}'.format(plugin_id))
 		items = None
 	#logger.debug('get_items finished with {}'.format(items))
 	return items
 	
-def get_menu(plugin_id, url):
+def get_menu(plugin_id, url, LANGUAGE):
 	print('Getting menu for: {}'.format(url))
 	url = url.split('?')[1] if '?' in url else url
 	try:
@@ -416,7 +450,7 @@ def get_menu(plugin_id, url):
 		if not plugin:
 			raise Exception('could not load plugin')
 		b = bridge()
-		items = plugin.settings(b, url)
+		items = plugin.settings(b, url, LANGUAGE)
 	except:
 		logger.exception('Encountered error in plugin: {}'.format(plugin_id))		
 		items = None
@@ -453,109 +487,83 @@ def load_plugin(id):
 	logger.error('Failed to find plugin id {}'.format(id))
 	return None
 	
-def getAvailableAddons(ans, REPOSITORIES):
+def getAvailableAddons(REPOSITORIES):
 	logger.debug('Refreshing repositories. Please wait...')
 	temp = {}
 	parser = AdvancedHTMLParser.Parser.AdvancedHTMLParser()
 	for r in REPOSITORIES:
 		try:
-			if 'list' in r:
-				p = urlparse.urlparse(r['list'])
-				base = '{}://{}'.format(p.scheme, p.netloc)
-				req = urllib2.Request(r['list'])
-				response = urllib2.urlopen(req, timeout=100)
-				link = response.read()
-				response.close()
-				parser.feed(link)
-				for a in parser.getElementsByTagName('a'):
-					if 'plugin.video.' in a.attributes['href']:
-						href = '{}{}'.format(base, a.attributes['href']) if a.attributes['href'].startswith('/') else a.attributes['href']  
-						#data = getDataOfAddon(href)
-						title = a.text
-						temp[title] = {'href':href, 'repo':r}
-			elif 'xml' in r:
-				req = urllib2.Request(r['xml'])
-				response = urllib2.urlopen(req, timeout=100)
-				link = response.read()
-				response.close()
-				parser.feed(link)
-				for a in parser.getElementsByTagName('addon'):
-					if 'plugin.video.' in a.attributes['id']:
-						title = a.attributes['id']
-						temp[title] = {'xml':r['xml'], 'id':title, 'repo':r}
+			req = requests.get(r['xml'])
+			link = req.text
+			parser.feed(link)
+			for a in parser.getElementsByTagName('addon'):
+				if 'plugin.video.' in a.attributes['id']:
+					id = a.attributes['id']
+					data = a.attributes
+					meta = a.getElementsByAttr('point', 'xbmc.addon.metadata')[0]
+					data.update({t.tagName:t.text for t in meta.children})
+					if id in temp:
+						current_version = temp[id]['data']['version']
+						new_version = data['version']
+						if version.parse(current_version) >= version.parse(new_version):
+							continue
+					temp[id] = {'repo':r, 'name':data['name'], 'data':data, 'icon':'/cache/{}'.format(kodi_utils.b64encode('{}/{}/icon.png'.format(r['download'],id)))}
 						
 		except Exception as e:
 			logger.exception('Cannot read repository {} because of {}'.format(r, e))
-	ans.update(temp)
+	#q.put(temp)	
 	logger.debug('Finished refreshing repositories')
-	
-@app.route('/getAddonData', methods=['POST'])
-def getAddonData():
-	if request.method == 'POST':
-		try:
-			data = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
-			addon_data = getDataOfAddon(data)
-			return render_template('descriptiveAlert.xml', _dict=addon_data, title=addon_data['id'])
-		except:
-			traceback.print_exc(file=sys.stdout)
-			return render_template('alert.xml', title='Error', description="Failed to get addon data")
-
-def getDataOfAddon(data):
-	if not 'href' in data and not 'xml' in data:
-		return None
-	try:
-		parser = AdvancedHTMLParser.Parser.AdvancedHTMLParser()
-		req = urllib2.Request('{}/addon.xml'.format(data['href'].replace('tree', 'raw'))) if 'href' in data else urllib2.Request(data['xml'])
-		response = urllib2.urlopen(req, timeout=100)
-		link = response.read()
-		response.close()
-		parser.feed(link)
-		addons = parser.getElementsByTagName('addon')
-		if len(addons) == 1:
-			addon = addons[0]
-		elif 'id' in data:
-			addon = [a for a in addons if a.attributes['id'] == data['id']][0]
-		else:
-			logger.error('Could not find addon xml')
-			return None
-		ans = addon.attributes
-		meta = [t for t in parser.getElementsByTagName('extension') if t.attributes['point'] == 'xbmc.addon.metadata'][0]
-		ans.update({t.tagName:t.text for t in meta.children})
-		return ans
-	except:
-		return None
+	return temp
 	
 @app.route('/installAddon', methods=['POST'])
 def installAddon():
 	if request.method == 'POST':		
 		try:
-			data = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
-			addon_data = getDataOfAddon(data)
-			alreadyInstalled = [p for p in PLUGINS if p.id == addon_data['id']]
+			id = kodi_utils.b64decode(request.form.keys()[0])
+			alreadyInstalled = [p for p in PLUGINS if p.id == id]
 			if alreadyInstalled:
 				return render_template('alert.xml', title='Already installed', description="This addon is already installed")
-			download_url = '{0}/{1}/{1}-{2}.zip'.format(data['repo']['download'], addon_data['id'], addon_data['version'])
-			logger.debug('downloading plugin {}'.format(download_url))			
-			temp = os.path.join(tempfile.gettempdir(), '{}.zip'.format(addon_data['id']))
-			r = requests.get(download_url, stream=True)
-			if not r.status_code == 200:
-				raise Exception('Failed to download')
-			with open(temp, 'wb') as f:
-				r.raw.decode_content = True
-				shutil.copyfileobj(r.raw, f)			
-			if not zipfile.is_zipfile(temp):
-				raise Exception('failed to download')
-			path = os.path.join(DATA_DIR, 'addons')
-			with zipfile.ZipFile(temp, 'r') as zip:
-				zip.extractall(path)
+			if not id in AVAILABLE_ADDONS:
+				return render_template('alert.xml', title='Unknown addon', description="This addon cannot be found")
+			install_addon(id)
 			global PLUGINS
-			plugin = KodiPlugin(addon_data['id'])
+			plugin = KodiPlugin(id)
 			PLUGINS.append(plugin)
-			return render_template('alert.xml', title='Installation complete', description="Successfully installed addon {}.\nPlease reload the main screen in order to view the new addon".format(addon_data['name']))
-		except Exception:
-			traceback.print_exc(file=sys.stdout)
+			return render_template('alert.xml', title='Installation complete', description="Successfully installed addon {}.\nPlease reload the main screen in order to view the new addon".format(data['name']))
+		except:
+			logger.exception('Failed to download/install {}'.format(id))
 			return render_template('alert.xml', title='Install error', description="Failed to install addon.\nThis could be due to a network error or bad repository parsing")
 	return render_template('alert.xml', title='URL error', description='This URL is invalid')
+
+def install_addon(id):
+	data = AVAILABLE_ADDONS[id]
+	download_url = '{0}/{1}/{1}-{2}.zip'.format(data['repo']['download'], id, data['data']['version'])
+	logger.debug('downloading plugin {}'.format(download_url))			
+	temp = os.path.join(tempfile.gettempdir(), '{}.zip'.format(id))
+	r = requests.get(download_url, stream=True)
+	if not r.status_code == 200:
+		raise Exception('Failed to download')
+	with open(temp, 'wb') as f:
+		r.raw.decode_content = True
+		shutil.copyfileobj(r.raw, f)			
+	if not zipfile.is_zipfile(temp):
+		raise Exception('failed to download')
+	path = os.path.join(DATA_DIR, 'addons')
+	with zipfile.ZipFile(temp, 'r') as zip:
+		zip.extractall(path)	
+
+@app.route('/getAddonData', methods=['POST'])
+def getAddonData():
+	if request.method == 'POST':		
+		try:
+			id = kodi_utils.b64decode(request.form.keys()[0])
+			if not id in AVAILABLE_ADDONS:
+				return render_template('alert.xml', title='Unknown addon', description="This addon cannot be found")
+			data = AVAILABLE_ADDONS[id]
+			return render_template('descriptiveAlert.xml', title=data['name'], _dict=data['data'])
+		except:
+			logger.exception('Failed to get data on {}'.format(id))
+			return render_template('alert.xml', title='Error', description="Failed to get data on addon.\nThis could be due to a network error or bad repository parsing")
 
 @app.route('/viewLog')
 def viewLog():
@@ -625,15 +633,16 @@ def mmain(argv):
 	
 	global REPOSITORIES
 	REPOSITORIES = [
-	{'list':'https://github.com/xbmc/repo-plugins/tree/dharma', 'download':'http://mirrors.kodi.tv/addons/dharma'},
-	{'list':'https://github.com/xbmc/repo-plugins/tree/eden', 'download':'http://mirrors.kodi.tv/addons/eden'},
-	{'list':'https://github.com/xbmc/repo-plugins/tree/frodo', 'download':'http://mirrors.kodi.tv/addons/frodo'},
-	{'list':'https://github.com/xbmc/repo-plugins/tree/gotham', 'download':'http://mirrors.kodi.tv/addons/gotham'},
-	{'list':'https://github.com/xbmc/repo-plugins/tree/helix', 'download':'http://mirrors.kodi.tv/addons/helix'},
-	{'list':'https://github.com/xbmc/repo-plugins/tree/isengard', 'download':'http://mirrors.kodi.tv/addons/isengard'},
-	{'list':'https://github.com/xbmc/repo-plugins/tree/jarvis', 'download':'http://mirrors.kodi.tv/addons/jarvis'},
-	{'list':'https://github.com/xbmc/repo-plugins/tree/krypton', 'download':'http://mirrors.kodi.tv/addons/krypton'},
-	{'list':'https://github.com/cubicle-vdo/xbmc-israel', 'download':'https://github.com/cubicle-vdo/xbmc-israel/raw/master/repo'},
+	#{'xml':'http://mirrors.kodi.tv/addons/dharma/addons.xml', 'download':'http://mirrors.kodi.tv/addons/dharma'},
+	#{'xml':'http://mirrors.kodi.tv/addons/eden/addons.xml', 'download':'http://mirrors.kodi.tv/addons/eden'},
+	#{'xml':'http://mirrors.kodi.tv/addons/frodo/addons.xml', 'download':'http://mirrors.kodi.tv/addons/frodo'},
+	#{'xml':'http://mirrors.kodi.tv/addons/gotham/addons.xml', 'download':'http://mirrors.kodi.tv/addons/gotham'},
+	#{'xml':'http://mirrors.kodi.tv/addons/helix/addons.xml', 'download':'http://mirrors.kodi.tv/addons/helix'},
+	#{'xml':'http://mirrors.kodi.tv/addons/isengard/addons.xml', 'download':'http://mirrors.kodi.tv/addons/isengard'},
+	#{'xml':'http://mirrors.kodi.tv/addons/jarvis/addons.xml', 'download':'http://mirrors.kodi.tv/addons/jarvis'},
+	{'xml':'http://mirrors.kodi.tv/addons/krypton/addons.xml', 'download':'http://mirrors.kodi.tv/addons/krypton'},
+	#{'xml':'https://raw.githubusercontent.com/cubicle-vdo/xbmc-israel/master/addons.xml', 'download':'https://github.com/cubicle-vdo/xbmc-israel/raw/master/repo'},
+	{'xml':'https://raw.githubusercontent.com/kodil/kodil/master/addons.xml', 'download':'https://github.com/kodil/kodil/raw/master/repo'},
 	{'xml':'https://offshoregit.com/exodus/addons.xml', 'download':'https://offshoregit.com/exodus/'}
 	]
 				
@@ -658,19 +667,20 @@ def mmain(argv):
 		addr = socket.gethostbyname(socket.gethostname())
 	except:
 		addr = socket.gethostname()
-	
-		
-
-	print
-	print 'Server now running on port {}'.format(port)
-	print 'Connect your TVML client to: http://{}:{}'.format(addr, port)	
+			
 	
 	global AVAILABLE_ADDONS
-	AVAILABLE_ADDONS = manager.dict()
-	p = multiprocessing.Process(target=getAvailableAddons, args=(AVAILABLE_ADDONS, REPOSITORIES))
-	p.start()
+	#q = multiprocessing.Queue()
+	#p = multiprocessing.Process(target=getAvailableAddons, args=(q, REPOSITORIES))
+	#p.start()
 	#p.join()
-	
+	AVAILABLE_ADDONS = getAvailableAddons(REPOSITORIES)
+	global UPDATE_PROCESS
+	UPDATE_PROCESS = multiprocessing.Process(target=updateAddons, args=(AVAILABLE_ADDONS, PLUGINS))
+	UPDATE_PROCESS.start()
+	print
+	print 'Server now running on port {}'.format(port)
+	print 'Connect your TVML client to: http://{}:{}'.format(addr, port)
 		#http_server.log = open('http.log', 'w')
 	http_server.serve_forever()
 	

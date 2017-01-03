@@ -7,9 +7,10 @@ Various classes and functions to interact with Kodi.
 
 import xbmcgui as _xbmcgui
 import xbmcplugin as _xbmcplugin
+import xbmcaddon as _xbmcaddon
 import time, re, os, sys, tempfile, logging, zipfile
 logger = logging.getLogger('TVMLServer')
-import app, kodi_utils
+import kodi_utils
 
 if getattr(sys, 'frozen', False):
 	# we are running in a bundle
@@ -57,7 +58,7 @@ __platform__ = 'ALL'
 __version__ = '2.20.0'
 abortRequested = False
 bridge=None
-
+LANGUAGE=None
 
 
 """Returns ``True`` if Kodi prepares to close itself"""
@@ -1112,7 +1113,7 @@ def executeJSONRPC(jsonrpccommand):
 
 		response = xbmc.executeJSONRPC('{ "jsonrpc": "2.0", "method": "JSONRPC.Introspect", "id": 1 }')
 	"""
-	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
+	logger.warning('{}.{}({}) not implemented'.format(__name__, sys._getframe().f_code.co_name, jsonrpccommand))
 	return str()
 
 
@@ -1129,6 +1130,10 @@ def executebuiltin(function, wait=False):
 		xbmc.executebuiltin('XBMC.RunXBE(c:\avalaunch.xbe)')
 	"""
 	logger.debug('evaluating {}'.format(function))
+	if Container.plugin.id in _xbmcaddon.ADDON_CACHE:
+			#logger.debug('Saving settings {}'.format(xbmcaddon.ADDON_CACHE[self.id]))
+			logger.debug('Saving settings')
+			bridge._message({'type':'saveSettings','addon':Container.plugin.id, 'settings':_xbmcaddon.ADDON_CACHE[Container.plugin.id]})
 	m = re.search('.*Container.Update\(plugin://([^/]*)(.*)\)', function)
 	if m:
 		bridge._message({'type':'load', 'url':'/catalog/{}'.format(kodi_utils.b64encode(m.group(1))), 'data':kodi_utils.b64encode(m.group(2))})
@@ -1170,7 +1175,7 @@ def executebuiltin(function, wait=False):
 		with zipfile.ZipFile(zip, 'r') as f:
 				f.extractall(dir)
 				return str()
-	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
+	logger.warning('{}.{}({}) not implemented'.format(__name__, sys._getframe().f_code.co_name, function))
 	return str()
 
 
@@ -1334,7 +1339,9 @@ def getInfoLabel(cLine):
 	"""
 	if cLine == 'Container.PluginName':
 		return Container.plugin.id
-	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
+	if cLine == 'System.BuildVersion':
+		return '17.0'
+	logger.warning('{}.{}({}) not implemented'.format(__name__, sys._getframe().f_code.co_name, cLine))
 	return str()
 
 
@@ -1355,6 +1362,8 @@ def getLanguage(format=ENGLISH_NAME, region=False):
 
 		language = xbmc.getLanguage(xbmc.ENGLISH_NAME)
 	"""
+	if format == ENGLISH_NAME:
+		return LANGUAGE
 	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
 	return str()
 
@@ -1602,6 +1611,7 @@ def translatePath(path):
 	Example::
 
 		fpath = xbmc.translatePath('special://masterprofile/script_data')
+		xbmc.translatePath(/Users/guyerlich/.TVMLSERVER/addons/plugin.video.nbcsnliveextra)
 	"""
 	if "special://home" in path :
 		return path.replace("special://home", os.path.join(os.path.expanduser("~"), '.TVMLSERVER'))
@@ -1612,7 +1622,7 @@ def translatePath(path):
 		return ans
 	if 'special://temp/' in path:
 		return path.replace('special://temp/', '{}{}'.format(tempfile.gettempdir(), os.path.sep))
-	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))
+	logger.warning('{}.{}({}) not implemented'.format(__name__, sys._getframe().f_code.co_name, path))
 	return path
 
 

@@ -52,72 +52,83 @@ class Addon(object):
 				raise Exception('Could not find addon ID automatically')
 		self.id = id
 		self.strings = {}
-		strings_po = os.path.join(self.getAddonInfo('path'), 'resources', 'language', 'English', 'strings.po')
-		strings_xml = os.path.join(self.getAddonInfo('path'), 'resources', 'language', 'English', 'strings.xml')
-		if os.path.isfile(strings_po):
-			f = codecs.open(strings_po, mode='r', encoding='UTF-8')
-			contents = f.read()
-			f.close()
-			pattern = re.compile('msgctxt "#(\d+)"\s+msgid "(.*)?"\s+msgstr "(.*)?"')
-			for match in pattern.finditer(contents) :
-				msgctxt = match.group(1)
-				msgid   = match.group(2)
-				msgstr  = match.group(3)
-        
-				if (msgstr) :
-					self.strings[msgctxt] = msgstr
-				else :
-					self.strings[msgctxt] = msgid
-		elif os.path.isfile(strings_xml):
-			f = codecs.open(strings_xml, mode='r', encoding='UTF-8')
-			contents = f.read().replace('&', '&amp;')
-			f.close()
-			tree = ET.fromstring(contents)
-			for e in tree.iter('string'):
-				if 'id' in e.attrib:
-					id = e.attrib['id']
-					value = e.text
-					self.strings[id] = value
-		
-		if self.id in ADDON_CACHE:
-			while ADDON_CACHE[self.id] == 'lock':
-				time.sleep(0.1)
-			self.settings = ADDON_CACHE[self.id]
-		else:						
-			self.settings = OrderedDict()
-			settings_xml = os.path.join(self.getAddonInfo('path'), 'resources', 'settings.xml')
-			if os.path.isfile(settings_xml):
-				f = codecs.open(settings_xml, mode='r', encoding='UTF-8')
+		try:
+			strings_po = os.path.join(self.getAddonInfo('path'), 'resources', 'language', xbmc.LANGUAGE, 'strings.po')
+			if not os.path.isfile(strings_po):
+				strings_xml = os.path.join(self.getAddonInfo('path'), 'resources', 'language', xbmc.LANGUAGE, 'strings.xml')
+				if not os.path.isfile(strings_xml):
+					logger.warning('Did not find {} strings. Using default english'.format(xbmc.LANGUAGE))
+					strings_po = os.path.join(self.getAddonInfo('path'), 'resources', 'language', 'English', 'strings.po')
+					strings_xml = os.path.join(self.getAddonInfo('path'), 'resources', 'language', 'English', 'strings.xml')
+			if os.path.isfile(strings_po):
+				f = codecs.open(strings_po, mode='r', encoding='UTF-8')
+				contents = f.read()
+				f.close()
+				pattern = re.compile('msgctxt "#(\d+)"\s+msgid "(.*)?"\s+msgstr "(.*)?"')
+				for match in pattern.finditer(contents) :
+					msgctxt = match.group(1)
+					msgid   = match.group(2)
+					msgstr  = match.group(3)
+        	
+					if (msgstr) :
+						self.strings[msgctxt] = msgstr
+					else :
+						self.strings[msgctxt] = msgid
+			elif os.path.isfile(strings_xml):
+				f = codecs.open(strings_xml, mode='r', encoding='UTF-8')
 				contents = f.read().replace('&', '&amp;')
 				f.close()
 				tree = ET.fromstring(contents)
-				iter = tree.iter('category')
-				if sum(1 for _ in iter) == 0:
-					self.settings['General'] = []
-					for e in tree.iter('setting'):
-						if 'default' in e.attrib:
-							e.attrib['value'] = e.attrib['default']
-						if not 'value' in e.attrib:
-							e.attrib['value'] = ''
-						self.settings['General'].append(e.attrib)
-				else:
+				for e in tree.iter('string'):
+					if 'id' in e.attrib:
+						id = e.attrib['id']
+						value = e.text
+						self.strings[id] = value
+		except:
+			logger.exception('Failed to read addon strings')
+		
+		try:
+			if self.id in ADDON_CACHE:
+				while ADDON_CACHE[self.id] == 'lock':
+					time.sleep(0.1)
+				self.settings = ADDON_CACHE[self.id]
+			else:						
+				self.settings = OrderedDict()
+				settings_xml = os.path.join(self.getAddonInfo('path'), 'resources', 'settings.xml')
+				if os.path.isfile(settings_xml):
+					f = codecs.open(settings_xml, mode='r', encoding='UTF-8')
+					contents = f.read().replace('&', '&amp;')
+					f.close()
+					tree = ET.fromstring(contents)
 					iter = tree.iter('category')
-					for cat in iter:
-						label = cat.attrib['label']
-						self.settings[label] = []
-						for e in cat.iter('setting'):
+					if sum(1 for _ in iter) == 0:
+						self.settings['General'] = []
+						for e in tree.iter('setting'):
 							if 'default' in e.attrib:
 								e.attrib['value'] = e.attrib['default']
 							if not 'value' in e.attrib:
 								e.attrib['value'] = ''
-							self.settings[label].append(e.attrib)
-				ADDON_CACHE[self.id] = 'lock'
-				#logger.debug('trakt.user before settings load is {}'.format(self.getSetting('trakt.user')))
-				loaded_settings = json.loads(kodi_utils.b64decode(xbmc.bridge._message({'type':'loadSettings'}, True)))
-				self.settings.update(loaded_settings)
-				#logger.debug('trakt.user after settings load is {}'.format(self.getSetting('trakt.user')))
-				ADDON_CACHE[self.id] = self.settings
-						
+							self.settings['General'].append(e.attrib)
+					else:
+						iter = tree.iter('category')
+						for cat in iter:
+							label = cat.attrib['label']
+							self.settings[label] = []
+							for e in cat.iter('setting'):
+								if 'default' in e.attrib:
+									e.attrib['value'] = e.attrib['default']
+								if not 'value' in e.attrib:
+									e.attrib['value'] = ''
+								self.settings[label].append(e.attrib)
+					ADDON_CACHE[self.id] = 'lock'
+					#logger.debug('trakt.user before settings load is {}'.format(self.getSetting('trakt.user')))
+					loaded_settings = json.loads(kodi_utils.b64decode(xbmc.bridge._message({'type':'loadSettings'}, True)))
+					self.settings.update(loaded_settings)
+					#logger.debug('trakt.user after settings load is {}'.format(self.getSetting('trakt.user')))
+					ADDON_CACHE[self.id] = self.settings
+		except:
+			logger.exception('Failed to read addon settings')
+			self.settings = OrderedDict()
 
 	def getLocalizedString(self, id):
 		"""Returns an addon's localized 'unicode string'.
@@ -128,7 +139,6 @@ class Addon(object):
 
 			locstr = self.Addon.getLocalizedString(id=6)
 		"""
-		import traceback
 		try:
 			return self.strings[str(id)]
 		except:
@@ -194,9 +204,9 @@ class Addon(object):
 			if m:
 				neg = m.group(1) == '!'
 				if neg:
-					return not os.path.isdir(os.path.expanduser("~"), '.TVMLSERVER', 'addons', m.group(2))
+					return not os.path.isdir(os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'addons', m.group(2)))
 				else:
-					return os.path.isdir(os.path.expanduser("~"), '.TVMLSERVER', 'addons', m.group(2))
+					return os.path.isdir(os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'addons', m.group(2)))
 		for cat in self.settings:
 			fields = []
 			for attrib in self.settings[cat]:
@@ -208,7 +218,7 @@ class Addon(object):
 				if 'label' not in attrib:
 					continue				
 				_type = attrib['type']
-				if _type == 'select':
+				if _type == 'select' or _type == 'labelenum':
 					values = attrib['values'].split("|") if 'values' in attrib else [self.getLocalizedString(s) for s in attrib['lvalues'].split("|")]
 					fields.append({'id':attrib['id'], 'type':'selection', 'label':self.getLocalizedString(attrib['label']), 'value':attrib['value'], 'choices':values})
 				elif _type == 'bool':
@@ -235,7 +245,7 @@ class Addon(object):
 		
 		for id in ans:
 			field = getSet(id)
-			if field['type'] == 'select':
+			if field['type'] in ['select', 'labelenum']:
 				val = ans[id]
 			elif field['type'] == 'bool':
 				val = 'true' if ans[id] == 'Yes' else 'false'

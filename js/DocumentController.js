@@ -33,10 +33,11 @@ function DocumentController(documentLoader, documentURL, loadingDocument, initia
 	    console.log("Clearing all documents");
 		navigationDocument.clear();
 		var favs = loadFavourites();
+		var language = loadLanguage();
 		documentLoader.post({
 	    	initial: initial,	    	
         	url: documentURL,
-        	data: btoa(JSON.stringify(favs)),
+        	data: btoa(JSON.stringify({'favs':JSON.stringify(favs), 'lang':language})),
         	success: function(document, isModal) {
         	    // Add the event listener for document
         	    this.setupDocument(document);
@@ -292,6 +293,23 @@ function restartServer() {
 	setTimeout(function() {
 		new DocumentController(documentLoader, '/main', loadingDocument, true);
 	}, 5000);
+}
+
+function loadLanguage() {
+	var lang = localStorage.getItem("language");
+	if (lang == null) {
+	    lang = "English";
+    }
+	console.log('Loaded language '+lang);
+    return lang;
+}
+
+function selectLanguage() {
+	showSelectDialog('Available Languages', ["Afrikaans", "Albanian", "Amharic", "Arabic", "Armenian", "Azerbaijani", "Basque", "Belarusian", "Bosnian", "Bulgarian", "Burmese", "Catalan", "Chinese", "Croatian", "Czech", "Danish", "Dutch", "English", "Esperanto", "Estonian", "Faroese", "Finnish", "French", "Galician", "German", "Greek", "Hebrew", "Hindi", "Hungarian", "Icelandic", "Indonesian", "Italian", "Japanese", "Korean", "Latvian", "Lithuanian", "Macedonian", "Malay", "Malayalam", "Maltese", "Maori", "Mongolian", "Norwegian", "Ossetic", "Persian", "Persian", "Polish", "Portuguese", "Romanian", "Russian", "Serbian", "Silesian", "Sinhala", "Slovak", "Slovenian", "Spanish", "Spanish", "Swedish", "Tajik", "Tamil", "Telugu", "Thai", "Turkish", "Ukrainian", "Uzbek", "Vietnamese", "Welsh"], 0, function(ans) {
+		if (typeof ans != "undefined") {
+			localStorage.setItem("language", ans);
+		}
+	});
 }
 
 function showInputDialog(title, description, placeholder, button, secure, callback) {

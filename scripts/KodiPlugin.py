@@ -30,6 +30,7 @@ class KodiPlugin:
 		for e in tree.iter('addon'):
 			self.name = e.attrib['name']
 			self.id = e.attrib['id']
+			self.version = e.attrib['version']
 		for e2 in tree.iter('extension'):
 			if e2.attrib['point'] == 'xbmc.python.pluginsource':
 				self.script = e2.attrib['library']
@@ -45,14 +46,15 @@ class KodiPlugin:
 	def __repr__(self):
 		return json.dumps({'id':self.id, 'name':self.name, 'module':self.module})
 		
-	def settings(self, bridge, url):
+	def settings(self, bridge, url, LANGUAGE):
 		import xbmc
 		xbmc.bridge = bridge
+		xbmc.LANGUAGE = LANGUAGE
 		import xbmcaddon
 		xbmcaddon.Addon(self.id).openSettings()
 			
 	
-	def run(self, bridge, url):
+	def run(self, bridge, url, LANGUAGE):
 		logger = logging.getLogger(self.id)
 		if url.startswith('http') or url.startswith('https'):
 			bridge.play(url, type_='video')
@@ -72,6 +74,7 @@ class KodiPlugin:
 		xbmc.bridge = bridge
 		import Container
 		xbmc.Container = Container.Container(self)
+		xbmc.LANGUAGE = LANGUAGE
 		if type(url) is not str:
 			raise Exception('Kodi plugin only accepts one string argument')
 				
@@ -97,7 +100,7 @@ class KodiPlugin:
 			#print 'after regex {}'.format(sys.argv[0])
 			
 			if not sys.argv[0]:
-				sys.argv[0] = 'file://{}/{}'.format(self.id,self.script)
+				sys.argv[0] = 'file://{}/'.format(self.id)
 				
 			if not sys.argv[0].startswith('file://') and not sys.argv[0].startswith('plugin://'):
 				sys.argv[0] = 'file://{}{}'.format(self.id, sys.argv[0])
@@ -151,6 +154,7 @@ class KodiPlugin:
 					except:
 						time.sleep(1)
 						logger.exception()
+				logger.exception('Failed to open DB file {}'.format(database))
 				raise Exception('Failed to open DB file {}'.format(database))
 			sqlite3.dbapi2.connect = dbapi2_connect_patch
 			
@@ -190,6 +194,11 @@ class KodiPlugin:
 			if 'year' in infos:
 				i.year = infos['year']
 			if 'trailer' in infos:
-				i.context['Watch trailer'] = 'RunPlugin({})'.format(infos['trailer'])			
+				i.context['Watch trailer'] = 'RunPlugin({})'.format(infos['trailer'])
+			#icon path fix
+			if i.icon and i.icon.startswith(ADDONS_DIR):
+				i.icon = i.icon.replace(ADDONS_DIR, '/addons')
+			if i.icon:
+				i.icon = i.icon.replace('\\', '/')
 			ans.append(i)
 		return ans

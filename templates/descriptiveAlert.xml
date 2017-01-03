@@ -22,10 +22,10 @@ See LICENSE.txt for this sample’s licensing information
 		<infoTable>
 		{% for key, value in _dict.iteritems() %}
 		<info>
-			<row>
-				<text class="left">{{key}}</text>
-				<text class="center">{{value}}</text>
-			</row>
+			<header>
+				<title>{{key}}</title>
+			</header>
+			<text>{{value}}</text>
 		</info>
 		{% endfor %}
 		</infoTable>

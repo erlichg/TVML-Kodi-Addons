@@ -43,23 +43,23 @@ function prepareSearchDocument(document) {
         const selectedElement = event.target;
         handleSelectionForItem(selectedElement);
     });
-*/
+
     resultsSectionElem.addEventListener("holdselect", function(event) {
         const selectedElement = event.target;
         handleHoldSelectionForItem(selectedElement);
     });
     
-/*
+
     defaultResultsElem.addEventListener("select", function(event) {
 	    const selectedElement = event.target;
         handleSelectionForItem(selectedElement);
     });
-*/
+
     defaultResultsElem.addEventListener("holdselect", function(event) {
 	    const selectedElement = event.target;
         handleHoldSelectionForItem(selectedElement);
     });
-
+*/
     /*
      * Show or hide the message in the search body.
      * Sets the content of the message if it is to be shown.

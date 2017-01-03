@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <document>
+	<head>
+	  <style>
+	  @media tv-template and (tv-theme:light) {
+      	.foo { color:rgb(0, 0, 0); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+      	.foo2 { color:rgb(0, 0, 0); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; }
+	  }
+	  @media tv-template and (tv-theme:dark) {
+      	.foo { color:rgb(255, 255, 255); tv-highlight-color:rgb(0,0,0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+      	.foo2 { color:rgb(255, 255, 255); tv-highlight-color:rgb(255, 255, 255); tv-text-max-lines:15; }
+	  }
+	</style>
+	</head>
 	<catalogTemplate abortfunction='var ans = {};
 								var arr = document.documentElement.getElementsByTagName("placeholder");
 								var i=0;								
@@ -20,7 +32,7 @@
 								if ("{{url}}" != "") load("{{url}}");
 								'>
 		<banner>
-			<title style="color:rgb(241,241,241)">{{title}}</title>
+			<title class="foo">{{title}}</title>
 		</banner>
 		<background>
 			<img src="/templates/background.png"/>
@@ -29,7 +41,7 @@
 			{% for section in sections %}
 			<section>
 				<listItemLockup>
-					<title style="color:rgb(241,241,241); tv-highlight-color:rgb(0,0,0);">{{section}}</title>
+					<title class="foo">{{section}}</title>
 					<relatedContent>
 						<list style="width: 1000">
 							<section>
@@ -37,26 +49,26 @@
 								{% if field.type == "yesno" %}
 								<listItemLockup onselect="var field = JSON.parse(event.target.children.item(0).getAttribute('field')); event.target.children.item(2).textContent = (event.target.children.item(2).textContent == 'No' ? 'Yes' : 'No')">
 									<placeholder field='{{field | tojson}}'></placeholder>
-									<title style="color:rgb(241,241,241); tv-highlight-color:rgb(0,0,0);">{{field.label}}</title><decorationLabel style="color:rgb(241,241,241); tv-highlight-color:rgb(0,0,0);" id="{{field.label}}">{{'Yes' if field.value == 'True' or field.value == 'true' else 'No'}}</decorationLabel>
+									<title class="foo">{{field.label}}</title><decorationLabel class="foo" id="{{field.label}}">{{'Yes' if field.value == 'True' or field.value == 'true' else 'No'}}</decorationLabel>
 								</listItemLockup>
 								{% elif field.type == "selection" %}
 								<listItemLockup onselect="var field = JSON.parse(event.target.children.item(0).getAttribute('field')); var s = event.target.children.item(2).textContent; var index=field.choices.indexOf(s); showSelectDialog(field.label, field.choices, index, function(ans) { if (typeof ans != 'undefined') {event.target.children.item(2).textContent=ans;}});">
 									<placeholder field='{{field | tojson}}'></placeholder>							
-									<title style="color:rgb(241,241,241); tv-highlight-color:rgb(0,0,0);">{{field.label}}</title><decorationLabel style="color:rgb(241,241,241); tv-highlight-color:rgb(0,0,0);" id="{{field.label}}">{{field.value}}</decorationLabel>
+									<title class="foo">{{field.label}}</title><decorationLabel class="foo" id="{{field.label}}">{{field.value}}</decorationLabel>
 								</listItemLockup>
 								{% elif field.type == "textfield" %}
 								<listItemLockup onselect="var field = JSON.parse(event.target.children.item(0).getAttribute('field')); showInputDialog(field.label, field.description, field.placeholder, field.button, field.secure, function(ans) {if (typeof ans != 'undefined') {event.target.children.item(2).textContent = ans;}});">
 									<placeholder field='{{field | tojson}}'></placeholder>
-									<title style="color:rgb(241,241,241); tv-highlight-color:rgb(0,0,0);">{{field.label}}</title><subtitle style="color:rgb(241,241,241)" id="{{field.label}}">{{field.value}}</subtitle><decorationImage style="color:rgb(241,241,241); tv-highlight-color:rgb(0,0,0);" src="resource://list-chevron"/>
+									<title class="foo">{{field.label}}</title><subtitle style="color:rgb(241,241,241)" id="{{field.label}}">{{field.value}}</subtitle><decorationImage class="foo" src="resource://list-chevron"/>
 								</listItemLockup>
 								{% elif field.type == "action" %}
 								<listItemLockup onselect="var field = JSON.parse(event.target.children.item(0).getAttribute('field')); performAction(field.action);">
 									<placeholder field='{{field | tojson}}'></placeholder>
-									<title style="color:rgb(241,241,241); tv-highlight-color:rgb(0,0,0);">{{field.label}}</title><decorationLabel style="color:rgb(241,241,241); tv-highlight-color:rgb(0,0,0);">{{field.value}}</decorationLabel>
+									<title class="foo">{{field.label}}</title><decorationLabel class="foo">{{field.value}}</decorationLabel>
 								</listItemLockup>
 								{% elif field.type == "label" %}
 								<listItemLockup disabled="true">
-									<title style="color:rgb(241,241,241); tv-highlight-color:rgb(0,0,0);">{{field.label}}</title><decorationLabel style="color:rgb(241,241,241); tv-highlight-color:rgb(0,0,0);">{{field.value}}</decorationLabel>
+									<title class="foo">{{field.label}}</title><decorationLabel class="foo">{{field.value}}</decorationLabel>
 								</listItemLockup>
 								{% endif %}	
 							{% endfor %}
