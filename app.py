@@ -526,7 +526,7 @@ def installAddon():
 			global PLUGINS
 			plugin = KodiPlugin(id)
 			PLUGINS.append(plugin)
-			return render_template('alert.xml', title='Installation complete', description="Successfully installed addon {}.\nPlease reload the main screen in order to view the new addon".format(data['name']))
+			return render_template('alert.xml', title='Installation complete', description="Successfully installed addon {}.\nPlease reload the main screen in order to view the new addon".format(plugin.name))
 		except:
 			logger.exception('Failed to download/install {}'.format(id))
 			return render_template('alert.xml', title='Install error', description="Failed to install addon.\nThis could be due to a network error or bad repository parsing")
