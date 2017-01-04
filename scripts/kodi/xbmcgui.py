@@ -5,7 +5,7 @@ Classes and functions to work with Kodi GUI
 
 import xbmc as _xbmc
 from Plugin import Item
-import ast, sys, logging
+import ast, sys, logging, gevent
 logger = logging.getLogger('TVMLServer')
 
 ACTION_ANALOG_FORWARD = 113
@@ -2981,7 +2981,7 @@ class DialogProgress(object):
 		"""Close the progress dialog."""
 		_xbmc.bridge.closeprogress()
 		while not self.iscanceled():
-			time.sleep(0.1)
+			gevent.sleep(0.1)
 
 
 class DialogProgressBG(object):

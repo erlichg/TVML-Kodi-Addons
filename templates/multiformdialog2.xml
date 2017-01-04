@@ -3,11 +3,11 @@
 	<head>
 	  <style>
 	  @media tv-template and (tv-theme:light) {
-      	.foo { color:rgb(0, 0, 0); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+      	.foo { color:rgb(0, 0, 0); tv-highlight-color:rgb(0, 0, 0); }
       	.foo2 { color:rgb(0, 0, 0); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; }
 	  }
 	  @media tv-template and (tv-theme:dark) {
-      	.foo { color:rgb(255, 255, 255); tv-highlight-color:rgb(0,0,0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+      	.foo { color:rgb(255, 255, 255); tv-highlight-color:rgb(0,0,0); }
       	.foo2 { color:rgb(255, 255, 255); tv-highlight-color:rgb(255, 255, 255); tv-text-max-lines:15; }
 	  }
 	</style>
@@ -34,9 +34,6 @@
 		<banner>
 			<title class="foo">{{title}}</title>
 		</banner>
-		<background>
-			<img src="/templates/background.png"/>
-		</background>
 		<list>
 			{% for section in sections %}
 			<section>
@@ -59,7 +56,7 @@
 								{% elif field.type == "textfield" %}
 								<listItemLockup onselect="var field = JSON.parse(event.target.children.item(0).getAttribute('field')); showInputDialog(field.label, field.description, field.placeholder, field.button, field.secure, function(ans) {if (typeof ans != 'undefined') {event.target.children.item(2).textContent = ans;}});">
 									<placeholder field='{{field | tojson}}'></placeholder>
-									<title class="foo">{{field.label}}</title><subtitle style="color:rgb(241,241,241)" id="{{field.label}}">{{field.value}}</subtitle><decorationImage class="foo" src="resource://list-chevron"/>
+									<title class="foo">{{field.label}}</title><subtitle class="foo" id="{{field.label}}">{{field.value}}</subtitle><decorationImage class="foo" src="resource://list-chevron"/>
 								</listItemLockup>
 								{% elif field.type == "action" %}
 								<listItemLockup onselect="var field = JSON.parse(event.target.children.item(0).getAttribute('field')); performAction(field.action);">

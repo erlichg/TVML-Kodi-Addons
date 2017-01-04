@@ -58,7 +58,7 @@ def play(plugin, msg, url=None):
 		if msg['image'].startswith('addons'):
 			msg['image'] = '/{}'.format(msg['image'])
 		else:
-			msg['image'] = CACHE.get(msg['image'])
+			msg['image'] = '/cache/{}'.format(kodi_utils.b64encode(msg['image']))
 	logger.debug('image after cache = {}'.format(msg['image']))
 	#since url paremeter is the original url that was called which resulted in a play message, we can save this url for time
 	#return render_template('player.xml', url=msg['url'], type=msg['playtype'])

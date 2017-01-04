@@ -40,6 +40,7 @@ def progress_stop(b, _id):
 	now = time.time()
 	while b.progress and not b.thread.stop and time.time() - now < 18000: #Max wait for 5 hours in case of stuck/aborted app:
 		try:
+			print 'in progress thread {}'.format(b.thread.pid)
 			r = b.thread.responses.get(False)
 			logger.debug('found response for {}'.format(r['id']))
 			if r['id'] == _id:
@@ -49,7 +50,8 @@ def progress_stop(b, _id):
 				b.progress=None
 			else:
 				b.thread.responses.put(r)					
-		except:			
+		except:
+			print 'still no answer'		
 			gevent.sleep(1)
 	b.progress=None
 	logger.debug('Progress has been closed')
@@ -127,8 +129,9 @@ class bridge:
 	def closeprogress(self):
 		"""Closes the progress dialog"""		
 		self._message({'type':'closeprogress'})
-		while self.progress['process'] and self.progress['process'].is_alive():
-			gevent.sleep(1)
+		#while self.progress and self.progress['process'].is_alive():
+		#	print 'waiting for progress thread'
+		#	gevent.sleep(1)
 		self.progress = None
 		return None
 		
