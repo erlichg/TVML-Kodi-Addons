@@ -241,7 +241,7 @@ def catalog(pluginid, process=None):
 			if request.full_path.startswith('/catalog'):
 				p = Process(target=get_items, args=(plugin.id, decoded_url, CONTEXT, PLUGINS, LANGUAGE))
 			else:
-				p = Process(target=get_menu, args=(plugin.id, decoded_url, LANGUAGE))	
+				p = Process(target=get_menu, args=(plugin.id, decoded_url, PLUGINS, LANGUAGE))	
 			logger.debug('saving process id {}'.format(p.id))	
 			PROCESSES[p.id] = p
 			def stop():
@@ -439,11 +439,11 @@ def get_items(plugin_id, url, context, PLUGINS, LANGUAGE):
 	#logger.debug('get_items finished with {}'.format(items))
 	return items
 	
-def get_menu(plugin_id, url, LANGUAGE):
+def get_menu(plugin_id, url, PLUGINS, LANGUAGE):
 	print('Getting menu for: {}'.format(url))
 	url = url.split('?')[1] if '?' in url else url
 	try:
-		plugin = load_plugin(plugin_id)
+		plugin = load_plugin(PLUGINS, plugin_id)
 		if not plugin:
 			raise Exception('could not load plugin')
 		b = bridge()
@@ -464,7 +464,7 @@ def get_settings():
 def is_ascii(s):
 	return all(ord(c) < 128 for c in s)
 	
-def load_plugin(id):
+def load_plugin(PLUGINS, id):
 	p = [p for p in PLUGINS if p.id == id][0]
 	logger.debug('returning plugin {}'.format(p))
 	return p
