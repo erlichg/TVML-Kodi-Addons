@@ -412,18 +412,21 @@ def removeAddon():
 	try:
 		if request.method == 'POST':
 			id = kodi_utils.b64decode(request.form.keys()[0])
-			logger.debug('deleting plugin {}'.format(id))
-			path = os.path.join(DATA_DIR, 'addons', id)
-			shutil.rmtree(path)
-			global PLUGINS
-			for i, p in enumerate(PLUGINS):
-				 if p.id == id:
-				 	del PLUGINS[i]
-				 	break
+			remove_addon(id)
 		return json.dumps({'url':'/main', 'replace':True, 'initial':True}), 212
 	except:
 		traceback.print_exc(file=sys.stdout)
 		return 'NOTOK', 206
+
+def remove_addon(id):
+	logger.debug('deleting plugin {}'.format(id))
+	path = os.path.join(DATA_DIR, 'addons', id)
+	shutil.rmtree(path)
+	global PLUGINS
+	for i, p in enumerate(PLUGINS):
+		if p.id == id:
+			del PLUGINS[i]
+			break
 
 def get_items(plugin_id, url, context, PLUGINS, LANGUAGE):
 	if 'setproctitle' in sys.modules:
@@ -529,18 +532,22 @@ def installAddon():
 				return render_template('alert.xml', title='Already installed', description="This addon is already installed")
 			if not id in AVAILABLE_ADDONS:
 				return render_template('alert.xml', title='Unknown addon', description="This addon cannot be found")			
-			for r in plugin.requires:
-				alreadyInstalled = [p for p in PLUGINS if p.id == r]
-				if r == 'xbmc.python' or r.startswith('repository') or alreadyInstalled:
-					continue
-				install_addon(r)
 			install_addon(id)
 			global PLUGINS
 			plugin = KodiPlugin(id)
 			PLUGINS.append(plugin)
+			for r in plugin.requires:
+				alreadyInstalled = [p for p in PLUGINS if p.id == r]
+				if r == 'xbmc.python' or r.startswith('repository') or alreadyInstalled:
+					continue
+				install_addon(r)			
 			return render_template('alert.xml', title='Installation complete', description="Successfully installed addon {}.\nPlease reload the main screen in order to view the new addon".format(plugin.name))
 		except:
 			logger.exception('Failed to download/install {}'.format(id))
+			try:
+				remove_addon(id)
+			except:
+				pass
 			return render_template('alert.xml', title='Install error', description="Failed to install addon.\nThis could be due to a network error or bad repository parsing")
 	return render_template('alert.xml', title='URL error', description='This URL is invalid')
 
