@@ -528,16 +528,16 @@ def installAddon():
 			if alreadyInstalled:
 				return render_template('alert.xml', title='Already installed', description="This addon is already installed")
 			if not id in AVAILABLE_ADDONS:
-				return render_template('alert.xml', title='Unknown addon', description="This addon cannot be found")
-			install_addon(id)
-			global PLUGINS
-			plugin = KodiPlugin(id)
-			PLUGINS.append(plugin)
+				return render_template('alert.xml', title='Unknown addon', description="This addon cannot be found")			
 			for r in plugin.requires:
 				alreadyInstalled = [p for p in PLUGINS if p.id == r]
 				if r == 'xbmc.python' or r.startswith('repository') or alreadyInstalled:
 					continue
 				install_addon(r)
+			install_addon(id)
+			global PLUGINS
+			plugin = KodiPlugin(id)
+			PLUGINS.append(plugin)
 			return render_template('alert.xml', title='Installation complete', description="Successfully installed addon {}.\nPlease reload the main screen in order to view the new addon".format(plugin.name))
 		except:
 			logger.exception('Failed to download/install {}'.format(id))
@@ -563,16 +563,15 @@ def install_addon(id):
 
 @app.route('/getAddonData', methods=['POST'])
 def getAddonData():
-	if request.method == 'POST':		
-		try:
-			id = kodi_utils.b64decode(request.form.keys()[0])
-			if not id in AVAILABLE_ADDONS:
-				return render_template('alert.xml', title='Unknown addon', description="This addon cannot be found")
-			data = AVAILABLE_ADDONS[id]
-			return render_template('descriptiveAlert.xml', title=data['name'], _dict=data['data'])
-		except:
-			logger.exception('Failed to get data on {}'.format(id))
-			return render_template('alert.xml', title='Error', description="Failed to get data on addon.\nThis could be due to a network error or bad repository parsing")
+	try:
+		id = kodi_utils.b64decode(request.form.keys()[0])
+		if not id in AVAILABLE_ADDONS:
+			return render_template('alert.xml', title='Unknown addon', description="This addon cannot be found")
+		data = AVAILABLE_ADDONS[id]
+		return render_template('descriptiveAlert.xml', title=data['name'], _dict=data['data'])
+	except:
+		logger.exception('Failed to get data on {}'.format(id))
+		return render_template('alert.xml', title='Error', description="Failed to get data on addon.\nThis could be due to a network error or bad repository parsing")
 
 @app.route('/viewLog')
 def viewLog():
@@ -597,6 +596,12 @@ def restart():
 	#os.execl(python, python, *sys.argv)
 	sys.exit(0)
 
+@app.route('/repositories')
+def respositories():
+	return json.dumps(REPOSITORIES)
+	
+	
+	
 
 def help(argv):
 	print 'Usage: {} [-p <port>] [-d <dir>]'.format(argv[0])
