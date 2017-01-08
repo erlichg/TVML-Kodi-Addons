@@ -305,9 +305,11 @@ function loadLanguage() {
 }
 
 function selectLanguage() {
-	showSelectDialog('Available Languages', ["Afrikaans", "Albanian", "Amharic", "Arabic", "Armenian", "Azerbaijani", "Basque", "Belarusian", "Bosnian", "Bulgarian", "Burmese", "Catalan", "Chinese", "Croatian", "Czech", "Danish", "Dutch", "English", "Esperanto", "Estonian", "Faroese", "Finnish", "French", "Galician", "German", "Greek", "Hebrew", "Hindi", "Hungarian", "Icelandic", "Indonesian", "Italian", "Japanese", "Korean", "Latvian", "Lithuanian", "Macedonian", "Malay", "Malayalam", "Maltese", "Maori", "Mongolian", "Norwegian", "Ossetic", "Persian", "Persian", "Polish", "Portuguese", "Romanian", "Russian", "Serbian", "Silesian", "Sinhala", "Slovak", "Slovenian", "Spanish", "Spanish", "Swedish", "Tajik", "Tamil", "Telugu", "Thai", "Turkish", "Ukrainian", "Uzbek", "Vietnamese", "Welsh"], 0, function(ans) {
+	const lang = loadLanguage()
+	const available_languages = ["Afrikaans", "Albanian", "Amharic", "Arabic", "Armenian", "Azerbaijani", "Basque", "Belarusian", "Bosnian", "Bulgarian", "Burmese", "Catalan", "Chinese", "Croatian", "Czech", "Danish", "Dutch", "English", "Esperanto", "Estonian", "Faroese", "Finnish", "French", "Galician", "German", "Greek", "Hebrew", "Hindi", "Hungarian", "Icelandic", "Indonesian", "Italian", "Japanese", "Korean", "Latvian", "Lithuanian", "Macedonian", "Malay", "Malayalam", "Maltese", "Maori", "Mongolian", "Norwegian", "Ossetic", "Persian", "Persian", "Polish", "Portuguese", "Romanian", "Russian", "Serbian", "Silesian", "Sinhala", "Slovak", "Slovenian", "Spanish", "Spanish", "Swedish", "Tajik", "Tamil", "Telugu", "Thai", "Turkish", "Ukrainian", "Uzbek", "Vietnamese", "Welsh"];
+	showSelectDialog('Available Languages', available_languages, available_languages.indexOf(lang), function(ans) {
 		if (typeof ans != "undefined") {
-			localStorage.setItem("language", ans);
+			localStorage.setItem("language", ans);			
 		}
 	});
 }
@@ -367,13 +369,19 @@ function showSelectDialog(title, choices, index, callback) {
          <title>${title}</title>
       </banner>
 	</head>
-	<listTemplate>
+	<listTemplate autoHighlight="true">
 	  <list>
 		  <section>`;
 	for (var item in choices) {
-		template = template + `<listItemLockup>										
+		if (item == index) {
+			template = template + `<listItemLockup autoHighlight="true">										
 				 	<title>${choices[item]}</title>				 					 	
 				</listItemLockup>`;
+		} else {
+			template = template + `<listItemLockup>										
+				 	<title>${choices[item]}</title>				 					 	
+				</listItemLockup>`;
+		}
 	}
 	template = template +`</section>
 	  </list>

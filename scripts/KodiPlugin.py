@@ -65,11 +65,15 @@ class KodiPlugin:
 		sys.path.append(os.path.join(bundle_dir, 'scripts', 'kodi'))
 		
 		for r in self.requires:
-			if os.path.exists(os.path.join(ADDONS_DIR, r)):
-				tree = ET.parse(os.path.join(ADDONS_DIR, r, 'addon.xml'))
-				for e2 in tree.iter('extension'):
-					if e2.attrib['point'] == 'xbmc.python.module':
-						sys.path.append(os.path.join(ADDONS_DIR, r, e2.attrib['library']))
+			if not os.path.exists(os.path.join(ADDONS_DIR, r)):
+				logger.error('Addon {} is missing module {}'.format(self.id, r))
+				return None
+				
+			tree = ET.parse(os.path.join(ADDONS_DIR, r, 'addon.xml'))
+			for e2 in tree.iter('extension'):
+				if e2.attrib['point'] == 'xbmc.python.module':
+					sys.path.append(os.path.join(ADDONS_DIR, r, e2.attrib['library']))
+		print sys.path
 		import xbmc
 		xbmc.bridge = bridge
 		import Container

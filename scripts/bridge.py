@@ -40,7 +40,6 @@ def progress_stop(b, _id):
 	now = time.time()
 	while b.progress and not b.thread.stop and time.time() - now < 18000: #Max wait for 5 hours in case of stuck/aborted app:
 		try:
-			print 'in progress thread {}'.format(b.thread.pid)
 			r = b.thread.responses.get(False)
 			logger.debug('found response for {}'.format(r['id']))
 			if r['id'] == _id:
@@ -51,7 +50,6 @@ def progress_stop(b, _id):
 			else:
 				b.thread.responses.put(r)					
 		except:
-			print 'still no answer'		
 			gevent.sleep(1)
 	b.progress=None
 	logger.debug('Progress has been closed')

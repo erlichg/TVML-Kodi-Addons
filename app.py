@@ -87,6 +87,7 @@ from scripts import kodi_utils
 import jinja2
 app = Flask(__name__, template_folder=os.path.join(bundle_dir, 'templates'))
 app.jinja_env.filters['base64encode'] = kodi_utils.b64encode
+app.config['JSON_AS_ASCII'] = False
 #app.jinja_env.add_extension('jinja2.ext.do')
 	
 import threading
@@ -379,16 +380,19 @@ def main():
 		try:
 			post_data = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
 			logger.debug(post_data)
-			favs_json = post_data['favs']
+			favs_json = json.loads(post_data['favs'])
 			for id in favs_json:
+				print 'searching for {}'.format(id)
 				matching = [p for p in PLUGINS if p.id == id]
 				if len(matching) == 0:
+					print 'No match found'
 					continue #no match found
 				if len(matching) == 1:
+					print 'found match {}'.format(matching[0])
 					favs.append(matching[0])
 					continue
 				logger.warning('More than one addons found that match id {}'.format())
-			favs = [[p for p in PLUGINS if p.id == id][0] for id in favs]
+			#favs = [[p for p in PLUGINS if p.id == id][0] for id in favs]
 			
 			global LANGUAGE
 			LANGUAGE = post_data['lang']			
@@ -400,7 +404,8 @@ def main():
 		time.sleep(1)
 	if not AVAILABLE_ADDONS:
 		logger.error('Failed to fetch remote repositories. Installing addons may not be available')
-	return render_template('main.xml', menu=PLUGINS, favs=favs, url=request.full_path, all=AVAILABLE_ADDONS)
+	print 'rendering template with favs={}'.format(favs)
+	return render_template('main.xml', menu=PLUGINS, favs=favs, url=request.full_path, all={k:AVAILABLE_ADDONS[k] for k in AVAILABLE_ADDONS if k.startswith('plugin.video')})
 	
 @app.route('/removeAddon', methods=['POST'])
 def removeAddon():
@@ -493,18 +498,20 @@ def getAvailableAddons(REPOSITORIES):
 			req = requests.get(r['xml'])
 			link = req.text
 			parser.feed(link)
-			for a in parser.getElementsByTagName('addon'):
-				if 'plugin.video.' in a.attributes['id']:
-					id = a.attributes['id']
-					data = a.attributes
+			for a in parser.getElementsByTagName('addon'):				
+				id = a.attributes['id']
+				data = a.attributes
+				try:
 					meta = a.getElementsByAttr('point', 'xbmc.addon.metadata')[0]
 					data.update({t.tagName:t.text for t in meta.children})
-					if id in temp:
-						current_version = temp[id]['data']['version']
-						new_version = data['version']
-						if version.parse(current_version) >= version.parse(new_version):
-							continue
-					temp[id] = {'repo':r, 'name':data['name'], 'data':data, 'icon':'/cache/{}'.format(kodi_utils.b64encode('{}/{}/icon.png'.format(r['download'],id)))}
+				except:
+					pass
+				if id in temp:
+					current_version = temp[id]['data']['version']
+					new_version = data['version']
+					if version.parse(current_version) >= version.parse(new_version):
+						continue
+				temp[id] = {'repo':r, 'name':data['name'], 'data':data, 'icon':'/cache/{}'.format(kodi_utils.b64encode('{}/{}/icon.png'.format(r['download'],id)))}
 						
 		except Exception as e:
 			logger.exception('Cannot read repository {} because of {}'.format(r, e))
@@ -526,6 +533,11 @@ def installAddon():
 			global PLUGINS
 			plugin = KodiPlugin(id)
 			PLUGINS.append(plugin)
+			for r in plugin.requires:
+				alreadyInstalled = [p for p in PLUGINS if p.id == r]
+				if r == 'xbmc.python' or r.startswith('repository') or alreadyInstalled:
+					continue
+				install_addon(r)
 			return render_template('alert.xml', title='Installation complete', description="Successfully installed addon {}.\nPlease reload the main screen in order to view the new addon".format(plugin.name))
 		except:
 			logger.exception('Failed to download/install {}'.format(id))
