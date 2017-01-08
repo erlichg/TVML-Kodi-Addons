@@ -15,20 +15,17 @@ I've created a bridge from the kodi plugins to the server using the excellent [K
 4. Add your IP of the server
 5. Have fun
 
-##Kodi plugins
-What I've got working so far are:
-- Exodus
-- KIDSIL
-- Reshet
-- Channel10
-- and more
+##Kodi addons
+Still not all of Kodi API is implemented so some might fail.
 
-Most (simple) addons should work immediately (Simply place the unzipped kodi addon under the kodiplugins folder. This will require running/building from source).
+Most (simple) addons should work immediately (Simply place the unzipped kodi addon under the ~/.TVMLServer/addons
 
 ###How it works
-The main page of the app shows a grid view of all plugins available.
+The main page of the app shows a grid view of all addons available.
 
-Once you select a plugin, the server runs the plugin with an empty string and returs the list back to the client.
+You can install new addons from the 'Install addons' tab.
+
+Once you select an addon, the server runs it with an empty string and returs the list back to the client.
 
 Subsequent calls will run the plugin with the list item url
 
@@ -53,7 +50,6 @@ Addon data path (for saving local files) is currently on server so all clients w
 ##What's next
 A lot more work to be done:
 - Implement more of kodi stubs to fit more addons
-- Implement an addon manager to be able to automatically install/update addons
 - Modify the server to be able to accept many multiple connections. Think about the possibility to have multiple central servers on the web so everyone can connect to them without having to install anything locally!!
 - If your interested in coding (python/javascript), I'd love the help
 
