@@ -7,6 +7,7 @@ I've created a bridge from the kodi plugins to the server using the excellent [K
 ![alt tag](https://raw.githubusercontent.com/ggyeh/TVML-Kodi-Addons/master/images/screenshot2.png)
 ![alt tag](https://raw.githubusercontent.com/ggyeh/TVML-Kodi-Addons/master/images/screenshot3.png)
 ![alt tag](https://raw.githubusercontent.com/ggyeh/TVML-Kodi-Addons/master/images/screenshot4.png)
+![alt tag](https://raw.githubusercontent.com/ggyeh/TVML-Kodi-Addons/master/images/screenshot5.png)
 
 ##How to use
 1. You can use the pre-compiled executable (for windows 64bit and mac currently)
