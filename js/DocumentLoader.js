@@ -236,6 +236,10 @@ DocumentLoader.prototype.fetchPost = function(options) {
 					}					
 				}.bind(this)
 			});
+	    } else if (xhr.status == 218) { //special results		    
+		    if (typeof options.special == "function") {
+		    	options.special(xhr);
+		    }
 	    } else { //regular document
         	var responseDoc = xhr.response;        	
 			responseDoc = this.prepareDocument(responseDoc);

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+Copyright (C) 2016 Apple Inc. All Rights Reserved.
+See LICENSE.txt for this sample’s licensing information
+
+-->
+<document>
+	<head>
+	  <style>
+	  @media tv-template and (tv-theme:light) {
+      	.foo { color:rgb(0, 0, 0); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+      	.foo2 { color:rgb(0, 0, 0); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; }
+	  }
+	  @media tv-template and (tv-theme:dark) {
+      	.foo { color:rgb(255, 255, 255); tv-highlight-color:rgb(0,0,0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+      	.foo2 { color:rgb(255, 255, 255); tv-highlight-color:rgb(255, 255, 255); tv-text-max-lines:15; }
+	  }
+	</style>	
+	</head>
+	<listTemplate>
+		<banner>
+			<title>{{title}}</title>						
+		</banner>
+		<list>
+			<section>
+				{% for r in repositories %}
+				<listItemLockup onselect="post('/addonsForRepository', btoa('{{r}}'))">
+					<title class="foo">{{r}}</title>
+				</listItemLockup>
+				{% endfor %}
+			</section>
+			<section>
+				<listItemLockup onselect="browse(null, function(xhr) {post('/addRepository', btoa(xhr.responseText))})">
+					<decorationImage style="tv-align:left; tv-position:left; margin:10" src="resource://button-add"/>
+				</listItemLockup>
+			</section>
+		</list>
+	</listTemplate>
+</document>

@@ -88,6 +88,12 @@ import jinja2
 app = Flask(__name__, template_folder=os.path.join(bundle_dir, 'templates'))
 app.jinja_env.filters['base64encode'] = kodi_utils.b64encode
 app.config['JSON_AS_ASCII'] = False
+from werkzeug.routing import PathConverter
+
+class EverythingConverter(PathConverter):
+    regex = '.*?'
+
+app.url_map.converters['everything'] = EverythingConverter
 #app.jinja_env.add_extension('jinja2.ext.do')
 	
 import threading
@@ -497,27 +503,28 @@ def getAvailableAddons(REPOSITORIES):
 	temp = {}
 	parser = AdvancedHTMLParser.Parser.AdvancedHTMLParser()
 	for r in REPOSITORIES:
-		try:
-			req = requests.get(r['xml'])
-			link = req.text
-			parser.feed(link)
-			for a in parser.getElementsByTagName('addon'):				
-				id = a.attributes['id']
-				data = a.attributes
-				try:
-					meta = a.getElementsByAttr('point', 'xbmc.addon.metadata')[0]
-					data.update({t.tagName:t.text for t in meta.children})
-				except:
-					pass
-				if id in temp:
-					current_version = temp[id]['data']['version']
-					new_version = data['version']
-					if version.parse(current_version) >= version.parse(new_version):
-						continue
-				temp[id] = {'repo':r, 'name':data['name'], 'data':data, 'icon':'/cache/{}'.format(kodi_utils.b64encode('{}/{}/icon.png'.format(r['download'],id)))}
-						
-		except Exception as e:
-			logger.exception('Cannot read repository {} because of {}'.format(r, e))
+		for dir in r['dirs']:
+			try:
+				req = requests.get(dir['xml'])
+				link = req.text
+				parser.feed(link)
+				for a in parser.getElementsByTagName('addon'):				
+					id = a.attributes['id']
+					data = a.attributes
+					try:
+						meta = a.getElementsByAttr('point', 'xbmc.addon.metadata')[0]
+						data.update({t.tagName:t.text for t in meta.children})
+					except:
+						pass
+					if id in temp:
+						current_version = temp[id]['data']['version']
+						new_version = data['version']
+						if version.parse(current_version) >= version.parse(new_version):
+							continue
+					temp[id] = {'repo':r, 'name':data['name'], 'data':data, 'icon':'/cache/{}'.format(kodi_utils.b64encode('{}/{}/icon.png'.format(dir['download'],id)))}
+							
+			except Exception as e:
+				logger.exception('Cannot read repository {} because of {}'.format(r, e))
 	#q.put(temp)	
 	logger.debug('Finished refreshing repositories')
 	return temp
@@ -605,9 +612,75 @@ def restart():
 
 @app.route('/repositories')
 def respositories():
-	return json.dumps(REPOSITORIES)
+	return render_template('repositories.xml', title='Repositories', repositories=[r['name'] for r in REPOSITORIES])
 	
+@app.route('/addonsForRepository', methods=['POST'])
+def addonsForRepository():
+	try:
+		name = kodi_utils.b64decode(request.form.keys()[0])		
+		addons = [AVAILABLE_ADDONS[a] for a in AVAILABLE_ADDONS if AVAILABLE_ADDONS[a]['repo']['name'] == name]
+		print 'found list {}'.format(addons)
+		def f(a):
+			return a['name']		
+		return render_template('addonsList.xml', addons=sorted(addons, key=f))
+	except Exception as e:
+		logger.exception('Failed to show addons by repository {}'.format(name))
+		return render_template('alert.xml', title='Error', description='{}'.format(e))
 	
+@app.route('/addRepository', methods=['POST'])
+def addRepository():
+	try:
+		path = kodi_utils.b64decode(request.form.keys()[0])
+		if not os.path.exists(path):
+			return render_template('alert.xml', title='Error', description='{} does not exist'.format(path))
+		if not os.path.isfile(path):
+			return render_template('alert.xml', title='Error', description='{} is not a valid file'.format(path))
+		if not zipfile.is_zipfile(path):
+			return render_template('alert.xml', title='Error', description='{} is not a valid zipfile'.format(path))
+		with zipfile.ZipFile(path, 'r') as zip:
+			dir = os.path.join(DATA_DIR, 'addons')
+			zip.extractall(dir)
+		with open(xml, 'r') as f:
+			repo = {}
+			parser = AdvancedHTMLParser.Parser.AdvancedHTMLParser()
+			parser.feed(f.read())
+			repo['name'] = parser.getElementsByTagName('addon')[0].attributes['name']
+			repo['dirs'] = []
+			infos = parser.getElementsByTagName('info')
+			datadirs = parser.getElementsByTagName('datadir')
+			if len(infos) != len(datadirs):
+				raise Exception('Failed to parse addon.xml')
+			for i in range(len(infos)):
+				repo['dirs'].append({'xml':infos[i].text, 'download':datadirs[i].text})
+			global REPOSITORIES
+			REPOSITORIES.append(repo)
+			global AVAILABLE_ADDONS
+			AVAILABLE_ADDONS = getAvailableAddons(REPOSITORIES)
+			updateAddons()
+			return render_template('alert.xml', title='Repository added', description='Please reload main screen to view additional addons')
+	except Exception as e:
+		logger.exception('Failed to add repository {}'.format(path))
+		return render_template('alert.xml', title='Error', description='{}'.format(e))
+				
+
+last_dir = os.path.expanduser("~")
+@app.route('/browse/<everything:dir>')
+@app.route('/browse')
+def browse(dir=None):
+	global last_dir
+	if not dir:		
+		dir = last_dir
+	last_dir = dir
+	try:
+		if os.path.isdir(dir):
+			files = [{'url':os.path.join(dir, f), 'title':f} for f in os.listdir('{}'.format(dir))]
+			up = os.path.dirname(dir)
+			return render_template('browse.xml', title=dir, files=files, up=up)
+		else:
+			return dir, 218
+	except:
+		logger.exception('Failed to browse {}'.format(dir))
+		return render_template('alert.xml', title='Error', description='Failed to browse {}'.format(dir))
 	
 
 def help(argv):
@@ -654,33 +727,42 @@ def mmain(argv):
 	
 	global REPOSITORIES
 	REPOSITORIES = [
-	#{'xml':'http://mirrors.kodi.tv/addons/dharma/addons.xml', 'download':'http://mirrors.kodi.tv/addons/dharma'},
-	#{'xml':'http://mirrors.kodi.tv/addons/eden/addons.xml', 'download':'http://mirrors.kodi.tv/addons/eden'},
-	#{'xml':'http://mirrors.kodi.tv/addons/frodo/addons.xml', 'download':'http://mirrors.kodi.tv/addons/frodo'},
-	#{'xml':'http://mirrors.kodi.tv/addons/gotham/addons.xml', 'download':'http://mirrors.kodi.tv/addons/gotham'},
-	#{'xml':'http://mirrors.kodi.tv/addons/helix/addons.xml', 'download':'http://mirrors.kodi.tv/addons/helix'},
-	#{'xml':'http://mirrors.kodi.tv/addons/isengard/addons.xml', 'download':'http://mirrors.kodi.tv/addons/isengard'},
-	#{'xml':'http://mirrors.kodi.tv/addons/jarvis/addons.xml', 'download':'http://mirrors.kodi.tv/addons/jarvis'},
-	{'xml':'http://mirrors.kodi.tv/addons/krypton/addons.xml', 'download':'http://mirrors.kodi.tv/addons/krypton'},
-	#{'xml':'https://raw.githubusercontent.com/cubicle-vdo/xbmc-israel/master/addons.xml', 'download':'https://github.com/cubicle-vdo/xbmc-israel/raw/master/repo'},
-	{'xml':'https://raw.githubusercontent.com/kodil/kodil/master/addons.xml', 'download':'https://github.com/kodil/kodil/raw/master/repo'},
-	{'xml':'https://offshoregit.com/exodus/addons.xml', 'download':'https://offshoregit.com/exodus/'}
+	{'name': 'Kodi repository', 'dirs':[{'xml':'http://mirrors.kodi.tv/addons/krypton/addons.xml', 'download':'http://mirrors.kodi.tv/addons/krypton'}]},
+	{'name': 'Kodi Israel', 'dirs':[{'xml':'https://raw.githubusercontent.com/kodil/kodil/master/addons.xml', 'download':'https://github.com/kodil/kodil/raw/master/repo'}]},
+	{'name': 'Exodus repository', 'dirs':[{'xml':'https://offshoregit.com/exodus/addons.xml', 'download':'https://offshoregit.com/exodus/'}]}
 	]
 				
 	
 	for plugin in os.listdir(os.path.join(DATA_DIR, 'addons')):
-		if not plugin.startswith('plugin.video.'):
-			continue
-		try:
-			dir = os.path.join(DATA_DIR, 'addons', plugin)
-			if not os.path.isdir(dir):
-				continue
-			logger.debug('Loading kodi plugin {}'.format(plugin))
-			p = KodiPlugin(plugin)
-			PLUGINS.append(p)
-			logger.debug('Successfully loaded plugin: {}'.format(p))
-		except Exception as e:
-			logger.error('Failed to load kodi plugin {}. Error: {}'.format(plugin, e))
+		if plugin.startswith('plugin.video.'):
+			try:
+				dir = os.path.join(DATA_DIR, 'addons', plugin)
+				if not os.path.isdir(dir):
+					continue
+				logger.debug('Loading kodi plugin {}'.format(plugin))
+				p = KodiPlugin(plugin)
+				PLUGINS.append(p)
+				logger.debug('Successfully loaded plugin: {}'.format(p))
+			except Exception as e:
+				logger.error('Failed to load kodi plugin {}. Error: {}'.format(plugin, e))
+		elif plugin.startswith('xbmc.addon.repository'):
+			try:
+				with open(os.path.join(DATA_DIR, 'addons', plugin, 'addon.xml'), 'r') as f:
+					repo = {}
+					parser = AdvancedHTMLParser.Parser.AdvancedHTMLParser()
+					parser.feed(f.read())
+					repo['name'] = parser.getElementsByTagName('addon')[0].attributes['name']
+					repo['dirs'] = []
+					infos = parser.getElementsByTagName('info')
+					datadirs = parser.getElementsByTagName('datadir')
+					if len(infos) != len(datadirs):
+						raise Exception('Failed to parse addon.xml')
+					for i in range(len(infos)):
+						repo['dirs'].append({'xml':infos[i].text, 'download':datadirs[i].text})
+					REPOSITORIES.append(repo)
+			except:
+				logger.exception('Failed to parse installed repository {}'.format(plugin))
+			
 	global http_server		
 	http_server = WSGIServer(('',port), app)
 	import socket

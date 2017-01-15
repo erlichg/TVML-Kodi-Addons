@@ -25,7 +25,7 @@ function resolveControllerFromElement(elem) {
     }
 }
 
-function DocumentController(documentLoader, documentURL, loadingDocument, initial, data) {
+function DocumentController(documentLoader, documentURL, loadingDocument, initial, data, replace, special) {
     this.handleEvent = this.handleEvent.bind(this);
     this.handleHoldSelect = this.handleHoldSelect.bind(this);
     this._documentLoader = documentLoader;
@@ -54,7 +54,7 @@ function DocumentController(documentLoader, documentURL, loadingDocument, initia
 	    	    }
         	}
     	}); 	       					
-    } else if (typeof data != "undefined") {
+    } else if (typeof data != "undefined" && data != null) {
 	    documentLoader.post({
 	    	initial: initial,	    	
         	url: documentURL,
@@ -63,7 +63,7 @@ function DocumentController(documentLoader, documentURL, loadingDocument, initia
         	    // Add the event listener for document
         	    this.setupDocument(document);
         	    // Allow subclass to do custom handling for this document
-        	    this.handleDocument(document, loadingDocument, isModal);
+        	    this.handleDocument(document, loadingDocument, isModal, replace);
         	}.bind(this),
         	error: function(xhr) {
         	    const alertDocument = createLoadErrorAlertDocument(documentURL, xhr, false);
@@ -73,7 +73,8 @@ function DocumentController(documentLoader, documentURL, loadingDocument, initia
 	    	    if(loadingDocument) {
 			        navigationDocument.removeDocument(loadingDocument);
 	    	    }
-        	}
+        	},
+        	special: special
     	});
     } else {
     	documentLoader.fetchPost({
@@ -83,7 +84,7 @@ function DocumentController(documentLoader, documentURL, loadingDocument, initia
     	        // Add the event listener for document
     	        this.setupDocument(document);
     	        // Allow subclass to do custom handling for this document
-    	        this.handleDocument(document, loadingDocument, isModal);
+    	        this.handleDocument(document, loadingDocument, isModal, replace);
     	    }.bind(this),
     	    error: function(xhr) {
     	        const alertDocument = createLoadErrorAlertDocument(documentURL, xhr, false);
@@ -93,7 +94,8 @@ function DocumentController(documentLoader, documentURL, loadingDocument, initia
 		        if(loadingDocument) {
 			        navigationDocument.removeDocument(loadingDocument);
 		        }
-    	    }
+    	    },
+    	    special: special
     	});
     }
 }
@@ -106,11 +108,14 @@ DocumentController.prototype.setupDocument = function(document) {
     document.addEventListener("holdselect", this.handleHoldSelect);    
 };
 
-DocumentController.prototype.handleDocument = function(document, loadingDocument, isModal) {	
+DocumentController.prototype.handleDocument = function(document, loadingDocument, isModal, replace) {	
     if (loadingDocument && navigationDocument.documents.indexOf(loadingDocument)!=-1) {
-	    if (typeof isModal == "undefined") {  
+	    if (typeof isModal == "undefined") {
+		    if (typeof replace == "boolean" && replace && navigationDocument.documents.length > 1) {
+				navigationDocument.removeDocument(navigationDocument.documents[navigationDocument.documents.length-2]); //last document should be the loader so remove previous document							
+			}
 		    console.log("Replacing loading document");
-        	navigationDocument.replaceDocument(document, loadingDocument);
+			navigationDocument.replaceDocument(document, loadingDocument);			
         } else {
 	        //navigationDocument.removeDocument(loadingDocument);
 	        console.log("Presenting modal document");
@@ -124,6 +129,9 @@ DocumentController.prototype.handleDocument = function(document, loadingDocument
         }     
     } else {
 	    if (typeof isModal == "undefined") {
+		    if (typeof replace == "boolean" && replace && navigationDocument.documents.length > 1) {
+				navigationDocument.removeDocument(navigationDocument.documents[navigationDocument.documents.length-1]); //remove previous document							
+			}
 		    console.log("pushing document");
         	navigationDocument.pushDocument(document);
         } else {
@@ -194,11 +202,11 @@ function notify(url) {
 	});
 }
 
-function load(url, initial) {
+function load(url, initial, replace) {
 	console.log("loading "+url);	
 	var loadingDocument = createLoadingDocument();
 	navigationDocument.pushDocument(loadingDocument);	
-	new DocumentController(documentLoader, url, loadingDocument, initial);
+	new DocumentController(documentLoader, url, loadingDocument, initial, null, replace);
 }
 
 function post(url, data) {
@@ -312,6 +320,25 @@ function selectLanguage() {
 			localStorage.setItem("language", ans);			
 		}
 	});
+}
+
+var last_special = null;
+function browse(dir, special) {
+	if (typeof special == 'undefined' || special == null) {
+		special = last_special;
+	}
+	if (typeof special == 'undefined' || special == null) {
+		console.log('when browsing must pass special function');
+		return;
+	}
+	last_special = special;
+	var loadingDocument = createLoadingDocument();
+	navigationDocument.pushDocument(loadingDocument);
+	if (typeof dir == "undefined" || dir == null) {
+		new DocumentController(documentLoader, '/browse', loadingDocument, false, null, true, special);
+	} else {
+		new DocumentController(documentLoader, '/browse/'+dir, loadingDocument, false, null, true, special);
+	}
 }
 
 function showInputDialog(title, description, placeholder, button, secure, callback) {
