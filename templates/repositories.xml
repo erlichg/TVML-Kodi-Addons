@@ -25,7 +25,7 @@ See LICENSE.txt for this sample’s licensing information
 			<section>
 				{% for r in repositories %}
 				<listItemLockup onselect="post('/addonsForRepository', btoa('{{r}}'))">
-					<title class="foo">{{r}}</title>
+					<title>{{r}}</title>
 				</listItemLockup>
 				{% endfor %}
 			</section>

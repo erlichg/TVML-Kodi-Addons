@@ -19,11 +19,6 @@ function DocumentLoader(baseURL) {
     this.baseURL = baseURL;
 }
 
-DocumentLoader.prototype.post = function(options) {
-	options.type = "POST";
-	this.fetchPost(options);
-}
-
 /*
  * Helper method to request templates from the server
  */
@@ -31,8 +26,10 @@ DocumentLoader.prototype.fetchPost = function(options) {
     if (typeof options.url !== "string") {
         throw new TypeError("DocumentLoader.fetch: url option must be a string.");
     }    
-    if (typeof options.type == "undefined") {
+    if (typeof options.data == "undefined" || options.data == "") {
 	    options.type = "GET";
+    } else {
+        options.type = "POST";
     }
     // Cancel the previous request if it is still in-flight.
     //if (options.concurrent !== true) {
@@ -127,7 +124,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
 				//options.abort();
 			} else if(msg['type'] == 'loadSettings') {
 				var settings = loadSettings(msg['addon']);
-				this.post({
+				this.fetchPost({
 					url:'/response/'+msg['msgid'],
 					data:btoa(JSON.stringify(settings))
 				});
@@ -160,82 +157,94 @@ DocumentLoader.prototype.fetchPost = function(options) {
 		    	this.progressDocument.addEventListener("unload", function() { //in case of user cancel, send abort notification
 			    	if (typeof this.progressDocument != "undefined") {
 				    	delete this.progressDocument;
-						this.post({
-		 					url: "/response/" + id,
-		 					data: "blah"
-		 				});
+				    	if (typeof id != "undefined" && id != "") { //only if response is required
+						    this.fetchPost({
+		 					    url: "/response/" + id,
+		 					    data: "blah"
+		 				    });
+		 				}
+		 				//Another call to url in order to continue after progress has been cancelled
 		 				new DocumentController(this, url, getActiveDocument());
 		 			}
 		    	}.bind(this));
 		    	var progress = this.progressDocument.getElementById("progress")
 		    	var url = progress.getAttribute("documentURL");
 				var id = progress.getAttribute("msgid");
-				//update progress document with updated 
 		    	//display progress document
 		    	if (typeof options.success === "function") {
             		options.success(this.progressDocument);
         		} else {
             		navigationDocument.pushDocument(this.progressDocument);
-        		}        		
-	    	} else {
-		    	var progress = this.progressDocument.getElementById("progress");
-				var url = progress.getAttribute("documentURL");
-				var id = progress.getAttribute("msgid");
-				//update progress document with updated values
-				try {
-					console.log("updating progress dialog");
-					var updated_progress = xhr.response.getElementById("progress");
-					progress.setAttribute('value', updated_progress.getAttribute('value'))
-					var updated_text = xhr.response.getElementById("text");
-					this.progressDocument.getElementById("text").textContent = updated_text.textContent;
-				} catch (err) {
-					console.log("Failed to update progress dialog");
-				}
-	    	}
-	    	//fetch new message
+        		}
+        	}
+        	var progress = this.progressDocument.getElementById("progress")
+		    var url = progress.getAttribute("documentURL");
+		    var data = progress.getAttribute("data");
+        	//fetch new message
 			this.fetchPost({
 				url: url,
-				abort: function() {
+				data: data,
+				success: function(doc) { //if we get success, this means we got a regular document without closing the progress
+				    if (typeof this.progressDocument != "undefined") {
+				        console.log('Manually removing progress document');
+                        const temp = this.progressDocument; //save it
+				        delete this.progressDocument; //delete it so as not to call "unload"
+				        navigationDocument.removeDocument(temp);
+				        navigationDocument.pushDocument(doc);
+				    }
+				}.bind(this),
+				abort: function() { //if we get abort, remove the progress dialog
 					try {
 						if (typeof this.progressDocument != "undefined") {
-							console.log("Removing progress dialog");						
+							console.log("Removing progress dialog");
 							var loadingDocument = createLoadingDocument();
 							navigationDocument.replaceDocument(loadingDocument, this.progressDocument);
-						}					
+						}
 					} catch (err) {
-					}					
-				}.bind(this)
-			});			
-		} else if (xhr.status == 216) { //update progress
-			if (typeof this.progressDocument != "undefined") {
-				var progress = this.progressDocument.getElementById("progress")
-				var url = progress.getAttribute("documentURL");
-				var id = progress.getAttribute("msgid");
-				//update progress document with updated values
-				try {
-					console.log("updating progress dialog");
-					var updated_progress = xhr.response.getElementById("progress");
-					progress.setAttribute('value', updated_progress.getAttribute('value'))
-					var updated_text = xhr.response.getElementById("text");
-					this.progressDocument.getElementById("text").textContent = updated_text.textContent;
-				} catch (err) {
-					console.log("Failed to update progress dialog");
-				}
-			}
-			//fetch new message
-			this.fetchPost({
-				url: url,
-				abort: function() {
-					try {
-						if (typeof this.progressDocument != "undefined") {
-							console.log("Removing progress dialog");						
-							var loadingDocument = createLoadingDocument();
-							navigationDocument.replaceDocument(loadingDocument, this.progressDocument);
-						}					
-					} catch (err) {
-					}					
+					}
 				}.bind(this)
 			});
+		} else if (xhr.status == 216) { //update progress
+			if (typeof this.progressDocument != "undefined") {
+				var progress = this.progressDocument.getElementById("progress");
+				var url = progress.getAttribute("documentURL");
+				var id = progress.getAttribute("msgid");
+				var data = progress.getAttribute("data");
+				//update progress document with updated values
+				try {
+					console.log("updating progress dialog");
+					var updated_progress = xhr.response.getElementById("progress");
+					progress.setAttribute('value', updated_progress.getAttribute('value'))
+					var updated_text = xhr.response.getElementById("text");
+					this.progressDocument.getElementById("text").textContent = updated_text.textContent;
+				} catch (err) {
+					console.log("Failed to update progress dialog");
+				}
+			    //fetch new message
+			    this.fetchPost({
+				    url: url,
+				    data: data,
+				    success: function(doc) { //if we get success, this means we got a regular document without closing the progress
+				        if (typeof this.progressDocument != "undefined") {
+				            console.log('Manually removing progress document');
+				            const temp = this.progressDocument; //save it
+				            delete this.progressDocument; //delete it so as not to call "unload"
+				            navigationDocument.removeDocument(temp);
+				            navigationDocument.pushDocument(doc);
+				        }
+				    }.bind(this),
+				    abort: function() { //if we get abort, remove the progress dialog
+					    try {
+						    if (typeof this.progressDocument != "undefined") {
+							    console.log("Removing progress dialog");
+							    var loadingDocument = createLoadingDocument();
+							    navigationDocument.replaceDocument(loadingDocument, this.progressDocument);
+						    }
+					    } catch (err) {
+					    }
+				    }.bind(this)
+			    });
+			}
 	    } else if (xhr.status == 218) { //special results		    
 		    if (typeof options.special == "function") {
 		    	options.special(xhr);
@@ -276,7 +285,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
         }
     };
     xhr.timeout = 60000;
-    if (typeof options.data == "undefined") {
+    if (typeof options.data == "undefined" || options.data == "") {
 	    xhr.send();
 	} else {
 		xhr.send(options.data);

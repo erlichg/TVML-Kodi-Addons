@@ -34,7 +34,7 @@ function DocumentController(documentLoader, documentURL, loadingDocument, initia
 		navigationDocument.clear();
 		var favs = loadFavourites();
 		var language = loadLanguage();
-		documentLoader.post({
+		documentLoader.fetchPost({
 	    	initial: initial,	    	
         	url: documentURL,
         	data: btoa(JSON.stringify({'favs':JSON.stringify(favs), 'lang':language})),
@@ -55,7 +55,7 @@ function DocumentController(documentLoader, documentURL, loadingDocument, initia
         	}
     	}); 	       					
     } else if (typeof data != "undefined" && data != null) {
-	    documentLoader.post({
+	    documentLoader.fetchPost({
 	    	initial: initial,	    	
         	url: documentURL,
         	data: data,
@@ -335,9 +335,9 @@ function browse(dir, special) {
 	var loadingDocument = createLoadingDocument();
 	navigationDocument.pushDocument(loadingDocument);
 	if (typeof dir == "undefined" || dir == null) {
-		new DocumentController(documentLoader, '/browse', loadingDocument, false, null, true, special);
+		new DocumentController(documentLoader, '/browse', loadingDocument, false, '', true, special);
 	} else {
-		new DocumentController(documentLoader, '/browse/'+dir, loadingDocument, false, null, true, special);
+		new DocumentController(documentLoader, '/browse', loadingDocument, false, dir, true, special);
 	}
 }
 

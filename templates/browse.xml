@@ -16,16 +16,16 @@ See LICENSE.txt for this sample’s licensing information
 	</head>
 	<listTemplate>
 		<banner>
-			<title class="foo">{{title}}</title>			
+			<title>{{title}}</title>
 		</banner>		
 	  <list style="width: 1000">		  
 		  <section>
 			  	<listItemLockup onselect="browse('{{up}}')">
-				  	<title class="foo">..</title>
+				  	<title>..</title>
 			  	</listItemLockup>
 				{% for item in files %}
 				<listItemLockup onselect="browse('{{item.url}}')">								
-				 	<title class="foo">{{item.title}}</title>				 					 	
+				 	<title>{{item.title}}</title>
 				</listItemLockup>
 				{% endfor %}
 			</section>

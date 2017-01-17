@@ -81,6 +81,9 @@ def progressdialog(plugin, msg, url=None):
 	logger.debug('returning progress template with {}'.format(msg))
 	return render_template('progressdialog.xml', title=msg['title'], text=msg['text'], value=msg['value'], url=url, msgid=msg['id']), 214
 
+def updateprogressdialog(plugin, msg, url=None):
+    logger.debug('updating progress template with {}'.format(msg))
+    return render_template('progressdialog.xml', title=msg['title'], text=msg['text'], value=msg['value'], url=url, msgid=msg['id']), 216
 	
 def selectdialog(plugin, msg, url=None):
 	items = msg['list']

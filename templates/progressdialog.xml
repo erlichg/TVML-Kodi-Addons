@@ -19,7 +19,7 @@
           <img src="" width="1750" height="1000" />
           <overlay>
 	        <text class="title">{{title}}</text>           
-            <progressBar style="tv-position: center;" id="progress" msgid="{{msgid}}" documentURL="{{url}}" value="{{value}}" />
+            <progressBar style="tv-position: center;" id="progress" msgid="{{msgid}}" documentURL="{{url}}" value="{{value}}" data="{{data}}" />
             <text id="text" class="text">{{text}}</text>
           </overlay>
         </lockup>
