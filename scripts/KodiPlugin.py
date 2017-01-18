@@ -33,6 +33,9 @@ def parse_addon_xml(text, repo=None, dir=None):
         try:
             meta = a.getElementsByAttr('point', 'xbmc.addon.metadata')[0]
             data.update({t.tagName: t.text for t in meta.children})
+            english = a.getElementsByAttr('lang', 'en')
+            if english:
+                data.update({t.tagName: t.text for t in english})
         except:
             pass
         addon_type = []

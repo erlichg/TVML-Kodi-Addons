@@ -333,7 +333,7 @@ def catalog(pluginid, process=None):
                 return method(plugin, msg, request.url) if process else method(plugin, msg,
                                                                                '{}/{}'.format(request.url, p.id))
             except:
-                traceback.print_exc(file=sys.stdout)
+                logger.exception('Error while waiting for process messages after death')
         logger.debug('finished 5 sec wait')
         # if we got here, this means thread has probably crashed.
         global PROCESSES
@@ -537,7 +537,7 @@ def find_addon(id):
 
 
 def install_addon(addon):
-    download_url = '{0}/{1}/{1}-{2}.zip'.format(addon['dir']['download'], addon['id'], addon['data']['version'])
+    download_url = '{0}/{1}/{1}-{2}.zip'.format(json.loads(addon['dir'])['download'], addon['id'], addon['version'])
     logger.debug('downloading plugin {}'.format(download_url))
     temp = os.path.join(tempfile.gettempdir(), '{}.zip'.format(id))
     r = requests.get(download_url, stream=True)
@@ -561,7 +561,7 @@ def getAddonData():
         if not found:
             return render_template('alert.xml', title='Unknown addon', description="This addon cannot be found")
         data = found[0]
-        return render_template('descriptiveAlert.xml', title=data['name'], _dict=data['data'])
+        return render_template('descriptiveAlert.xml', title=data['name'], _dict=json.loads(data['data']))
     except:
         logger.exception('Failed to get data on {}'.format(id))
         return render_template('alert.xml', title='Error',
@@ -606,10 +606,15 @@ def addonsForRepository():
             repo_addons = [row for row in DB.execute('select * from AVAILABLE_ADDONS where repo=?', (name,))]
         addons = {}
         for a in repo_addons:
-            for type in json.loads(a['type']):
+            b = dict(a)
+            b['type'] = json.loads(b['type'])
+            b['dir'] = json.loads(b['dir'])
+            b['data'] = json.loads(b['data'])
+            b['requires'] = json.loads(b['requires'])
+            for type in b['type']:
                 if not type in addons:
                     addons[type] = []
-                addons[type].append(a)
+                addons[type].append(b)
 
         for type in addons:
             addons[type] = sorted(addons[type], key=lambda a: a['name'])

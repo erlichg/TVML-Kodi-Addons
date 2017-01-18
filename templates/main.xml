@@ -97,6 +97,7 @@ See LICENSE.txt for this sample’s licensing information
                 <lockup onselect="post('/installAddon', btoa('{{id}}'))" onholdselect="post('/getAddonData', btoa('{{id}}'))">
                     <img src="{{data['icon']}}" width="308" height="308"/>
                     <title class="showTextOnHighlight">{{data['name']}}</title>
+                    <placeholder>{{data['id']}}</placeholder>
                 </lockup>
                 {% endfor %}
             </section>

@@ -148,6 +148,8 @@ function prepareSearchDocument(document) {
 	        var elem = lockups.item(i);
 	        if (searchText.test(elem.getElementsByTagName("title").item(0).textContent)) {
 		        searchResults.push(elem);
+	        } else if (searchText.test(elem.getElementsByTagName("placeholder").item(0).textContent)) {
+	            searchResults.push(elem);
 	        }
         }
         showSearchResponse(searchKeyboard.text, searchResults);

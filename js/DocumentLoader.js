@@ -156,6 +156,8 @@ DocumentLoader.prototype.fetchPost = function(options) {
 		    	this.progressDocument = xhr.response; //save progress
 		    	this.progressDocument.addEventListener("unload", function() { //in case of user cancel, send abort notification
 			    	if (typeof this.progressDocument != "undefined") {
+			    	    var loadingDocument = createLoadingDocument();
+			    	    navigationDocument.pushDocument(loadingDocument);
 				    	delete this.progressDocument;
 				    	if (typeof id != "undefined" && id != "") { //only if response is required
 						    this.fetchPost({
@@ -163,8 +165,6 @@ DocumentLoader.prototype.fetchPost = function(options) {
 		 					    data: "blah"
 		 				    });
 		 				}
-		 				//Another call to url in order to continue after progress has been cancelled
-		 				new DocumentController(this, url, getActiveDocument());
 		 			}
 		    	}.bind(this));
 		    	var progress = this.progressDocument.getElementById("progress")
@@ -185,13 +185,13 @@ DocumentLoader.prototype.fetchPost = function(options) {
 				url: url,
 				data: data,
 				success: function(doc) { //if we get success, this means we got a regular document without closing the progress
-				    if (typeof this.progressDocument != "undefined") {
+				    if (typeof this.progressDocument != "undefined") { //if progress is still showing, remove it
 				        console.log('Manually removing progress document');
                         const temp = this.progressDocument; //save it
 				        delete this.progressDocument; //delete it so as not to call "unload"
 				        navigationDocument.removeDocument(temp);
-				        navigationDocument.pushDocument(doc);
 				    }
+				    navigationDocument.pushDocument(doc);
 				}.bind(this),
 				abort: function() { //if we get abort, remove the progress dialog
 					try {
@@ -224,14 +224,14 @@ DocumentLoader.prototype.fetchPost = function(options) {
 			    this.fetchPost({
 				    url: url,
 				    data: data,
-				    success: function(doc) { //if we get success, this means we got a regular document without closing the progress
+				    success: function(doc) { //if we get success, this means we got a regular document with or without closing the progress
 				        if (typeof this.progressDocument != "undefined") {
 				            console.log('Manually removing progress document');
 				            const temp = this.progressDocument; //save it
 				            delete this.progressDocument; //delete it so as not to call "unload"
 				            navigationDocument.removeDocument(temp);
-				            navigationDocument.pushDocument(doc);
 				        }
+				        navigationDocument.pushDocument(doc);
 				    }.bind(this),
 				    abort: function() { //if we get abort, remove the progress dialog
 					    try {

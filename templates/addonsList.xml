@@ -7,10 +7,10 @@ See LICENSE.txt for this sample’s licensing information
     <head>
         <style>
             @media tv-template and (tv-theme:light) {
-            .foo { color:rgb(0, 0, 0); tv-highlight-color:rgb(255, 255, 255);}
+            .foo { color:rgb(0, 0, 0); tv-highlight-color:rgb(0, 0, 0);}
             }
             @media tv-template and (tv-theme:dark) {
-            .foo { color:rgb(255, 255, 255); tv-highlight-color:rgb(0,0,0);}
+            .foo { color:rgb(255, 255, 255); tv-highlight-color:rgb(255,255,255);}
             }
         </style>
     </head>
@@ -20,18 +20,20 @@ See LICENSE.txt for this sample’s licensing information
             <title class="foo">No addons found</title>
         </banner>
         {% endif %}
-        <list style="width: 1000">
+        <list>
             {% for type, addon in addons|dictsort %}
             <section>
                 <listItemLockup>
-                    <title>{{type}}</title>
+                    <title class="foo">{{type}}</title>
                     <relatedContent>
-                        <list>
+                        <list style="width:1000">
                             <section>
                                 {% for addon in addons[type] %}
-                                <listItemLockup onselect="post('/installAddon', btoa('{{addon['data']['id']}}'))" onholdselect="post('/getAddonData', btoa('{{addon['data']['id']}}'))"	>
-                                    <img>{{addon['icon']}}</img>
-                                    <title>{{addon['name']}}</title>
+                                <listItemLockup onselect="post('/installAddon', btoa('{{addon['id']}}'))" onholdselect="post('/getAddonData', btoa('{{addon['id']}}'))"	>
+                                    <img src="{{addon['icon']}}" width="256" height="256"/>
+                                    <title class="foo">{{addon['name']}}</title>
+                                    <title class="foo">Version: {{addon['version']}}</title>
+                                    <title class="foo">{{addon['data']['summary']}}</title>
                                 </listItemLockup>
                                 {% endfor %}
                             </section>
