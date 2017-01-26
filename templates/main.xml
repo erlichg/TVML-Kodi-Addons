@@ -26,8 +26,7 @@ See LICENSE.txt for this sample’s licensing information
             <grid>
                 <section>
                     {% for plugin in favs %}
-                    <lockup onholdselect="showSelectDialog('', ['Remove from favorites', 'Addon settings', 'Delete'], 0, function(ans) { if (typeof ans != 'undefined') { if (ans=='Remove from favorites') { removeFromFavourites('{{plugin.id}}'); load('{{url}}', true);} else if (ans=='Addon settings') {load('{{plugin.menuurl}}'); } else if (ans=='Delete') {removeAddon('{{plugin.id}}')}} })"
-                            onselect="load('/catalog/{{plugin.id | base64encode}}')">
+                    <lockup onholdselect="post('/getAddonData', '{{plugin.id | base64encode}}')" onselect="catalog('{{plugin.id | base64encode}}')">
                         <img src="/{{plugin.icon}}" width="256" height="256"/>
                         <title class="foo">{{plugin.name}}</title>
                     </lockup>
@@ -40,15 +39,14 @@ See LICENSE.txt for this sample’s licensing information
     <stackTemplate title="All" id="all">
         {% if not menu %}
         <banner style="margin: 300">
-            <title class="foo">Install addons in the "Add new" section</title>
+            <title class="foo">Install addons in the "Settings" section</title>
         </banner>
         {% endif %}
         <collectionList>
             <grid>
                 <section>
                     {% for plugin in menu %}
-                    <lockup onholdselect="showSelectDialog('', ['Add to favorites', 'Addon settings', 'Delete'], 0, function(ans) { if (typeof ans != 'undefined') { if (ans=='Add to favorites') { addToFavourites('{{plugin.id}}'); load('{{url}}', true);} else if (ans=='Addon settings') {load('{{plugin.menuurl}}'); } else if (ans=='Delete') {removeAddon('{{plugin.id}}')}} })"
-                            onselect="load('/catalog/{{plugin.id | base64encode}}')">
+                    <lockup onholdselect="post('/getAddonData', '{{plugin.id | base64encode}}')" onselect="catalog('{{plugin.id | base64encode}}')">
                         <img src="/{{plugin.icon}}" width="256" height="256"/>
                         <title class="foo">{{plugin.name}}</title>
                     </lockup>
@@ -58,76 +56,90 @@ See LICENSE.txt for this sample’s licensing information
         </collectionList>
     </stackTemplate>
 
-    <searchTemplate title="Add new" id="add">
-
-        <searchField>Search</searchField>
-        <separator></separator>
-
-
-        <text id="message">No addons</text>
-        <list id="suggestions">
+    <catalogTemplate autoHighlight="true" title="Settings" id="settings">
+        <list>
             <section>
-                <header>
-                    <title>SUGGESTIONS</title>
-                </header>
-                <listItemLockup value="youtube">
-                    <title>
-                        <span>
-                            <b>yo</b>
-                        </span>
-                        tube
-                    </title>
+                <listItemLockup autoHighlight="true">
+                    <title style="tv-text-style:title3">Addons</title>
+                    <relatedContent>
+                        <list style="width: 1000">
+                            <section>
+                                <header><title>Search for new and exciting addons to install</title></header>
+                                <listItemLockup onselect="load('/allAddons')">
+                                    <title>View all</title>
+                                </listItemLockup>
+                                <listItemLockup onselect="post('/browseAddons')">
+                                    <title>View by type</title>
+                                </listItemLockup>
+                                <listItemLockup onselect="showInputDialog('Search', 'Search by name or id', 'Search', 'OK', false, function(ans) { if (typeof ans != 'undefined') { post('/browseAddons', ans) } })">
+                                    <title>Search</title>
+                                </listItemLockup>
+                            </section>
+                        </list>
+                    </relatedContent>
                 </listItemLockup>
-                <listItemLockup value="exodus">
-                    <title>
-                        <span>
-                            <b>exo</b>
-                        </span>
-                        dus
-                    </title>
+            </section>
+            <section>
+                <listItemLockup>
+                    <title style="tv-text-style:title3">Repositories</title>
+                    <relatedContent>
+                        <list style="width: 1000">
+                            <section>
+                                <header><title>Browse addons by repository or add a new repository from file</title></header>
+                                <listItemLockup onselect="load('/repositories')">
+                                    <title>Browse</title>
+                                </listItemLockup>
+                                <listItemLockup onselect="load('/refreshRepositories')">
+                                    <title>Refresh</title>
+                                </listItemLockup>
+                                <listItemLockup onselect="browse(null, '.*\.zip', function(xhr) {post('/addRepository', btoa(xhr.responseText))})">
+					                <title>Add from zip file</title>
+				                </listItemLockup>
+                            </section>
+                        </list>
+                    </relatedContent>
+                </listItemLockup>
+            </section>
+            <section>
+                <listItemLockup>
+                    <title style="tv-text-style:title3">Language</title>
+                    <relatedContent>
+                        <list style="width: 1000">
+                            <section>
+                                <header><title>Modify the language used by addons</title></header>
+                                <listItemLockup onselect="showSelectDialog('Select language', {{languages}}, {{languages}}.indexOf('{{current_language}}'), function(ans) { if (typeof ans != 'undefined') {localStorage.setItem('language', ans); notify('/setLanguage', btoa(ans)); event.target.children.item(1).textContent=ans;}});">
+                                    <title>Addons language</title>
+                                    <decorationLabel class="foo">{{current_language}}</decorationLabel>
+                                </listItemLockup>
+                            </section>
+                        </list>
+                    </relatedContent>
+                </listItemLockup>
+            </section>
+            <section>
+                <listItemLockup>
+                    <title style="tv-text-style:title3">Server maintenance</title>
+                    <relatedContent>
+                        <list style="width: 1000">
+                            <section>
+                                <header><title>Advanced server actions</title></header>
+                                <listItemLockup onselect="load('/viewLog')">
+                                    <title>View server log</title>
+                                </listItemLockup>
+                                <listItemLockup onselect="notify('/clearLog')">
+                                    <title>Clear server log</title>
+                                </listItemLockup>
+                                <listItemLockup onselect="restartServer()">
+                                    <title>Restart server</title>
+                                </listItemLockup>
+                                <listItemLockup onselect="load('/checkForUpdate')">
+                                    <title>Check for update</title>
+                                </listItemLockup>
+                            </section>
+                        </list>
+                    </relatedContent>
                 </listItemLockup>
             </section>
         </list>
-        <grid id="defaultResults">
-            <header>
-                <title>All Results</title>
-            </header>
-            <section>
-                {% for id, data in all.items() %}
-                <lockup onselect="post('/installAddon', btoa('{{id}}'))" onholdselect="post('/getAddonData', btoa('{{id}}'))">
-                    <img src="{{data['icon']}}" width="308" height="308"/>
-                    <title class="showTextOnHighlight">{{data['name']}}</title>
-                    <placeholder>{{data['id']}}</placeholder>
-                </lockup>
-                {% endfor %}
-            </section>
-        </grid>
-
-        <collectionList id="resultsList">
-            <grid id="resultsGridContainer">
-                <section id="resultsSection">
-                </section>
-            </grid>
-        </collectionList>
-
-    </searchTemplate>
-
-    <listTemplate title="Settings" id="settings">
-        <list style="width: 1000; padding:200">
-            <section>
-                <listItemLockup onselect="load('/repositories')">
-                    <title>Repositories</title>
-                </listItemLockup>
-                <listItemLockup onselect="selectLanguage()">
-                    <title>Language</title>
-                </listItemLockup>
-                <listItemLockup onselect="load('/viewLog')">
-                    <title>View server logs</title>
-                </listItemLockup>
-                <listItemLockup onselect="restartServer()">
-                    <title>Restart server</title>
-                </listItemLockup>
-            </section>
-        </list>
-    </listTemplate>
+    </catalogTemplate>
 </document>

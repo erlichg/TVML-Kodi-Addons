@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+Copyright (C) 2016 Apple Inc. All Rights Reserved.
+See LICENSE.txt for this sample’s licensing information
+-->
+  <document>
+	<head id="segmentBar">
+	  <style>
+	  @media tv-template and (tv-theme:light) {
+      	.foo { color:rgb(0, 0, 0); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+      	.foo2 { color:rgb(0, 0, 0); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; }
+	  }
+	  @media tv-template and (tv-theme:dark) {
+      	.foo { color:rgb(255, 255, 255); tv-highlight-color:rgb(0,0,0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+      	.foo2 { color:rgb(255, 255, 255); tv-highlight-color:rgb(255, 255, 255); tv-text-max-lines:15; }
+	  }
+	</style>
+	</head>
+    <searchTemplate>
+
+        <searchField>Search</searchField>
+        <separator></separator>
+
+
+        <text id="message">No addons</text>
+        <list id="suggestions">
+            <section>
+                <header>
+                    <title>SUGGESTIONS</title>
+                </header>
+                <listItemLockup value="youtube">
+                    <title>
+                        <span>
+                            <b>yo</b>
+                        </span>
+                        tube
+                    </title>
+                </listItemLockup>
+                <listItemLockup value="exodus">
+                    <title>
+                        <span>
+                            <b>exo</b>
+                        </span>
+                        dus
+                    </title>
+                </listItemLockup>
+            </section>
+        </list>
+        <grid id="defaultResults">
+            <header>
+                <title>All Results</title>
+            </header>
+            <section>
+                {% for id,row in all.items() %}
+                <lockup onselect="installAddon('{{row['id']}}')" onholdselect="post('/getAddonData', btoa('{{row['id']}}'))">
+                    <img src="{{row['icon']}}" width="308" height="308"/>
+                    <title class="showTextOnHighlight">{{row['name']}}</title>
+                    {% if row['installed'] == 1 %}
+                    <badge src="resource://button-checkmark"/>
+                    {% endif %}
+                    <placeholder>{{row['id']}}</placeholder>
+                </lockup>
+                {% endfor %}
+            </section>
+        </grid>
+
+        <collectionList id="resultsList">
+            <grid id="resultsGridContainer">
+                <section id="resultsSection">
+                </section>
+            </grid>
+        </collectionList>
+
+    </searchTemplate>
+</document>

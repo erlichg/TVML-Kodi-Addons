@@ -158,7 +158,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
 			    	if (typeof this.progressDocument != "undefined") {
 			    	    var loadingDocument = createLoadingDocument();
 			    	    navigationDocument.pushDocument(loadingDocument);
-				    	delete this.progressDocument;
+				    	this.progressDocument = undefined;
 				    	if (typeof id != "undefined" && id != "") { //only if response is required
 						    this.fetchPost({
 		 					    url: "/response/" + id,
@@ -188,7 +188,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
 				    if (typeof this.progressDocument != "undefined") { //if progress is still showing, remove it
 				        console.log('Manually removing progress document');
                         const temp = this.progressDocument; //save it
-				        delete this.progressDocument; //delete it so as not to call "unload"
+				        this.progressDocument = undefined; //delete it so as not to call "unload"
 				        navigationDocument.removeDocument(temp);
 				    }
 				    navigationDocument.pushDocument(doc);
@@ -197,8 +197,11 @@ DocumentLoader.prototype.fetchPost = function(options) {
 					try {
 						if (typeof this.progressDocument != "undefined") {
 							console.log("Removing progress dialog");
+							var save = this.progressDocument;
+							this.progressDocument = undefined;
 							var loadingDocument = createLoadingDocument();
-							navigationDocument.replaceDocument(loadingDocument, this.progressDocument);
+							navigationDocument.replaceDocument(loadingDocument, save);
+							new DocumentController(this, url, loadingDocument, false, data);
 						}
 					} catch (err) {
 					}
@@ -220,6 +223,12 @@ DocumentLoader.prototype.fetchPost = function(options) {
 				} catch (err) {
 					console.log("Failed to update progress dialog");
 				}
+			} else {
+			    var progress = xhr.response.getElementById('progress');
+			    var url = progress.getAttribute("documentURL");
+				var id = progress.getAttribute("msgid");
+				var data = progress.getAttribute("data");
+			}
 			    //fetch new message
 			    this.fetchPost({
 				    url: url,
@@ -228,23 +237,27 @@ DocumentLoader.prototype.fetchPost = function(options) {
 				        if (typeof this.progressDocument != "undefined") {
 				            console.log('Manually removing progress document');
 				            const temp = this.progressDocument; //save it
-				            delete this.progressDocument; //delete it so as not to call "unload"
-				            navigationDocument.removeDocument(temp);
+				            this.progressDocument = undefined; //delete it so as not to call "unload"
+				            navigationDocument.replaceDocument(doc, temp);
+				        } else { //unload or abort was already called so we need to remove the loading document which is top most document on stack
+				            navigationDocument.replaceDocument(doc, navigationDocument.documents[navigationDocument.documents.length-1]);
 				        }
-				        navigationDocument.pushDocument(doc);
 				    }.bind(this),
 				    abort: function() { //if we get abort, remove the progress dialog
+				        console.log('In abort function');
 					    try {
 						    if (typeof this.progressDocument != "undefined") {
 							    console.log("Removing progress dialog");
+							    var save = this.progressDocument;
+							    this.progressDocument = undefined;
 							    var loadingDocument = createLoadingDocument();
-							    navigationDocument.replaceDocument(loadingDocument, this.progressDocument);
+							    navigationDocument.replaceDocument(loadingDocument, save);
+							    new DocumentController(this, url, loadingDocument, false, data);
 						    }
 					    } catch (err) {
 					    }
 				    }.bind(this)
 			    });
-			}
 	    } else if (xhr.status == 218) { //special results		    
 		    if (typeof options.special == "function") {
 		    	options.special(xhr);

@@ -3,6 +3,8 @@ import sys, os, imp, urllib, json, time, traceback, re, getopt, tempfile, Advanc
 from threading import Timer
 from contextlib import contextmanager
 
+VERSION=0.5
+
 try:
     from flask import Flask, render_template, send_from_directory, request, send_file
 except:
@@ -77,8 +79,13 @@ if not os.path.isdir(os.path.join(DATA_DIR, 'logs')):
     sys.exit(2)
 LOGFILE = os.path.join(DATA_DIR, 'logs', 'tvmlserver.log')
 
+if not os.path.exists(os.path.join(DATA_DIR, 'db')):
+    os.makedirs(os.path.join(DATA_DIR, 'db'))
+if not os.path.isdir(os.path.join(DATA_DIR, 'db')):
+    print '{} not a directory or cannot be created'.format(os.path.join(DATA_DIR, 'db'))
+    sys.exit(2)
+DB_FILE = os.path.join(DATA_DIR, 'db', 'TVMLServer.db')
 
-LANGUAGE = 'English'
 
 sys.path.append(os.path.join(bundle_dir, 'scripts'))
 sys.path.append(os.path.join(bundle_dir, 'scripts', 'kodi'))
@@ -99,7 +106,17 @@ app.url_map.converters['everything'] = EverythingConverter
 
 @contextmanager
 def open_db():
-    CONN = sqlite3.connect(os.path.join(tempfile.gettempdir(), 'TVMLServer.db'))
+    global DB_FILE
+    if not os.path.exists(DB_FILE):
+        open(DB_FILE, 'w').close()
+    for i in range(10):
+        try:
+            CONN = sqlite3.connect(DB_FILE)
+        except:
+            logger.exception()
+            time.sleep(1)
+    if not CONN:
+        raise Exception('DB is locked')
     CONN.row_factory = sqlite3.Row
     DB = CONN.cursor()
     yield DB
@@ -159,28 +176,35 @@ def Process(group=None, target=None, name=None, args=(), kwargs={}):
 
 
 def update_addons():
-    global PLUGINS
-    for p in PLUGINS:
+    for row in get_all_installed_addons():
         try:
-            current_version = p.version
-            found = find_addon(p.id)
+            current_version = row['version']
+            found = find_addon(row['id'])
             if not found:
                 continue
             available_version = found[0]['version']
             if version.parse(current_version) < version.parse(available_version):
                 logger.info(
-                    'Found update for addon {}. Current version: {}, Available version: {}'.format(p.id, current_version,
+                    'Found update for addon {}. Current version: {}, Available version: {}'.format(row['id'], current_version,
                                                                                                 available_version))
-                remove_addon(p.id)
+                remove_addon(row['id'])
                 install_addon(found[0])
-                plugin = KodiPlugin(p.id)
-                for i2, p2 in enumerate(PLUGINS):
-                    if p2.id == p.id:
-                        del PLUGINS[i2]
-                        PLUGINS.append(plugin)
-                        break
         except:
-            logger.exception('Failed to update addon {}'.format(p.id))
+            logger.exception('Failed to update addon {}'.format(row['id']))
+
+def fix_addons():
+    repeat = True
+    while repeat:
+        repeat = False
+        for row in get_all_installed_addons():
+            try:
+                for r in json.loads(row['requires']):
+                    if not get_installed_addon(r):
+                        install_addon(r)
+                        repeat = True
+            except:
+                logger.exception('Failed to fix addon {}'.format(row['id']))
+
 
 
 @app.route('/response/<pid>/<id>', methods=['POST', 'GET'])
@@ -230,8 +254,8 @@ def template(filename):
     return send_from_directory(os.path.join(bundle_dir, 'templates'), filename)
 
 
-@app.route('/menu/<pluginid>')
-@app.route('/menu/<pluginid>/<process>')
+@app.route('/menu/<pluginid>', methods=['POST', 'GET'])
+@app.route('/menu/<pluginid>/<process>', methods=['POST', 'GET'])
 @app.route('/catalog/<pluginid>', methods=['POST', 'GET'])
 @app.route('/catalog/<pluginid>/<process>', methods=['POST', 'GET'])
 # @app.route('/catalog/<pluginid>/<url>')
@@ -239,10 +263,13 @@ def template(filename):
 def catalog(pluginid, process=None):
     url = None
     if request.method == 'POST':
-        try:
-            url = request.form.keys()[0]
-        except:
-            url = None
+        post_data = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
+        logger.debug(post_data)
+        favs_json = json.loads(post_data['favs'])
+        url = post_data['url']
+        LANGUAGE = post_data['lang']
+        settings = post_data['settings']
+
     try:
         if not url:
             decoded_url = ''
@@ -255,7 +282,7 @@ def catalog(pluginid, process=None):
             logger.debug('catalog {}, {}, {}'.format(decoded_id, decoded_url, process))
         else:
             logger.debug('menu {}, {}'.format(decoded_id, process))
-        plugin = [p for p in PLUGINS if p.id == decoded_id][0]
+        plugin = get_installed_addon(decoded_id)
         if not plugin:
             return render_template('alert.xml', title='Communication error',
                                    description="Failed to load page.\nThis could mean the server had a problem, or the request dialog timed-out\nPlease try again")
@@ -268,9 +295,9 @@ def catalog(pluginid, process=None):
             p = PROCESSES[process]
         else:
             if request.full_path.startswith('/catalog'):
-                p = Process(target=get_items, args=(plugin.id, decoded_url, CONTEXT, PLUGINS, LANGUAGE))
+                p = Process(target=get_items, args=(plugin['id'], decoded_url, CONTEXT, LANGUAGE, settings))
             else:
-                p = Process(target=get_menu, args=(plugin.id, decoded_url, PLUGINS, LANGUAGE))
+                p = Process(target=get_menu, args=(plugin['id'], decoded_url, LANGUAGE, settings))
             logger.debug('saving process id {}'.format(p.id))
             PROCESSES[p.id] = p
 
@@ -361,29 +388,30 @@ def main():
         post_data = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
         logger.debug(post_data)
         favs_json = json.loads(post_data['favs'])
+        clear_favorites()
         for id in favs_json:
-            matching = [p for p in PLUGINS if p.id == id]
-            if len(matching) == 0:
+            addon = get_installed_addon(id)
+            if not addon:
                 logger.warning('No match found for favorite addon {}'.format(id))
                 continue  # no match found
-            if len(matching) == 1:
-                favs.append(matching[0])
-                continue
-            logger.warning('More than one addons found that match id {}. Skipping'.format())
+            set_installed_addon_favorite(id, True)
         global LANGUAGE
         LANGUAGE = post_data['lang']
     except:
         pass
 
-    if not REFRESH_EVENT.is_set():
-        gevent.sleep(1)
-        return render_template('progressdialog.xml', title='Please wait', text='Refreshing repositories. This may take some time', value='0', url='/main', data=request.form.keys()[0]), 214
-    print 'rendering template with favs={}'.format(favs)
-    with open_db() as DB:
-        all = [row for row in DB.execute('select * from AVAILABLE_ADDONS')]
-    all = {a['id']:a for a in all if [val for val in json.loads(a['type']) if val in ['Video', 'Audio', 'Repository']]}
-    return render_template('main.xml', menu=PLUGINS, favs=favs, url=request.full_path,
-                           all=all)
+    filtered_plugins =  [p for p in get_all_installed_addons() if [val for val in json.loads(p['type']) if val in ['Video', 'Audio']]] #Show only plugins with video/audio capability since all others are not supported
+    fav_plugins = [p for p in filtered_plugins if p['favorite']]
+    return render_template('main.xml', menu=filtered_plugins, favs=fav_plugins, url=request.full_path, languages=["Afrikaans", "Albanian", "Amharic", "Arabic", "Armenian", "Azerbaijani", "Basque", "Belarusian", "Bosnian", "Bulgarian", "Burmese", "Catalan", "Chinese", "Croatian", "Czech", "Danish", "Dutch", "English", "Esperanto", "Estonian", "Faroese", "Finnish", "French", "Galician", "German", "Greek", "Hebrew", "Hindi", "Hungarian", "Icelandic", "Indonesian", "Italian", "Japanese", "Korean", "Latvian", "Lithuanian", "Macedonian", "Malay", "Malayalam", "Maltese", "Maori", "Mongolian", "Norwegian", "Ossetic", "Persian", "Persian", "Polish", "Portuguese", "Romanian", "Russian", "Serbian", "Silesian", "Sinhala", "Slovak", "Slovenian", "Spanish", "Spanish", "Swedish", "Tajik", "Tamil", "Telugu", "Thai", "Turkish", "Ukrainian", "Uzbek", "Vietnamese", "Welsh"], current_language=LANGUAGE)
+
+@app.route('/setLanguage', methods=['POST'])
+def set_language():
+    try:
+        global LANGUAGE
+        LANGUAGE = kodi_utils.b64decode(request.form.keys()[0])
+    except:
+        logger.exception('Failed to set language')
+    return '', 204
 
 
 @app.route('/removeAddon', methods=['POST'])
@@ -392,7 +420,7 @@ def removeAddon():
         if request.method == 'POST':
             id = kodi_utils.b64decode(request.form.keys()[0])
             remove_addon(id)
-        return json.dumps({'url': '/main', 'replace': True, 'initial': True}), 212
+        return json.dumps({'url': '/main', 'replace': True, 'initial': True}), 212 #Reload main screen
     except:
         traceback.print_exc(file=sys.stdout)
         return 'NOTOK', 206
@@ -400,28 +428,41 @@ def removeAddon():
 
 def remove_addon(id):
     logger.debug('deleting plugin {}'.format(id))
+    addon = get_installed_addon(id)
+    if addon:
+        if 'Repository' in json.loads(addon['type']):
+            global REPOSITORIES
+            index_to_del = None
+            for (i,j) in enumerate(REPOSITORIES):
+                if REPOSITORIES[j]['name'] == addon['name']:
+                    index_to_del = i
+            if index_to_del:
+                del REPOSITORIES[index_to_del]
+            global REFRESH_EVENT
+            REFRESH_EVENT.clear()
+            multiprocessing.Process(target=get_available_addons, args=(REPOSITORIES, REFRESH_EVENT)).start()
     path = os.path.join(DATA_DIR, 'addons', id)
-    shutil.rmtree(path)
-    global PLUGINS
-    for i, p in enumerate(PLUGINS):
-        if p.id == id:
-            del PLUGINS[i]
-            break
+    try:
+        shutil.rmtree(path)
+    except:
+        pass
+    with open_db() as DB:
+        DB.execute('delete from INSTALLED where id=?', (id,))
 
 
-def get_items(plugin_id, url, context, PLUGINS, LANGUAGE):
+def get_items(plugin_id, url, context, LANGUAGE, settings):
     if 'setproctitle' in sys.modules:
         setproctitle.setproctitle('python TVMLServer ({}:{})'.format(plugin_id, url))
     logger = logging.getLogger(plugin_id)
     logger.debug('Getting items for: {}'.format(url))
 
     try:
-        plugin = [p for p in PLUGINS if p.id == plugin_id][0]
+        plugin = KodiPlugin(plugin_id)
         if not plugin:
             raise Exception('could not load plugin')
         b = bridge()
         b.context = context
-        items = plugin.run(b, url, LANGUAGE)
+        items = plugin.run(b, url, LANGUAGE, settings)
     except:
         logger.exception('Encountered error in plugin: {}'.format(plugin_id))
         items = None
@@ -429,15 +470,15 @@ def get_items(plugin_id, url, context, PLUGINS, LANGUAGE):
     return items
 
 
-def get_menu(plugin_id, url, PLUGINS, LANGUAGE):
+def get_menu(plugin_id, url, LANGUAGE, settings):
     print('Getting menu for: {}'.format(url))
     url = url.split('?')[1] if '?' in url else url
     try:
-        plugin = [p for p in PLUGINS if p.id == id][0]
+        plugin = KodiPlugin(plugin_id)
         if not plugin:
             raise Exception('could not load plugin')
         b = bridge()
-        items = plugin.settings(b, url, LANGUAGE)
+        items = plugin.settings(b, url, LANGUAGE, settings)
     except:
         logger.exception('Encountered error in plugin: {}'.format(plugin_id))
         items = None
@@ -459,21 +500,25 @@ def is_ascii(s):
 def get_available_addons(REPOSITORIES, e=None):
     logger.debug('Refreshing repositories. Please wait...')
     with open_db() as DB:
-        for r in REPOSITORIES:
-            temp = []
-            for dir in r['dirs']:
-                try:
-                    req = requests.get(dir['xml'])
-                    link = req.text
-                    temp += parse_addon_xml(link, r, dir)
-                except:
-                    logger.exception('Cannot read repository {}'.format(r['name']))
-            for addon in temp:
-                try:
-                    DB.execute('insert into AVAILABLE_ADDONS values(?,?,?,?,?,?,?,?,?,?)', (addon['id'], r['name'], json.dumps(dir), json.dumps(addon['type']), addon['name'], json.dumps(addon['data']), addon['version'], addon['script'], json.dumps(addon['requires']), addon['icon']))
-                except:
-                    logger.exception('failed to insert {} into DB'.format(addon))
+        DB.execute('delete from ADDONS')
+    for r in REPOSITORIES:
+        temp = []
+        for dir in r['dirs']:
+            try:
+                req = requests.get(dir['xml'])
+                link = req.text
+                parsed = parse_addon_xml(link, r, dir)
+                parsed = [(addon['id'], r['name'], json.dumps(dir), json.dumps(addon['type']), addon['name'], json.dumps(addon['data']), addon['version'], addon['script'], json.dumps(addon['requires']), addon['icon']) for addon in parsed]
+                temp += parsed
+            except:
+                logger.exception('Cannot read repository {}'.format(r['name']))
+        with open_db() as DB:
+            try:
+                DB.executemany('insert into ADDONS values(?,?,?,?,?,?,?,?,?,?)', temp)
+            except:
+                logger.exception('failed to insert addons into DB')
     logger.debug('Finished refreshing repositories')
+    fix_addons()
     update_addons()
     if e:
         e.set()
@@ -484,7 +529,7 @@ def installAddon():
     if request.method == 'POST':
         try:
             id = kodi_utils.b64decode(request.form.keys()[0])
-            already_installed = [p for p in PLUGINS if p.id == id]
+            already_installed = get_installed_addon(id)
             if already_installed:
                 return render_template('alert.xml', title='Already installed',
                                        description="This addon is already installed")
@@ -492,20 +537,19 @@ def installAddon():
             if not found:
                 return render_template('alert.xml', title='Unknown addon', description="This addon cannot be found")
             install_addon(found[0])
-            global PLUGINS
             plugin = KodiPlugin(id)
-            PLUGINS.append(plugin)
             for r in plugin.requires:
-                already_installed = [p for p in PLUGINS if p.id == r]
+                already_installed = get_installed_addon(r)
                 if r == 'xbmc.python' or already_installed:
                     continue
                 found = find_addon(r)
                 if not found:
                     return render_template('alert.xml', title='Unknown addon', description="This addon has a requirement that cannot be found {}".format(r))
                 install_addon(found[0])
-            return render_template('alert.xml', title='Installation complete',
-                                   description="Successfully installed addon {}.\nPlease reload the main screen in order to view the new addon".format(
-                                       plugin.name))
+            return json.dumps({'url': '/main', 'replace': True, 'initial': True}), 212  # Reload main screen
+            #return render_template('alert.xml', title='Installation complete',
+            #                       description="Successfully installed addon {}.\nPlease reload the main screen in order to view the new addon".format(
+            #                           plugin.name))
         except:
             logger.exception('Failed to download/install {}'.format(id))
             try:
@@ -518,9 +562,10 @@ def installAddon():
 
 
 def find_addon(id):
+    """Gets all rows of available addons with same id sorted by version from highest to lowest"""
     found = []
     with open_db() as DB:
-        for row in DB.execute('select * from AVAILABLE_ADDONS where id=?', (id,)):
+        for row in DB.execute('select * from ADDONS where id=?', (id,)):
             found.append(row)
 
     def cmp(a, b):
@@ -535,8 +580,38 @@ def find_addon(id):
     found = sorted(found, cmp=cmp)
     return found
 
+def get_installed_addon(id):
+    """Gets the row of the addon if its installed"""
+    with open_db() as DB:
+        row = DB.execute('select * from INSTALLED where id=?', (id,)).fetchone()
+        return row
+
+def set_installed_addon_favorite(id, fav):
+    """Updates the favorite column of the installed addon in the DB"""
+    with open_db() as DB:
+        if fav:
+            DB.execute('update INSTALLED set favorite=1 where id=?',(id,))
+        else:
+            DB.execute('update INSTALLED set favorite=0 where id=?', (id,))
+
+
+def clear_favorites():
+    with open_db() as DB:
+        DB.execute('update INSTALLED set favorite=0')
+
+
+def get_all_installed_addons():
+    """Returns a list of rows from DB of all installed addons"""
+    with open_db() as DB:
+        found = []
+        for row in DB.execute('select * from INSTALLED'):
+            found.append(row)
+    return found
+
+
 
 def install_addon(addon):
+    logger.debug('Installing addon {}'.format(id))
     download_url = '{0}/{1}/{1}-{2}.zip'.format(json.loads(addon['dir'])['download'], addon['id'], addon['version'])
     logger.debug('downloading plugin {}'.format(download_url))
     temp = os.path.join(tempfile.gettempdir(), '{}.zip'.format(id))
@@ -551,22 +626,49 @@ def install_addon(addon):
     path = os.path.join(DATA_DIR, 'addons')
     with zipfile.ZipFile(temp, 'r') as zip:
         zip.extractall(path)
+    with open_db() as DB:
+        DB.execute('insert into INSTALLED VALUES(?,?,?,?,?,?,?,?,0)', (addon['id'], addon['type'], addon['name'], addon['data'], addon['version'], addon['script'], addon['requires'], addon['icon']))
 
 
 @app.route('/getAddonData', methods=['POST'])
 def getAddonData():
     try:
         id = kodi_utils.b64decode(request.form.keys()[0])
-        found = find_addon(id)
-        if not found:
+        found = get_installed_addon(id)
+        if found:
+            addon = dict(found)
+            addon['installed'] = True
+        else:
+            found = find_addon(id)
+            if found:
+                addon = dict(found[0])
+        if not addon:
             return render_template('alert.xml', title='Unknown addon', description="This addon cannot be found")
-        data = found[0]
-        return render_template('descriptiveAlert.xml', title=data['name'], _dict=json.loads(data['data']))
+        addon['type'] = json.loads(addon['type'])
+        #addon['dir'] = json.loads(addon['dir'])
+        addon['data'] = json.loads(addon['data'])
+        addon['requires'] = json.loads(addon['requires'])
+        return render_template('addonDetails.xml', addon=addon)
     except:
         logger.exception('Failed to get data on {}'.format(id))
         return render_template('alert.xml', title='Error',
                                description="Failed to get data on addon.\nThis could be due to a network error or bad repository parsing")
 
+@app.route('/refreshRepositories')
+def refresh_repositories():
+    global REFRESH_EVENT
+    if REFRESH_EVENT.is_set(): #i.e. refresh not in progress
+        REFRESH_EVENT.clear()
+        multiprocessing.Process(target=get_available_addons, args=(REPOSITORIES, REFRESH_EVENT)).start()
+    gevent.sleep(1)
+    return json.dumps({'url': '/refreshProgress'}), 212
+
+@app.route('/refreshProgress')
+def refresh_progress():
+    if not REFRESH_EVENT.is_set():
+        gevent.sleep(1)
+        return render_template('progressdialog.xml', title='Please wait', text='Refreshing repositories. This may take some time', value='0', url='/refreshProgress'), 214
+    return '', 206
 
 @app.route('/viewLog')
 def viewLog():
@@ -574,6 +676,28 @@ def viewLog():
         log = f.readlines()
         log.reverse()
         return render_template('logTemplate.xml', title='TVMLServer log', text=''.join(log))
+
+
+@app.route('/clearLog')
+def clear_log():
+    open(LOGFILE, 'w').close()
+
+
+@app.route('/checkForUpdate')
+def check_for_update():
+    try:
+        req = requests.get('https://api.github.com/repos/ggyeh/TVML-Kodi-Addons/releases/latest')
+        json = req.json()
+        latest = json['tag_name']
+        current = VERSION
+        if latest != current:
+            return render_template('alert.xml', title='Update found', description='New version detected {}\nCurrent version is {}'.format(latest, current))
+        else:
+            return render_template('alert.xml', title='Up to date',
+                           decsription='You are running the latest version')
+    except:
+        return render_template('alert.xml', title='UError',
+                               decsription='Failed to check for new version')
 
 
 @app.route('/restart')
@@ -601,9 +725,12 @@ def respositories():
 @app.route('/addonsForRepository', methods=['POST'])
 def addonsForRepository():
     try:
+        if not REFRESH_EVENT.is_set():
+            gevent.sleep(1)
+            return render_template('progressdialog.xml', title='Please wait', text='Refreshing repositories. This may take some time', value='0', url='/addonsForRepository', data=request.form.keys()[0]), 214
         name = kodi_utils.b64decode(request.form.keys()[0])
         with open_db() as DB:
-            repo_addons = [row for row in DB.execute('select * from AVAILABLE_ADDONS where repo=?', (name,))]
+            repo_addons = [row for row in DB.execute('select * from ADDONS where repo=?', (name,))]
         addons = {}
         for a in repo_addons:
             b = dict(a)
@@ -654,21 +781,76 @@ def addRepository():
                 repo['dirs'].append({'xml': infos[i].text, 'download': datadirs[i].text})
             global REPOSITORIES
             REPOSITORIES.append(repo)
-            get_available_addons(REPOSITORIES)
-            update_addons()
-            return render_template('alert.xml', title='Repository added',
-                                   description='Please reload main screen to view additional addons')
+            global REFRESH_EVENT
+            REFRESH_EVENT.clear()
+            multiprocessing.Process(target=get_available_addons, args=(REPOSITORIES, REFRESH_EVENT)).start()
+            return json.dumps({'url': '/main', 'replace': True, 'initial': True}), 212  # Reload main screen
     except Exception as e:
         logger.exception('Failed to add repository {}'.format(path))
         return render_template('alert.xml', title='Error', description='{}'.format(e))
 
 
+@app.route('/browseAddons', methods=['POST', 'GET'])
+def browse_addons():
+    """This method will return all available addons by type"""
+    search = None
+    if request.method == 'POST':
+        search='.*{}.*'.format(request.form.keys()[0])
+    if not REFRESH_EVENT.is_set():
+        gevent.sleep(1)
+        return render_template('progressdialog.xml', title='Please wait', text='Refreshing repositories. This may take some time', value='0', url='/browseAddons'), 214
+    with open_db() as DB:
+        rows = [row for row in DB.execute('select * from ADDONS')]
+    all = {}
+    for row in rows:
+        if search:
+            if not re.match(search, row['name']) and not re.match(search, row['id']):
+                continue
+        row = dict(row)
+        row['types'] = json.loads(row['type'])
+        installed = 1 if get_installed_addon(row['id']) else 0
+        row['installed'] = installed
+        row['dir'] = json.loads(row['dir'])
+        row['requires'] = json.loads(row['requires'])
+        for type in row['types']:
+            if not type in all:
+                all[type] = []
+            all[type].append(row)
+    return render_template('addonsList.xml', addons=all)
+
+
+@app.route('/allAddons')
+def all_addons():
+    """This method will return all available addons in a search template"""
+    if not REFRESH_EVENT.is_set():
+        gevent.sleep(1)
+        return render_template('progressdialog.xml', title='Please wait', text='Refreshing repositories. This may take some time', value='0', url='/browseAddons'), 214
+    with open_db() as DB:
+        rows = [row for row in DB.execute('select * from ADDONS')]
+    all = {}
+    for row in rows:
+        row = dict(row)
+        row['types'] = json.loads(row['type'])
+        installed = 1 if get_installed_addon(row['id']) else 0
+        row['installed'] = installed
+        row['dir'] = json.loads(row['dir'])
+        row['requires'] = json.loads(row['requires'])
+        if row['id'] in all: #if already exists with same id
+            if version.parse(all[row['id']]['version']) < version.parse(row['version']): #if found higher version
+                all[row['id']] = row #overrite newer version
+        else:
+            all[row['id']] = row
+    return render_template('addons.xml', all=all)
+
 last_dir = os.path.expanduser("~")
-
-
-@app.route('/browse', methods=['POST'])
+@app.route('/browse', methods=['GET', 'POST'])
 def browse():
-    dir = kodi_utils.b64decode(request.form.keys()[0])
+    dir = None
+    filter = None
+    if request.method == 'POST':
+        post_data = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
+        dir = post_data['dir']
+        filter = post_data['filter']
     global last_dir
     if not dir:
         dir = last_dir
@@ -676,6 +858,8 @@ def browse():
     try:
         if os.path.isdir(dir):
             files = [{'url': os.path.join(dir, f), 'title': f} for f in os.listdir('{}'.format(dir))]
+            if filter:
+                files = [f for f in files if os.path.isdir(f['url']) or re.match(filter, f['title'])]
             up = os.path.dirname(dir)
             return render_template('browse.xml', title=dir, files=files, up=up)
         else:
@@ -718,15 +902,9 @@ def mmain(argv):
 
     manager = multiprocessing.Manager()
 
-    db_file = os.path.join(tempfile.gettempdir(), 'TVMLServer.db')
-    if os.path.exists(db_file):
-        os.remove(db_file)
 
     global PROCESSES
     PROCESSES = {}
-
-    global PLUGINS
-    PLUGINS = manager.list()
 
     global CONTEXT
     CONTEXT = manager.dict()
@@ -737,45 +915,45 @@ def mmain(argv):
                                               'download': 'http://mirrors.kodi.tv/addons/krypton'}]},
         {'name': 'Kodi Israel', 'dirs': [{'xml': 'https://raw.githubusercontent.com/kodil/kodil/master/addons.xml',
                                           'download': 'https://github.com/kodil/kodil/raw/master/repo'}]},
-        {'name': 'Exodus repository',
-         'dirs': [{'xml': 'https://offshoregit.com/exodus/addons.xml', 'download': 'https://offshoregit.com/exodus/'}]}
+        #{'name': 'Exodus repository',
+        # 'dirs': [{'xml': 'https://offshoregit.com/exodus/addons.xml', 'download': 'https://offshoregit.com/exodus/'}]}
     ]
 
     with open_db() as DB:
-        DB.execute('create table AVAILABLE_ADDONS(id text, repo text, dir text, type text, name text, data text, version text, script text, requires text, icon text)')
-        DB.execute('create table PLUGINS(id text primary_key, type text, name text, data text, version text, script text, requires text, icon text, favorite integer)')
+        DB.execute('drop table if exists ADDONS')
+        DB.execute('create table ADDONS(id text, repo text, dir text, type text, name text, data text, version text, script text, requires text, icon text)')
+        DB.execute('drop table if exists INSTALLED')
+        DB.execute('create table INSTALLED(id text primary_key, type text, name text, data text, version text, script text, requires text, icon text, favorite integer default 0)')
 
-    for plugin in os.listdir(os.path.join(DATA_DIR, 'addons')):
-        try:
-            dir = os.path.join(DATA_DIR, 'addons', plugin)
-            if not os.path.isdir(dir):
-                continue
-            logger.debug('Loading kodi plugin {}'.format(plugin))
-            p = KodiPlugin(plugin)
-            if not [val for val in p.type if val in ['Video', 'Audio', 'Repository']]:
-                logger.debug('Skipping addon {}'.format(p.id))
-                continue
-            PLUGINS.append(p)
-            logger.debug('Successfully loaded plugin: {}'.format(p))
-        except Exception as e:
-            logger.error('Failed to load kodi plugin {}. Error: {}'.format(plugin, e))
-        if plugin.startswith('xbmc.addon.repository'):
+        for plugin in os.listdir(os.path.join(DATA_DIR, 'addons')):
             try:
-                with open(os.path.join(DATA_DIR, 'addons', plugin, 'addon.xml'), 'r') as f:
-                    repo = {}
-                    parser = AdvancedHTMLParser.Parser.AdvancedHTMLParser()
-                    parser.feed(f.read())
-                    repo['name'] = parser.getElementsByTagName('addon')[0].attributes['name']
-                    repo['dirs'] = []
-                    infos = parser.getElementsByTagName('info')
-                    datadirs = parser.getElementsByTagName('datadir')
-                    if len(infos) != len(datadirs):
-                        raise Exception('Failed to parse addon.xml')
-                    for i in range(len(infos)):
-                        repo['dirs'].append({'xml': infos[i].text, 'download': datadirs[i].text})
-                    REPOSITORIES.append(repo)
-            except:
-                logger.exception('Failed to parse installed repository {}'.format(plugin))
+                dir = os.path.join(DATA_DIR, 'addons', plugin)
+                if not os.path.isdir(dir):
+                    continue
+                logger.debug('Loading kodi plugin {}'.format(plugin))
+                p = KodiPlugin(plugin)
+                #if [val for val in p.type if val in ['Video', 'Audio', 'Repository']]:
+                DB.execute('insert into INSTALLED VALUES(?,?,?,?,?,?,?,?,0)', (p.id, json.dumps(p.type), unicode(p.name), json.dumps(p.data), p.version, p.script, json.dumps(p.requires), p.icon))
+                logger.debug('Successfully loaded plugin: {}'.format(p))
+                if 'Repository' in p.type: #Need additional stuff
+                    try:
+                        with open(os.path.join(DATA_DIR, 'addons', plugin, 'addon.xml'), 'r') as f:
+                            repo = {}
+                            parser = AdvancedHTMLParser.Parser.AdvancedHTMLParser()
+                            parser.feed(f.read())
+                            repo['name'] = parser.getElementsByTagName('addon')[0].attributes['name']
+                            repo['dirs'] = []
+                            infos = parser.getElementsByTagName('info')
+                            datadirs = parser.getElementsByTagName('datadir')
+                            if len(infos) != len(datadirs):
+                                raise Exception('Failed to parse addon.xml')
+                            for i in range(len(infos)):
+                                repo['dirs'].append({'xml': infos[i].text, 'download': datadirs[i].text})
+                            REPOSITORIES.append(repo)
+                    except:
+                        logger.exception('Failed to parse installed repository {}'.format(plugin))
+            except Exception as e:
+                logger.error('Failed to load kodi plugin {}. Error: {}'.format(plugin, e))
 
     global http_server
     http_server = WSGIServer(('', port), app)

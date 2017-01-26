@@ -30,8 +30,8 @@ function DocumentController(documentLoader, documentURL, loadingDocument, initia
     this.handleHoldSelect = this.handleHoldSelect.bind(this);
     this._documentLoader = documentLoader;
     if (typeof initial == "boolean" && initial) {
-	    console.log("Clearing all documents");
-		navigationDocument.clear();
+	    //console.log("Clearing all documents");
+		//navigationDocument.clear();
 		var favs = loadFavourites();
 		var language = loadLanguage();
 		documentLoader.fetchPost({
@@ -40,9 +40,12 @@ function DocumentController(documentLoader, documentURL, loadingDocument, initia
         	data: btoa(JSON.stringify({'favs':JSON.stringify(favs), 'lang':language})),
         	success: function(document, isModal) {
         	    // Add the event listener for document
-        	    this.setupDocument(document);
-        	    // Allow subclass to do custom handling for this document
-        	    this.handleDocument(document, loadingDocument, isModal);
+        	    // this.setupDocument(document);
+        	    const main = navigationDocument.documents[0];
+        	    navigationDocument.replaceDocument(document, main);
+        	    if (typeof loadingDocument != "undefined" && navigationDocument.documents.indexOf(loadingDocument)!=-1) { //if there's a loading document and it's on stack we need to remove it
+        	        navigationDocument.removeDocument(loadingDocument);
+        	    }
         	}.bind(this),
         	error: function(xhr) {
         	    const alertDocument = createLoadErrorAlertDocument(documentURL, xhr, false);
@@ -61,7 +64,7 @@ function DocumentController(documentLoader, documentURL, loadingDocument, initia
         	data: data,
         	success: function(document, isModal) {
         	    // Add the event listener for document
-        	    this.setupDocument(document);
+        	    //this.setupDocument(document);
         	    // Allow subclass to do custom handling for this document
         	    this.handleDocument(document, loadingDocument, isModal, replace);
         	}.bind(this),
@@ -71,6 +74,7 @@ function DocumentController(documentLoader, documentURL, loadingDocument, initia
         	}.bind(this),
         	abort: function() {
 	    	    if(loadingDocument) {
+	    	        console.log('Going to remove loading document '+loadingDocument+'. Documents on stack are '+navigationDocument.documents);
 			        navigationDocument.removeDocument(loadingDocument);
 	    	    }
         	},
@@ -82,7 +86,7 @@ function DocumentController(documentLoader, documentURL, loadingDocument, initia
     	    url: documentURL,
     	    success: function(document, isModal) {
     	        // Add the event listener for document
-    	        this.setupDocument(document);
+    	        ///this.setupDocument(document);
     	        // Allow subclass to do custom handling for this document
     	        this.handleDocument(document, loadingDocument, isModal, replace);
     	    }.bind(this),
@@ -186,10 +190,31 @@ DocumentController.prototype.handleHoldSelect = function(event) {
 	}
 }
 
-function notify(url) {
+function catalog(id, url) {
+    if (typeof url == "undefined") {
+        url = '';
+    }
+    favs = loadFavourites();
+    language = loadLanguage();
+    settings = loadSettings(atob(id));
+    post('/catalog/'+id, btoa(JSON.stringify({'favs':JSON.stringify(favs), 'lang':language, 'settings':settings, 'url':url})))
+}
+
+function menu(id, url) {
+    if (typeof url == "undefined") {
+        url = '';
+    }
+    favs = loadFavourites();
+    language = loadLanguage();
+    settings = loadSettings(atob(id));
+    post('/menu/'+id, btoa(JSON.stringify({'favs':JSON.stringify(favs), 'lang':language, 'settings':settings, 'url':url})))
+}
+
+function notify(url, data) {
 	console.log("notify: "+url);
 	documentLoader.fetchPost({
 		url:url,
+		data: data,
 		abort: function() {
 						
 		},
@@ -260,27 +285,31 @@ function loadFavourites() {
     return favs;
 }
 
-function saveFavourites(favs) {
-	localStorage.setItem('favourites', JSON.stringify(favs));
+function refreshMainScreen() {
+    new DocumentController(documentLoader, startDocURL, null, true);
 }
 
-function addToFavourites(addon) {
-	var favs = loadFavourites();
-	favs.push(addon);
-	saveFavourites(favs);
-}
-
-function removeFromFavourites(addon) {
+function toggleFavorites(addon) {
 	var favs = loadFavourites();
 	var index = favs.indexOf(addon);
 	if (index > -1) {
     	favs.splice(index, 1);
+	} else {
+	    favs.push(addon);
 	}
-	saveFavourites(favs);
+	localStorage.setItem('favourites', JSON.stringify(favs));
+	refreshMainScreen();
 }
+
 
 function removeAddon(addon) {
 	post('/removeAddon', btoa(addon));
+	refreshMainScreen();
+}
+
+function installAddon(addon) {
+    post('/installAddon', btoa(addon));
+    refreshMainScreen();
 }
 
 function restartServer() {
@@ -299,7 +328,7 @@ function restartServer() {
 		}
 	});
 	setTimeout(function() {
-		new DocumentController(documentLoader, '/main', loadingDocument, true);
+		new DocumentController(documentLoader, startDocURL, loadingDocument, true);
 	}, 5000);
 }
 
@@ -323,21 +352,34 @@ function selectLanguage() {
 }
 
 var last_special = null;
-function browse(dir, special) {
+var last_filter = null;
+function browse(dir, filter, special) {
 	if (typeof special == 'undefined' || special == null) {
 		special = last_special;
+	} else {
+	    //since this is first time a browse is called, we need to add another loading document that will be 'replaced'
+	    navigationDocument.pushDocument(createLoadingDocument());
+	    const special_orig = special;
+	    special = function(ans) {
+	        navigationDocument.popDocument(); //remove the extra loading document
+	        special_orig(ans);
+	    }
+	}
+	if (typeof filter == 'undefined' || filter == null) {
+	    filter = last_filter;
 	}
 	if (typeof special == 'undefined' || special == null) {
 		console.log('when browsing must pass special function');
 		return;
 	}
 	last_special = special;
+	last_filter = filter;
 	var loadingDocument = createLoadingDocument();
 	navigationDocument.pushDocument(loadingDocument);
 	if (typeof dir == "undefined" || dir == null) {
-		new DocumentController(documentLoader, '/browse', loadingDocument, false, '', true, special);
+		new DocumentController(documentLoader, '/browse', loadingDocument, false, btoa(JSON.stringify({'dir':'', 'filter':filter})), true, special);
 	} else {
-		new DocumentController(documentLoader, '/browse', loadingDocument, false, dir, true, special);
+		new DocumentController(documentLoader, '/browse', loadingDocument, false, btoa(JSON.stringify({'dir':dir, 'filter':filter})), true, special);
 	}
 }
 

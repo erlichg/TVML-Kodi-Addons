@@ -40,6 +40,7 @@ The following attributes are used in this application:
  */
  
 var documentLoader;
+var startDocURL;
 App.onLaunch = function(options) {
     // Determine the base URL for remote server fetches from launch options, which will be used to resolve the URLs
     // in XML files for this app.
@@ -72,7 +73,7 @@ App.onLaunch = function(options) {
             // This instance is passed along to subsequent DocumentController objects.
             documentLoader = new DocumentLoader(baseURL);
             //const startDocURL = baseURL + "templates/Index.xml";            
-            const startDocURL = baseURL + "main";
+            startDocURL = baseURL + "main";
             // Instantiate the controller with root template. The controller is passed in the loading document which
             // was pushed while scripts were being evaluated, and controller will replace it with root template once
             // fetched from the server.

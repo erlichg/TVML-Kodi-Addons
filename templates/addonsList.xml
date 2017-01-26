@@ -19,17 +19,18 @@ See LICENSE.txt for this sample’s licensing information
         <banner style="margin: 300">
             <title class="foo">No addons found</title>
         </banner>
-        {% endif %}
+        {% else %}
         <list>
+            <header><title>Addon type</title></header>
             {% for type, addon in addons|dictsort %}
             <section>
                 <listItemLockup>
-                    <title class="foo">{{type}}</title>
+                    <title class="foo">{{type}}</title><decorationLabel>{{addons[type] | length}}</decorationLabel>
                     <relatedContent>
                         <list style="width:1000">
                             <section>
                                 {% for addon in addons[type] %}
-                                <listItemLockup onselect="post('/installAddon', btoa('{{addon['id']}}'))" onholdselect="post('/getAddonData', btoa('{{addon['id']}}'))"	>
+                                <listItemLockup onselect="post('/installAddon', btoa('{{addon['id']}}'))" onholdselect="post('/getAddonData', '{{addon['id'] | base64encode}}')"	>
                                     <img src="{{addon['icon']}}" width="256" height="256"/>
                                     <title class="foo">{{addon['name']}}</title>
                                     <title class="foo">Version: {{addon['version']}}</title>
@@ -43,5 +44,6 @@ See LICENSE.txt for this sample’s licensing information
             </section>
             {% endfor %}
         </list>
+        {% endif %}
     </catalogTemplate>
 </document>

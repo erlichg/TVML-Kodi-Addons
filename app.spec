@@ -40,3 +40,8 @@ exe = EXE(pyz,
           strip=False,
           upx=True,
           console=True )
+
+app = BUNDLE(exe,
+            name='TVMLServer.app',
+            icon=None,
+            bundle_identifier=None)

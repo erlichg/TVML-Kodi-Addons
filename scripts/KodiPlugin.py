@@ -130,22 +130,23 @@ class KodiPlugin:
             self.requires = data['requires']
             self.icon = '/addons/{}/icon.png'.format(self.id)
             self.module = self.script[:-3]
-            self.menuurl = '/menu/{}'.format(kodi_utils.b64encode(self.id))
             self.type = data['type']
+            self.data = data['data']
 
     def __repr__(self):
         return json.dumps({'id': self.id, 'name': self.name, 'module': self.module})
 
-    def settings(self, bridge, url, LANGUAGE):
+    def settings(self, bridge, url, LANGUAGE, settings):
 
         import xbmc
         xbmc.bridge = bridge
         xbmc.LANGUAGE = LANGUAGE
         import xbmcaddon
+        xbmcaddon.Addon(self.id, settings)
         xbmcaddon.Addon(self.id).openSettings()
 
 
-    def run(self, bridge, url, LANGUAGE):
+    def run(self, bridge, url, LANGUAGE, settings):
         logger = logging.getLogger(self.id)
         if url.startswith('http') or url.startswith('https'):
             bridge.play(url, type_='video')
@@ -191,6 +192,7 @@ class KodiPlugin:
         # sys.argv = [script, '1', url]
             logger.debug('Calling plugin {} with {}'.format(self.name, sys.argv))
             import xbmcplugin, xbmcaddon
+            xbmcaddon.Addon(self.id, settings)
             import imp
 
     # some patches for internal python funcs
@@ -260,6 +262,9 @@ class KodiPlugin:
             imp.load_module(self.module, fp, self.dir, ('.py', 'rb', imp.PY_SOURCE))
         except:
             logger.exception('Failure in plugin run')
+        sqlite3.connect = sqlite3_connect_orig
+        sqlite3.dbapi2.connect = dbapi2_connect_orig
+        urllib.quote_plus = quote_plus_orig
         fp.close()
         sys.path = orig
 # sys.argv = old_sys_argv
@@ -270,7 +275,7 @@ class KodiPlugin:
         if self.id in xbmcaddon.ADDON_CACHE:
     # logger.debug('Saving settings {}'.format(xbmcaddon.ADDON_CACHE[self.id]))
             logger.debug('Saving settings')
-            bridge._message({'type': 'saveSettings', 'addon': self.id, 'settings': xbmcaddon.ADDON_CACHE[self.id]})
+            bridge._message({'type': 'saveSettings', 'addon': self.id, 'settings': xbmcaddon.ADDON_CACHE[self.id].settings})
         if hasattr(bridge, 'progress') and bridge.progress:
             logger.debug('Closing left over progress')
             bridge.closeprogress()

@@ -2749,7 +2749,7 @@ class Dialog(object):
 			d = dialog.input('Enter secret code', type=xbmcgui.INPUT_ALPHANUM, option=xbmcgui.ALPHANUM_HIDE_INPUT)
 		"""
 		logger.debug('Calling bridge inputdialog')
-		if options in [xbmcgui.PASSWORD_VERIFY, xbmcgui.ALPHANUM_HIDE_INPUT] or type == xbmcgui.INPUT_PASSWORD:
+		if option in [PASSWORD_VERIFY, ALPHANUM_HIDE_INPUT] or type == INPUT_PASSWORD:
 			secure = True
 		else:
 			secure = False
