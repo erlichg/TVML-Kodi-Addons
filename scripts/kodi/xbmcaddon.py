@@ -26,7 +26,7 @@ class Addon(object):
             stack = traceback.extract_stack()
             file = stack[-2][0]
 
-            search = os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'addons', '([^{}]+)'.format(os.path.sep), '.*').encode('string-escape')
+            search = os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'addons', '([^{}]+)'.format(os.path.sep)).encode('string-escape')
             m = re.search(search, file)
             if m:
                 id = m.group(1)
