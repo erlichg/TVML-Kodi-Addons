@@ -200,8 +200,12 @@ def fix_addons():
             try:
                 for r in json.loads(row['requires']):
                     if not get_installed_addon(r):
-                        install_addon(r)
-                        repeat = True
+                        found = find_addon(r)
+                        if found:
+                            install_addon(found[0])
+                            repeat = True
+                        else:
+                            logger.error('Addon {} is required by addon {} and cannot be found'.format(r, row['id']))
             except:
                 logger.exception('Failed to fix addon {}'.format(row['id']))
 
