@@ -6,7 +6,7 @@ from contextlib import contextmanager
 VERSION=0.5
 
 try:
-    from flask import Flask, render_template, send_from_directory, request, send_file
+    from flask import Flask, render_template, send_from_directory, request, send_file, redirect
 except:
     print 'TVML Server requires flask module.\nPlease install it via "pip install flask"'
     sys.exit(1)
@@ -113,7 +113,7 @@ def open_db():
         try:
             CONN = sqlite3.connect(DB_FILE)
         except:
-            logger.exception()
+            logger.exception('Failed to open DB')
             time.sleep(1)
     if not CONN:
         raise Exception('DB is locked')
@@ -230,14 +230,26 @@ def icon():
     return send_from_directory(bundle_dir, 'icon.png')
 
 
+PROXY=False
+
 @app.route('/cache/<id>')
 def cache(id):
-    file = imageCache.get(id)
-    if file:
-        return send_file(file)
+    if PROXY:
+        file = imageCache.get(id)
+        if file:
+            return send_file(file)
+        else:
+            return 'Not found', 404
     else:
-        return 'Not found', 404
+        url = kodi_utils.b64decode(id)
+        return redirect(url)
 
+
+@app.route('/toggleProxy')
+def toggle_proxy():
+    global PROXY
+    PROXY = not PROXY
+    return 'OK', 206
 
 @app.route('/addons/<path:filename>')
 def kodiplugin_icon(filename):
@@ -262,13 +274,20 @@ def template(filename):
 # @app.route('/catalog/<pluginid>/<url>/<process>')
 def catalog(pluginid, process=None):
     url = None
+    LANGUAGE='English'
+    settings = None
+    history = None
     if request.method == 'POST':
-        post_data = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
-        logger.debug(post_data)
-        favs_json = json.loads(post_data['favs'])
-        url = post_data['url']
-        LANGUAGE = post_data['lang']
-        settings = post_data['settings']
+        try:
+            post_data = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
+            logger.debug(post_data)
+            favs_json = json.loads(post_data['favs'])
+            url = post_data['url']
+            LANGUAGE = post_data['lang']
+            settings = post_data['settings']
+            history = json.loads(post_data['history'])
+        except:
+            url = request.form.keys()[0]
 
     try:
         if not url:
@@ -334,7 +353,7 @@ def catalog(pluginid, process=None):
                     # else:
                     # No url and no response so add 'fake' url
                     #	return_url = '{}/{}/{}'.format(request.url, 'fake', p.id)
-                    return method(plugin, msg, return_url)
+                    return method(plugin, msg, return_url, decoded_url, history)
                 except:
                     logger.exception('Error in while alive')
         except:
@@ -357,8 +376,8 @@ def catalog(pluginid, process=None):
                     # p.join()
                     # p.terminate()
                     logger.debug('PROCESS {} TERMINATED'.format(p.id))
-                return method(plugin, msg, request.url) if process else method(plugin, msg,
-                                                                               '{}/{}'.format(request.url, p.id))
+                return method(plugin, msg, request.url, decoded_url, history) if process else method(plugin, msg,
+                                                                               '{}/{}'.format(request.url, p.id), decoded_url, history)
             except:
                 logger.exception('Error while waiting for process messages after death')
         logger.debug('finished 5 sec wait')
@@ -397,12 +416,14 @@ def main():
             set_installed_addon_favorite(id, True)
         global LANGUAGE
         LANGUAGE = post_data['lang']
+        global PROXY
+        PROXY = True if post_data['proxy'] == 'true' else False
     except:
         pass
 
     filtered_plugins =  [p for p in get_all_installed_addons() if [val for val in json.loads(p['type']) if val in ['Video', 'Audio']]] #Show only plugins with video/audio capability since all others are not supported
     fav_plugins = [p for p in filtered_plugins if p['favorite']]
-    return render_template('main.xml', menu=filtered_plugins, favs=fav_plugins, url=request.full_path, languages=["Afrikaans", "Albanian", "Amharic", "Arabic", "Armenian", "Azerbaijani", "Basque", "Belarusian", "Bosnian", "Bulgarian", "Burmese", "Catalan", "Chinese", "Croatian", "Czech", "Danish", "Dutch", "English", "Esperanto", "Estonian", "Faroese", "Finnish", "French", "Galician", "German", "Greek", "Hebrew", "Hindi", "Hungarian", "Icelandic", "Indonesian", "Italian", "Japanese", "Korean", "Latvian", "Lithuanian", "Macedonian", "Malay", "Malayalam", "Maltese", "Maori", "Mongolian", "Norwegian", "Ossetic", "Persian", "Persian", "Polish", "Portuguese", "Romanian", "Russian", "Serbian", "Silesian", "Sinhala", "Slovak", "Slovenian", "Spanish", "Spanish", "Swedish", "Tajik", "Tamil", "Telugu", "Thai", "Turkish", "Ukrainian", "Uzbek", "Vietnamese", "Welsh"], current_language=LANGUAGE)
+    return render_template('main.xml', menu=filtered_plugins, favs=fav_plugins, url=request.full_path, proxy='On' if PROXY else 'Off', languages=["Afrikaans", "Albanian", "Amharic", "Arabic", "Armenian", "Azerbaijani", "Basque", "Belarusian", "Bosnian", "Bulgarian", "Burmese", "Catalan", "Chinese", "Croatian", "Czech", "Danish", "Dutch", "English", "Esperanto", "Estonian", "Faroese", "Finnish", "French", "Galician", "German", "Greek", "Hebrew", "Hindi", "Hungarian", "Icelandic", "Indonesian", "Italian", "Japanese", "Korean", "Latvian", "Lithuanian", "Macedonian", "Malay", "Malayalam", "Maltese", "Maori", "Mongolian", "Norwegian", "Ossetic", "Persian", "Persian", "Polish", "Portuguese", "Romanian", "Russian", "Serbian", "Silesian", "Sinhala", "Slovak", "Slovenian", "Spanish", "Spanish", "Swedish", "Tajik", "Tamil", "Telugu", "Thai", "Turkish", "Ukrainian", "Uzbek", "Vietnamese", "Welsh"], current_language=LANGUAGE)
 
 @app.route('/setLanguage', methods=['POST'])
 def set_language():
@@ -691,7 +712,7 @@ def check_for_update():
         latest = json['tag_name']
         current = VERSION
         if latest != current:
-            return render_template('alert.xml', title='Update found', description='New version detected {}\nCurrent version is {}'.format(latest, current))
+            return render_template('alert.xml', title='Update found', description='New version detected {}\nCurrent version is {}\n\nSorry, no auto-update yet.\nPlease visit https://github.com/ggyeh/TVML-Kodi-Addons/releases/latest to download'.format(latest, current))
         else:
             return render_template('alert.xml', title='Up to date',
                            decsription='You are running the latest version')

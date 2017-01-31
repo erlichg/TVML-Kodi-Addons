@@ -20,6 +20,7 @@ class Item:
 		self.menuurl = menuurl
 		self.info = info
 		self.context = context
+		self.state = 0
 	def __repr__(self):
 		return json.dumps({"url":self.url, "title":self.title, "subtitle":self.subtitle, "icon":self.icon, "details":self.details, "menuurl":self.menuurl, "info":self.info, "context":self.context})
 

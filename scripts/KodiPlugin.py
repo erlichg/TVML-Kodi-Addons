@@ -228,7 +228,7 @@ class KodiPlugin:
                         return sqlite3_connect_orig(*args, **kwargs)
                     except:
                         time.sleep(1)
-                        logger.exception()
+                        logger.exception('Failed to open DB')
                 raise Exception('Failed to open DB file {}'.format(database))
 
 
@@ -251,7 +251,7 @@ class KodiPlugin:
                         return dbapi2_connect_orig(*args, **kwargs)
                     except:
                         time.sleep(1)
-                        logger.exception()
+                        logger.exception('Failed to open DB')
                 logger.exception('Failed to open DB file {}'.format(database))
                 raise Exception('Failed to open DB file {}'.format(database))
 

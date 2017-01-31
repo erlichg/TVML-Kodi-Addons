@@ -62,17 +62,20 @@ See LICENSE.txt for this sample’s licensing information
                 <listItemLockup autoHighlight="true">
                     <title style="tv-text-style:title3">Addons</title>
                     <relatedContent>
-                        <list style="width: 1000">
+                        <list style="width: 1200">
                             <section>
                                 <header><title>Search for new and exciting addons to install</title></header>
                                 <listItemLockup onselect="load('/allAddons')">
                                     <title>View all</title>
+                                    <subtitle>View all addons (uncategorized) with a search option</subtitle>
                                 </listItemLockup>
                                 <listItemLockup onselect="post('/browseAddons')">
                                     <title>View by type</title>
+                                    <subtitle>View addons by category (i.e. Video, Audio, etc.). No search option</subtitle>
                                 </listItemLockup>
                                 <listItemLockup onselect="showInputDialog('Search', 'Search by name or id', 'Search', 'OK', false, function(ans) { if (typeof ans != 'undefined') { post('/browseAddons', ans) } })">
                                     <title>Search</title>
+                                    <subtitle>Search for addon by name or id and show results by category</subtitle>
                                 </listItemLockup>
                             </section>
                         </list>
@@ -83,14 +86,15 @@ See LICENSE.txt for this sample’s licensing information
                 <listItemLockup>
                     <title style="tv-text-style:title3">Repositories</title>
                     <relatedContent>
-                        <list style="width: 1000">
+                        <list style="width: 1200">
                             <section>
-                                <header><title>Browse addons by repository or add a new repository from file</title></header>
+                                <header><title style="tv-text-max-lines:2">Browse addons by repository or add a new repository from file</title></header>
                                 <listItemLockup onselect="load('/repositories')">
                                     <title>Browse</title>
                                 </listItemLockup>
                                 <listItemLockup onselect="load('/refreshRepositories')">
                                     <title>Refresh</title>
+                                    <subtitle>Refresh data from all repositories. This may take a while</subtitle>
                                 </listItemLockup>
                                 <listItemLockup onselect="browse(null, '.*\.zip', function(xhr) {post('/addRepository', btoa(xhr.responseText))})">
 					                <title>Add from zip file</title>
@@ -106,10 +110,11 @@ See LICENSE.txt for this sample’s licensing information
                     <relatedContent>
                         <list style="width: 1000">
                             <section>
-                                <header><title>Modify the language used by addons</title></header>
-                                <listItemLockup onselect="showSelectDialog('Select language', {{languages}}, {{languages}}.indexOf('{{current_language}}'), function(ans) { if (typeof ans != 'undefined') {localStorage.setItem('language', ans); notify('/setLanguage', btoa(ans)); event.target.children.item(1).textContent=ans;}});">
+                                <header><title>Languages</title></header>
+                                <listItemLockup style="height: 200" onselect="showSelectDialog('Select language', {{languages}}, {{languages}}.indexOf('{{current_language}}'), function(ans) { if (typeof ans != 'undefined') {localStorage.setItem('language', ans); notify('/setLanguage', btoa(ans)); event.target.children.item(1).textContent=ans;}});">
                                     <title>Addons language</title>
                                     <decorationLabel class="foo">{{current_language}}</decorationLabel>
+                                    <subtitle style="tv-text-max-lines: 4">Modify the language used internally by addons to show menus and metadata. Support for this language is dependent on the addon itself</subtitle>
                                 </listItemLockup>
                             </section>
                         </list>
@@ -123,17 +128,26 @@ See LICENSE.txt for this sample’s licensing information
                         <list style="width: 1000">
                             <section>
                                 <header><title>Advanced server actions</title></header>
+                                <listItemLockup style="height:200" onselect="toggleProxy(); if (event.target.children.item(1).textContent=='On') { event.target.children.item(1).textContent='Off' } else { event.target.children.item(1).textContent='On' };">
+                                    <title>Toggle server proxy mode</title>
+                                    <decorationLabel>{{proxy}}</decorationLabel>
+                                    <subtitle style="tv-text-max-lines: 4">In proxy mode, all network activity (except playing media) will go through the server. This may hurt performance but can solve network access issues</subtitle>
+                                </listItemLockup>
                                 <listItemLockup onselect="load('/viewLog')">
                                     <title>View server log</title>
+                                    <subtitle style="tv-text-max-lines: 2">View internal server log of all activity</subtitle>
                                 </listItemLockup>
                                 <listItemLockup onselect="notify('/clearLog')">
                                     <title>Clear server log</title>
+                                    <subtitle>Clear the server log</subtitle>
                                 </listItemLockup>
-                                <listItemLockup onselect="restartServer()">
+                                <listItemLockup style="height: 150" onselect="restartServer()">
                                     <title>Restart server</title>
+                                    <subtitle style="tv-text-max-lines: 2">Restart the server process. Use this when unusual stuff happens</subtitle>
                                 </listItemLockup>
                                 <listItemLockup onselect="load('/checkForUpdate')">
                                     <title>Check for update</title>
+                                    <subtitle>Check for update. No auto-update yet. Sorry</subtitle>
                                 </listItemLockup>
                             </section>
                         </list>

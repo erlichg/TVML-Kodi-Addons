@@ -34,10 +34,11 @@ function DocumentController(documentLoader, documentURL, loadingDocument, initia
 		//navigationDocument.clear();
 		var favs = loadFavourites();
 		var language = loadLanguage();
+		var proxy = loadProxy();
 		documentLoader.fetchPost({
 	    	initial: initial,	    	
         	url: documentURL,
-        	data: btoa(JSON.stringify({'favs':JSON.stringify(favs), 'lang':language})),
+        	data: btoa(JSON.stringify({'favs':JSON.stringify(favs), 'lang':language, 'proxy':proxy})),
         	success: function(document, isModal) {
         	    // Add the event listener for document
         	    // this.setupDocument(document);
@@ -197,7 +198,8 @@ function catalog(id, url) {
     favs = loadFavourites();
     language = loadLanguage();
     settings = loadSettings(atob(id));
-    post('/catalog/'+id, btoa(JSON.stringify({'favs':JSON.stringify(favs), 'lang':language, 'settings':settings, 'url':url})))
+    history = loadHistory();
+    post('/catalog/'+id, btoa(JSON.stringify({'favs':JSON.stringify(favs), 'lang':language, 'settings':settings, 'url':url, 'history':JSON.stringify(history)})))
 }
 
 function menu(id, url) {
@@ -245,6 +247,20 @@ function post(url, data) {
 function saveSettings(addon, settings) {
 	console.log("saving settings: "+JSON.stringify(settings));
 	localStorage.setItem(addon, JSON.stringify(settings));
+}
+
+function loadHistory() {
+    var history = localStorage.getItem('history');
+    if (history == null) {
+        history = '{}';
+    }
+    try {
+        history = JSON.parse(history);
+    } catch (e) {
+        console.log('Failed to parse history. '+e);
+        history = {};
+    }
+    return history;
 }
 
 function loadSettings(addon) {
@@ -310,6 +326,24 @@ function removeAddon(addon) {
 function installAddon(addon) {
     post('/installAddon', btoa(addon));
     refreshMainScreen();
+}
+
+function loadProxy() {
+	var proxy = localStorage.getItem("proxy");
+	if (proxy == null) {
+		proxy = "false";
+	}
+	return proxy;
+}
+function toggleProxy() {
+	var proxy = loadProxy();
+	if (proxy == "true") {
+		proxy = "false";
+	} else {
+		proxy = "true";
+	}
+	notify("/toggleProxy");
+	localStorage.setItem("proxy", proxy);
 }
 
 function restartServer() {
@@ -428,6 +462,18 @@ function showInputDialog(title, description, placeholder, button, secure, callba
 	navigationDocument.presentModal(dialog);
 }
 
+function decode_utf8(s) {
+    try {
+        return decodeURIComponent(escape(s));
+    } catch(e) {
+        try {
+            return decodeURIComponent(s);
+        } catch(ee) {
+            return s;
+        }
+    }
+}
+
 function showSelectDialog(title, choices, index, callback) {
 	var template=`<?xml version="1.0" encoding="UTF-8" ?>
   <document>
@@ -435,7 +481,7 @@ function showSelectDialog(title, choices, index, callback) {
 	  <style>
 	  </style>
 	  <banner>
-         <title>${title}</title>
+         <title>${decode_utf8(title)}</title>
       </banner>
 	</head>
 	<listTemplate autoHighlight="true">
@@ -444,11 +490,11 @@ function showSelectDialog(title, choices, index, callback) {
 	for (var item in choices) {
 		if (item == index) {
 			template = template + `<listItemLockup autoHighlight="true">										
-				 	<title>${choices[item]}</title>				 					 	
+				 	<title>${decode_utf8(choices[item])}</title>
 				</listItemLockup>`;
 		} else {
 			template = template + `<listItemLockup>										
-				 	<title>${choices[item]}</title>				 					 	
+				 	<title>${decode_utf8(choices[item])}</title>
 				</listItemLockup>`;
 		}
 	}
@@ -523,7 +569,7 @@ function performAction(action, p) {
 	if (result != null) {
 		var plugin = result[1];
 		var query = result[2];
-		load("/catalog/"+btoa(plugin)+"/"+btoa(query));	
+		catalog(btoa(plugin), btoa(query));
 		return;
 	}
 	
@@ -531,7 +577,7 @@ function performAction(action, p) {
 	var result = re.exec(action);
 	if (typeof p != "undefined" && result != null) {
 		var query = result[1];
-		load("/catalog/"+btoa(p)+"/"+btoa(query));	
+		catalog(btoa(p), btoa(query));
 		return;
 	}
 	

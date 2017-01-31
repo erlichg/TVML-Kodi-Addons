@@ -47,10 +47,15 @@ DocumentLoader.prototype.fetchPost = function(options) {
 		    console.log("got message: " + xhr.responseText);
 		    var time;
 		    var playCache = localStorage.getItem('playCache');
+		    var history = localStorage.getItem('history');
 		    if (playCache == null) {
 			    playCache = '{}';
 		    }
+		    if (history == null) {
+		        history = '{}';
+		    }
 		    playCache = JSON.parse(playCache);
+		    history = JSON.parse(history);
 		    var imdb = msg['imdb'];
 		    var season = msg['season'];
 		    var episode = msg['episode'];
@@ -86,20 +91,20 @@ DocumentLoader.prototype.fetchPost = function(options) {
 				    	var resume = createResumeDocument(formattedTime);
 				    	resume.getElementById("resume").addEventListener("select", function() {
 						    navigationDocument.removeDocument(resume);
-						    this.play(msg, time, playCache, options);
+						    this.play(msg, time, playCache, history, options);
 						    options.url = msg['continue'];
 							this.fetchPost(options);
 				    	}.bind(this));
 				    	resume.getElementById("begin").addEventListener("select", function() {
 						    navigationDocument.removeDocument(resume);
-						    this.play(msg, 0, playCache, options);
+						    this.play(msg, 0, playCache, history, options);
 						    options.url = msg['continue'];
 							this.fetchPost(options);
 				    	}.bind(this));
 				    	navigationDocument.pushDocument(resume);
 				    }
 			    } else {
-				    this.play(msg, time, playCache, options);
+				    this.play(msg, time, playCache, history, options);
 				    options.url = msg['continue'];
 					this.fetchPost(options);
 			    }			    
@@ -522,13 +527,13 @@ function traverseElements(elem, callback) {
     }
 }
 
-DocumentLoader.prototype.play = function(msg, time, playCache, options) {
+DocumentLoader.prototype.play = function(msg, time, playCache, history, options) {
 	try {
 		var player = VLCPlayer.createPlayerWithUrlTimeImageDescriptionTitleImdbSeasonEpisodeCallback(msg['url'], time, this.prepareURL(msg['image']), msg['description'], msg['title'], msg['imdb'], msg['season'], msg['episode'], function(time) {
 			try {
 				var total = player.getDuration();
 				console.log("player ended with "+time+"ms out of "+total+"ms");
-				if ((total - time) * 100/total <=3) { //if we've stopped at more than 97% play time, don't resume
+				if (total != 0 && (total - time) * 100/total <=3) { //if we've stopped at more than 97% play time, don't resume
 					time = 0;
 				}
 				console.log("calculated time is "+time);
@@ -546,8 +551,16 @@ DocumentLoader.prototype.play = function(msg, time, playCache, options) {
 				    playCache[search] = time;
 				} else {
 					playCache[msg['url']] = time;
-				}			
-				localStorage.setItem('playCache', JSON.stringify(playCache)); //save this url's stop time for future playback			
+				}
+				if (total == 0) {
+				    history[msg['history']] = 0; //not started or not played
+				} else if (time * 100 / total > 97) {
+				    history[msg['history']] = 1; //finished playing
+				} else {
+				    history[msg['history']] = 2; //middle of playing
+				}
+				localStorage.setItem('playCache', JSON.stringify(playCache)); //save this url's stop time for future playback
+				localStorage.setItem('history', JSON.stringify(history)); //save this url's stop time for future playback
 				var url = this.prepareURL(msg['stop']+"/"+btoa(time.toString()));
 				console.log("notifying "+url);
 				VLCPlayer.notify(url);
@@ -611,7 +624,7 @@ DocumentLoader.prototype.play = function(msg, time, playCache, options) {
 			}, {"interval":1});			
 			myPlayer.addEventListener("stateDidChange", function(e) {  
 			 if(e.state == "end") {
-			 	if ((duration - currenttime) * 100/duration <=3) { //if we've stopped at more than 97% play time, don't resume
+			 	if (duration !=0 && (duration - currenttime) * 100/duration <=3) { //if we've stopped at more than 97% play time, don't resume
 			 		currenttime = 0;
 			 	}
 			 	currenttime = currenttime * 1000;
@@ -629,8 +642,16 @@ DocumentLoader.prototype.play = function(msg, time, playCache, options) {
 				    playCache[search] = currenttime;
 				} else {
 					playCache[msg['url']] = currenttime;
-				}			
-				localStorage.setItem('playCache', JSON.stringify(playCache)); //save this url's stop time for future playback			
+				}
+				if (duration == 0) {
+				    history[msg['history']] = 0; //not started or not played
+				} else if (currenttime * 100 / duration > 97) {
+				    history[msg['history']] = 1; //finished playing
+				} else {
+				    history[msg['history']] = 2; //middle of playing
+				}
+				localStorage.setItem('playCache', JSON.stringify(playCache)); //save this url's stop time for future playback
+				localStorage.setItem('history', JSON.stringify(history)); //save this url's stop time for future playback
 				var url = this.prepareURL(msg['stop']+"/"+btoa(currenttime.toString()));
 				notify(url);
 			 }
