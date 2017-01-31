@@ -84,7 +84,7 @@ def parse_addon_xml(text, repo=None, dir=None):
                             addon_type.append('Video')
                         if 'executable' in text:
                             addon_type.append('Program')
-                    imports = e.getElementsCustomFilter(lambda x: x.tagName == 'import')
+                    imports = a.getElementsCustomFilter(lambda x: x.tagName == 'import')
                     requires = [i.attributes['addon'] for i in imports]
                 elif point == 'xbmc.python.weather':
                     addon_type.append('Weather')
