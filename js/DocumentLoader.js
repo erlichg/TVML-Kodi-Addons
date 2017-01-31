@@ -156,8 +156,11 @@ DocumentLoader.prototype.fetchPost = function(options) {
 				//this.fetchPost(options);
 				var match = /\/catalog\/(.*)/.exec(url);
 				if (match != null) {
-					navigationDocument.removeDocument(navigationDocument.documents[navigationDocument.documents.length-1]); //remove loader since catalog will add a new loader
+					const temp = navigationDocument.documents[navigationDocument.documents.length-1]; //save the loader for removal
 					catalog(match[1], data);
+					setTimeout(function() {
+						navigationDocument.removeDocument(temp);
+					}, 1000);
 				} else {
                     new DocumentController(this, url, navigationDocument.documents[navigationDocument.documents.length - 1], initial, data);
                 }

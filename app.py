@@ -154,7 +154,7 @@ class MyProcess(multiprocessing.Process):
         logger.debug('Thread adding end message')
         self.message({'type': 'end', 'ans': ans})
         self.onStop()
-        self.stop = True
+        self.stop.set()
 
     def response(self, id, response):
         self.responses.put({'id': id, 'response': response})
@@ -170,7 +170,7 @@ def Process(group=None, target=None, name=None, args=(), kwargs={}):
     p = MyProcess(group, target, name, args, kwargs)
     p.messages = multiprocessing.Queue()
     p.responses = multiprocessing.Queue()
-    p.stop = False  # can be used to indicate stop
+    p.stop = multiprocessing.Event()  # can be used to indicate stop
     p.id = str(id(p))
     return p
 
@@ -303,8 +303,8 @@ def catalog(pluginid, process=None):
             logger.debug('menu {}, {}'.format(decoded_id, process))
         plugin = get_installed_addon(decoded_id)
         if not plugin:
-            return render_template('alert.xml', title='Communication error',
-                                   description="Failed to load page.\nThis could mean the server had a problem, or the request dialog timed-out\nPlease try again")
+            return render_template('alert.xml', title='Missing plugin',
+                                   description="Failed to run plugin {}.\nYou may need to install it manually".format(decoded_id))
 
         global PROCESSES
         if process:

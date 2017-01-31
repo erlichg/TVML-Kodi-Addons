@@ -36,27 +36,27 @@ def play_stop(b, _id, stop_completion):
             stop_completion(0)
 
 
-def progress_stop(b, _id):
+def progress_stop(responses, progress, stop, _id):
     try:
         import setproctitle
         setproctitle.setproctitle('python TVMLServer (progress dialog {})'.format(_id))
     except:
         pass
     now = time.time()
-    while b.progress and not b.thread.stop and time.time() - now < 18000: #Max wait for 5 hours in case of stuck/aborted app:
+    while progress and not stop.is_set() and time.time() - now < 300: #Max wait for 5 minutes in case of stuck/aborted app:
         try:
-            r = b.thread.responses.get(False)
+            r = responses.get(False)
             logger.debug('found response for {}'.format(r['id']))
             if r['id'] == _id:
                 logger.debug('received progress close')
                 logger.debug('received response to {}'.format(_id))
                 logger.debug('progress closed')
-                b.progress.clear()
+                progress.clear()
             else:
-                b.thread.responses.put(r)
+                responses.put(r)
         except:
             gevent.sleep(1)
-    b.progress.clear()
+    progress.clear()
     logger.debug('Progress has been closed')
 
 
@@ -112,7 +112,7 @@ class bridge:
         self.progress=multiprocessing.Manager().dict()
         self.progress.update({'title': heading, 'id': _id, 'text': text})
         try:
-            p = multiprocessing.Process(target=progress_stop, args=(self, _id))
+            p = multiprocessing.Process(target=progress_stop, args=(self.thread.responses, self.progress, self.thread.stop, _id))
             #self.progress['process'] = p
             p.daemon = True
             p.start()
