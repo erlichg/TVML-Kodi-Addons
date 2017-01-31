@@ -632,10 +632,10 @@ def get_all_installed_addons():
 
 
 def install_addon(addon):
-    logger.debug('Installing addon {}'.format(id))
+    logger.debug('Installing addon {}'.format(addon['id']))
     download_url = '{0}/{1}/{1}-{2}.zip'.format(json.loads(addon['dir'])['download'], addon['id'], addon['version'])
     logger.debug('downloading plugin {}'.format(download_url))
-    temp = os.path.join(tempfile.gettempdir(), '{}.zip'.format(id))
+    temp = os.path.join(tempfile.gettempdir(), '{}.zip'.format(addon['id']))
     r = requests.get(download_url, stream=True)
     if not r.status_code == 200:
         raise Exception('Failed to download')
