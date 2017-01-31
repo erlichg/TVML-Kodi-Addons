@@ -478,6 +478,7 @@ def remove_addon(id):
 def get_items(plugin_id, url, context, LANGUAGE, settings):
     if 'setproctitle' in sys.modules:
         setproctitle.setproctitle('python TVMLServer ({}:{})'.format(plugin_id, url))
+    kodi_utils.windows_pyinstaller_multiprocess_hack()
     logger = logging.getLogger(plugin_id)
     logger.debug('Getting items for: {}'.format(url))
 
@@ -1005,41 +1006,7 @@ if __name__ == '__main__':
 
     multiprocessing.freeze_support()
 
-    # Module multiprocessing is organized differently in Python 3.4+
-    try:
-        # Python 3.4+
-        if sys.platform.startswith('win'):
-            import multiprocessing.popen_spawn_win32 as forking
-        else:
-            import multiprocessing.popen_fork as forking
-    except ImportError:
-        import multiprocessing.forking as forking
-
-    if sys.platform.startswith('win'):
-        # First define a modified version of Popen.
-        class _Popen(forking.Popen):
-            def __init__(self, *args, **kw):
-                if hasattr(sys, 'frozen'):
-                    # We have to set original _MEIPASS2 value from sys._MEIPASS
-                    # to get --onefile mode working.
-                    os.putenv('_MEIPASS2', sys._MEIPASS)
-                try:
-                    super(_Popen, self).__init__(*args, **kw)
-                finally:
-                    if hasattr(sys, 'frozen'):
-                        # On some platforms (e.g. AIX) 'os.unsetenv()' is not
-                        # available. In those cases we cannot delete the variable
-                        # but only set it to the empty string. The bootloader
-                        # can handle this case.
-                        if hasattr(os, 'unsetenv'):
-                            os.unsetenv('_MEIPASS2')
-                        else:
-                            os.putenv('_MEIPASS2', '')
-
-
-        # Second override 'Popen' class with our modified version.
-        forking.Popen = _Popen
-
+    kodi_utils.windows_pyinstaller_multiprocess_hack()
     #  	import pystray
     #  	from PIL import Image, ImageDraw
     #  	width=30
