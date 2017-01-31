@@ -154,6 +154,33 @@ See LICENSE.txt for this sample’s licensing information
                     </relatedContent>
                 </listItemLockup>
             </section>
+            <section>
+                <listItemLockup>
+                    <title style="tv-text-style:title3">About</title>
+                    <relatedContent>
+                        <list style="width:1000">
+                            <section>
+                                <listItemLockup>
+                                    <title>Name</title>
+                                    <decorationLabel>TVML Kodi server</decorationLabel>
+                                </listItemLockup>
+                                <listItemLockup>
+                                    <title>Author</title>
+                                    <decorationLabel>ggyeh</decorationLabel>
+                                </listItemLockup>
+                                <listItemLockup>
+                                    <title>Website</title>
+                                    <decorationLabel>https://github.com/ggyeh/TVML-Kodi-Addons</decorationLabel>
+                                </listItemLockup>
+                                <listItemLockup>
+                                    <title>Version</title>
+                                    <decorationLabel>{{version}}</decorationLabel>
+                                </listItemLockup>
+                            </section>
+                        </list>
+                    </relatedContent>
+                </listItemLockup>
+            </section>
         </list>
     </catalogTemplate>
 </document>
