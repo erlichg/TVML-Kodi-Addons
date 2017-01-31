@@ -1134,6 +1134,7 @@ def executebuiltin(function, wait=False):
 			#logger.debug('Saving settings {}'.format(xbmcaddon.ADDON_CACHE[self.id]))
 			logger.debug('Saving settings')
 			bridge._message({'type':'saveSettings','addon':Container.plugin.id, 'settings':_xbmcaddon.ADDON_CACHE[Container.plugin.id]})
+			time.sleep(2)
 	m = re.search('.*Container.Update\(plugin://([^/]*)(.*)\)', function)
 	if m:
 		bridge._message({'type':'load', 'url':'/catalog/{}'.format(kodi_utils.b64encode(m.group(1))), 'data':kodi_utils.b64encode(m.group(2))})
