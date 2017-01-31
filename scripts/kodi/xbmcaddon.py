@@ -191,6 +191,9 @@ class Addon(object):
 
     def openSettings(self):
         """Opens this scripts settings dialog."""
+        if not self.settings:
+            xbmc.bridge.alertdialog('No settings', 'This addon does not have any settings available for view or modification')
+            return
         sections = OrderedDict()
         def isvisible(setting):
             visible = setting['visible']
