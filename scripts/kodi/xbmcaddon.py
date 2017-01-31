@@ -26,11 +26,12 @@ class Addon(object):
             stack = traceback.extract_stack()
             file = stack[-2][0]
 
-            m = re.search(os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'addons', '([^{}]+)'.format(os.path.sep), '.*').encode('string-escape'), file)
+            search = os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'addons', '([^{}]+)'.format(os.path.sep), '.*').encode('string-escape')
+            m = re.search(search, file)
             if m:
                 id = m.group(1)
             else:
-                raise Exception('Could not find addon ID automatically')
+                raise Exception('Could not find addon ID automatically. search={}, stack={}'.format(search, file))
         global ADDON_CACHE
         if id in ADDON_CACHE:
             return ADDON_CACHE[id]
