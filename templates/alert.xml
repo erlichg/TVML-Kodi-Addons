@@ -11,8 +11,8 @@
 	  }
 	</style>
 	</head>
-   <alertTemplate>	   
+   <alertTemplate loadfunction="setTimeout(function() {navigationDocument.removeDocument(document);}, {{timeout|default(5000)}})">
       <title class="foo">{{title}}</title>
-      <description class="foo">{{description}}</description>      
+      <description class="foo">{{description}}</description>
    </alertTemplate>
 </document>

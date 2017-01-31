@@ -97,9 +97,9 @@ class bridge:
             logger.warning('Aborting response wait due to time out')
         return None
 
-    def alertdialog(self, title, description):
+    def alertdialog(self, title, description, timeout=5000):
         """Show an alert dialog with title and description. Returns immediately"""
-        return self._message({'type':'alertdialog', 'title':title, 'description':description})
+        return self._message({'type':'alertdialog', 'title':title, 'description':description, 'timeout':timeout})
 
     def inputdialog(self, title, description='', placeholder='', button='OK', secure=False):
         """Shows an input dialog to the user with text field. Returns the text the user typed or None if user aborted"""

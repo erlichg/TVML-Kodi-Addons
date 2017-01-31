@@ -156,6 +156,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
 				//this.fetchPost(options);
 				var match = /\/catalog\/(.*)/.exec(url);
 				if (match != null) {
+					navigationDocument.removeDocument(navigationDocument.documents[navigationDocument.documents.length-1]); //remove loader since catalog will add a new loader
 					catalog(match[1], data);
 				} else {
                     new DocumentController(this, url, navigationDocument.documents[navigationDocument.documents.length - 1], initial, data);
@@ -501,6 +502,12 @@ DocumentLoader.prototype.prepareDocument = function(document) {
 		   	//var url = function() { return eval(elem.getAttribute("abortfunction"));}.call({document:document});		   	
 		   	document.addEventListener("unload", function() {
 			   	eval(elem.getAttribute("abortfunction"));
+		   	}.bind(this));
+	   	}
+	   	if(elem.hasAttribute("loadfunction")) {
+		   	//var url = function() { return eval(elem.getAttribute("loadfunction"));}.call({document:document});
+		   	document.addEventListener("load", function() {
+			   	eval(elem.getAttribute("loadfunction"));
 		   	}.bind(this));
 	   	}
     }.bind(this));

@@ -1160,9 +1160,9 @@ def executebuiltin(function, wait=False):
 	if m:
 		title = m.group(1)
 		message = m.group(2)
-		time = m.group(4)
+		timeout = m.group(4)
 		icon = m.group(5)
-		#bridge.alertdialog(title, message)
+		bridge.alertdialog(title, message, timeout)
 		return str()
 	m = re.search('.*Extract\(([^,]*), ([^,]*)\)', function)
 	if m:
