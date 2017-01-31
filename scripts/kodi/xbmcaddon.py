@@ -129,7 +129,8 @@ class Addon(object):
                             if not 'value' in e.attrib:
                                 e.attrib['value'] = ''
                             self.settings[label].append(e.attrib)
-                self.settings.update(settings)
+                if settings:
+                    self.settings.update(settings)
         except:
             logger.exception('Failed to read addon settings')
             self.settings = OrderedDict()
