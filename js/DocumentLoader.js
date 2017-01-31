@@ -154,7 +154,12 @@ DocumentLoader.prototype.fetchPost = function(options) {
 			}
 			setTimeout(function() {
 				//this.fetchPost(options);
-				new DocumentController(this, url, navigationDocument.documents[navigationDocument.documents.length-1], initial, data);
+				var match = /\/catalog\/(.*)/.exec(url);
+				if (match != null) {
+					catalog(match[1], data);
+				} else {
+                    new DocumentController(this, url, navigationDocument.documents[navigationDocument.documents.length - 1], initial, data);
+                }
 			}.bind(this), 500);
 		} else if (xhr.status == 214) { //new progress
 			if (typeof this.progressDocument == "undefined") {
