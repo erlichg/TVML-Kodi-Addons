@@ -1134,6 +1134,7 @@ def executebuiltin(function, wait=False):
 			#logger.debug('Saving settings {}'.format(xbmcaddon.ADDON_CACHE[self.id]))
 			logger.debug('Saving settings')
 			bridge._message({'type':'saveSettings','addon':Container.plugin.id, 'settings':_xbmcaddon.ADDON_CACHE[Container.plugin.id]})
+			import time
 			time.sleep(2)
 	m = re.search('.*Container.Update\(plugin://([^/]*)(.*)\)', function)
 	if m:
