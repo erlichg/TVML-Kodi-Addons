@@ -565,7 +565,7 @@ def installAddon():
             plugin = KodiPlugin(id)
             for r in plugin.requires:
                 already_installed = get_installed_addon(r)
-                if r == 'xbmc.python' or already_installed:
+                if already_installed:
                     continue
                 found = find_addon(r)
                 if not found:
