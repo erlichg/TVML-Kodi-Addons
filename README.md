@@ -10,7 +10,7 @@ I've created a bridge from the kodi plugins to the server using the excellent [K
 ![alt tag](https://raw.githubusercontent.com/ggyeh/TVML-Kodi-Addons/master/images/screenshot5.png)
 
 ##How to use
-1. You can use the pre-compiled executable (for windows 64bit and mac currently)
+1. You can use the pre-compiled executable (for windows 64bit, mac and linux)
 2. This will run the server on port 5000. (You can run with -p switch to select different port)
 3. Fire up a TVML client on the apple TV like: TVML Explorer (available in TVOS appstore)
 4. Add your IP of the server
@@ -19,12 +19,12 @@ I've created a bridge from the kodi plugins to the server using the excellent [K
 ##Kodi addons
 Still not all of Kodi API is implemented so some might fail.
 
-Most (simple) addons should work immediately (Simply place the unzipped kodi addon under the ~/.TVMLServer/addons
+Most addons should work immediately (Simply add them via the interface)
 
 ###How it works
 The main page of the app shows a grid view of all addons available.
 
-You can install new addons from the 'Install addons' tab.
+You can install new addons from the 'Settings -> Addons' tab.
 
 Once you select an addon, the server runs it with an empty string and returs the list back to the client.
 
@@ -40,7 +40,7 @@ To create a large scale server serving multiple clients will probably require so
 
 Currently working are most dialogs, simple actions like addDirectory and setResolvedURL
 
-executeBuiltin commands including Container.Update
+executeBuiltin commands
 
 Addon settings can be accessed by long press on the addon icon in the main view
 
@@ -58,7 +58,13 @@ A lot more work to be done:
 To build from source, you need python 2.7, and the following python modules:
 - flask
 - gevent
-- pyintaller
+- pyinstaller
+- AdvancedHTMLParser
+- requests
+- psutil
+- packaging
+- httplib2
+
 
 To run from source, simply run the app.py file located at the root dir of this repo.
 
