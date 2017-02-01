@@ -875,18 +875,19 @@ def browse():
     filter = None
     if request.method == 'POST':
         post_data = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
-        dir = post_data['dir']
+        dir = kodi_utils.b64decode(post_data['dir']) if post_data['dir'] else ''
         filter = post_data['filter']
+        print 'browsing to {}'.format(dir)
     global last_dir
     if not dir:
         dir = last_dir
     last_dir = dir
     try:
         if os.path.isdir(dir):
-            files = [{'url': os.path.join(dir, f), 'title': f} for f in os.listdir('{}'.format(dir))]
+            files = [{'url': kodi_utils.b64encode(os.path.join(dir, f)), 'title': f} for f in os.listdir('{}'.format(dir))]
             if filter:
-                files = [f for f in files if os.path.isdir(f['url']) or re.match(filter, f['title'])]
-            up = os.path.dirname(dir)
+                files = [f for f in files if os.path.isdir(kodi_utils.b64decode(f['url'])) or re.match(filter, f['title'])]
+            up = kodi_utils.b64encode(os.path.dirname(dir))
             return render_template('browse.xml', title=dir, files=files, up=up)
         else:
             return dir, 218
