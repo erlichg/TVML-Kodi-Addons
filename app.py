@@ -806,6 +806,8 @@ def addRepository():
             for i in range(len(infos)):
                 repo['dirs'].append({'xml': infos[i].text, 'download': datadirs[i].text})
             global REPOSITORIES
+            if repo['name'] in [r['name'] for r in REPOSITORIES]:
+                return render_template('alert.xml', title='Already exists', description='Repository with this name already exists')
             REPOSITORIES.append(repo)
             global REFRESH_EVENT
             REFRESH_EVENT.clear()

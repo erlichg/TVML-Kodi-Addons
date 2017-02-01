@@ -149,6 +149,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
 			if (typeof msg['initial'] != "undefined") {
 				initial = msg['initial']
 			}
+			const temp = navigationDocument.documents[navigationDocument.documents.length - 1]; //loader should be the last page on stack
 			if (typeof msg['replace'] == 'boolean' && msg['replace'] && navigationDocument.documents.length > 1) {
 				navigationDocument.removeDocument(navigationDocument.documents[navigationDocument.documents.length-2]); //last document should be the loader so remove previous document				
 			}
@@ -156,13 +157,12 @@ DocumentLoader.prototype.fetchPost = function(options) {
 				//this.fetchPost(options);
 				var match = /\/catalog\/(.*)/.exec(url);
 				if (match != null) {
-					const temp = navigationDocument.documents[navigationDocument.documents.length-1]; //save the loader for removal
 					catalog(match[1], data);
 					setTimeout(function() {
 						navigationDocument.removeDocument(temp);
 					}, 1000);
 				} else {
-                    new DocumentController(this, url, navigationDocument.documents[navigationDocument.documents.length - 1], initial, data);
+                    new DocumentController(this, url, temp, initial, data);
                 }
 			}.bind(this), 500);
 		} else if (xhr.status == 214) { //new progress
