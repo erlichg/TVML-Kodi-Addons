@@ -149,14 +149,11 @@ function createLoadingDocument(title) {
  */
 function createAlertDocument(title, description, isModal) {
     // Ensure the text color is appropriate if the alert isn't going to be shown modally.
-    const textStyle = (isModal) ? "" : "color: rgb(0,0,0)";
+    const textStyle = (isModal) ? "" : "color: rgb(255,255,255)";
 
     const template = `<?xml version="1.0" encoding="UTF-8" ?>
         <document>
             <alertTemplate>
-            	<background>
-					<img src="/templates/background.png"/>
-				</background>
                 <title style="${textStyle}">${title}</title>
                 <description style="${textStyle}">${description}</description>
             </alertTemplate>
