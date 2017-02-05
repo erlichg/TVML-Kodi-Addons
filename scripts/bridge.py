@@ -36,28 +36,30 @@ def play_stop(b, _id, stop_completion):
             stop_completion(0)
 
 
-def progress_stop(responses, progress, stop, _id):
+def progress_stop(responses, stop, _id):
     try:
         import setproctitle
         setproctitle.setproctitle('python TVMLServer (progress dialog {})'.format(_id))
     except:
         pass
     now = time.time()
-    while progress and not stop.is_set() and time.time() - now < 300: #Max wait for 5 minutes in case of stuck/aborted app:
-        try:
-            r = responses.get(False)
-            logger.debug('found response for {}'.format(r['id']))
-            if r['id'] == _id:
-                logger.debug('received progress close')
-                logger.debug('received response to {}'.format(_id))
-                logger.debug('progress closed')
-                progress.clear()
-            else:
-                responses.put(r)
-        except:
-            gevent.sleep(1)
-    progress.clear()
-    logger.debug('Progress has been closed')
+    try:
+        while not stop.is_set() and time.time() - now < 300: #Max wait for 5 minutes in case of stuck/aborted app:
+            try:
+                r = responses.get(False)
+                logger.debug('found response for {}'.format(r['id']))
+                if r['id'] == _id:
+                    logger.debug('received progress close')
+                    logger.debug('received response to {}'.format(_id))
+                    logger.debug('progress closed')
+                    break
+                else:
+                    responses.put(r)
+            except:
+                gevent.sleep(1)
+    except:
+        pass
+    logger.debug('Progress thread has ended')
 
 
 class bridge:
@@ -109,27 +111,41 @@ class bridge:
     def progressdialog(self, heading, text=''):
         """Shows a progress dialog to the user"""
         _id = kodi_utils.randomword()
-        self.progress=multiprocessing.Manager().dict()
-        self.progress.update({'title': heading, 'id': _id, 'text': text})
-        try:
-            p = multiprocessing.Process(target=progress_stop, args=(self.thread.responses, self.progress, self.thread.stop, _id))
-            #self.progress['process'] = p
-            p.daemon = True
-            p.start()
-        except:
-            logger.exception('Failed to start stop progress process.')
+        self.progress = multiprocessing.Process(target=progress_stop, args=(self.thread.responses, self.thread.stop, _id))
+        self.progress.title = heading
+        self.progress.id = _id
+        self.progress.text = text
+        #self.progress['process'] = p
+        self.progress.daemon = True
+        self.progress.start()
         self._message({'type':'progressdialog', 'title':heading, 'text':text, 'value':'0', 'id':'{}/{}'.format(self.thread.id, _id)}, False, _id)
 
     def updateprogressdialog(self, value, text=None):
         """Updates the progress dialog"""
-        if self.progress:
-            logger.debug('updating progress with {}, {}'.format(value, text))
-            return self._message({'type':'updateprogressdialog', 'title':self.progress['title'], 'text':text if text else self.progress['text'], 'value':value, 'id':'{}/{}'.format(self.thread.id, self.progress['id'])}, False, self.progress['id'])
+        try:
+            if self.progress and self.progress.is_alive():
+                logger.debug('updating progress with {}, {}'.format(value, text))
+                return self._message({'type':'updateprogressdialog', 'title':self.progress.title, 'text':text if text else self.progress.text, 'value':value, 'id':'{}/{}'.format(self.thread.id, self.progress.id)}, False, self.progress.id)
+        except:
+            pass
 
     def isprogresscanceled(self):
         """Returns whether the progress dialog is still showing or canceled by user"""
-        logger.debug('isprogresscanceled {}'.format(not self.progress))
-        return not self.progress
+        try:
+            try:
+                self.progress
+            except:
+                #progress has been closed programatically
+                logger.debug('isprogresscanceled True (by script)')
+                return True
+            if not self.progress.is_alive(): #progress has been cancelled by user
+                logger.debug('isprogresscanceled True (by user)')
+                return True
+            logger.debug('isprogresscanceled False')
+            return False
+        except:
+            logger.exception('isprogresscanceled True (by unknown)')
+            return True
 
     def closeprogress(self):
         """Closes the progress dialog"""
@@ -137,7 +153,10 @@ class bridge:
         #while self.progress and self.progress['process'].is_alive():
         #	print 'waiting for progress thread'
         #	gevent.sleep(1)
-        self.progress.clear()
+        try:
+            self.progress.terminate()
+        except:
+            pass
         return None
 
     def selectdialog(self, title, text='', list_=[]):

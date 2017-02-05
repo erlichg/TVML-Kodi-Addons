@@ -252,7 +252,11 @@ DocumentLoader.prototype.fetchPost = function(options) {
 				            console.log('Manually removing progress document');
 				            const temp = this.progressDocument; //save it
 				            this.progressDocument = undefined; //delete it so as not to call "unload"
-				            navigationDocument.replaceDocument(doc, temp);
+							if (navigationDocument.documents.indexOf(temp)!=-1) {
+                                navigationDocument.replaceDocument(doc, temp);
+                            } else {
+								navigationDocument.pushDocument(doc);
+							}
 				        } else { //unload or abort was already called so we need to remove the loading document which is top most document on stack
 				            navigationDocument.replaceDocument(doc, navigationDocument.documents[navigationDocument.documents.length-1]);
 				        }
@@ -567,7 +571,7 @@ DocumentLoader.prototype.play = function(msg, time, playCache, history, options)
 				} else {
 					playCache[msg['url']] = time;
 				}
-				if (total == 0) {
+				if (typeof total == "undefined" || total == 0) {
 				    history[msg['history']] = 0; //not started or not played
 				} else if (time * 100 / total > 97) {
 				    history[msg['history']] = 1; //finished playing
@@ -694,6 +698,6 @@ DocumentLoader.prototype.formatTime = function(time) {
 		return ("0" + minutes).slice(-2)+":"+("0" + seconds).slice(-2);
 	}
 	var hours = Math.floor(time / 3600);
-	return ("0" + hours).slice(-2)+":"+formatTime(time%3600);
+	return ("0" + hours).slice(-2)+":"+this.formatTime(time%3600);
 }
 

@@ -3,7 +3,7 @@ import sys, os, imp, urllib, json, time, traceback, re, getopt, tempfile, Advanc
 from threading import Timer
 from contextlib import contextmanager
 
-VERSION=0.5
+VERSION='0.5'
 
 try:
     from flask import Flask, render_template, send_from_directory, request, send_file, redirect
@@ -342,8 +342,19 @@ def catalog(pluginid, process=None):
                 try:
                     method = getattr(messages, msg['type'])
                     if msg['type'] == 'end':
+                        if not p.messages.empty():
+                            logger.warning('Got end message but queue not empty. Getting another')
+                            p.messages.put(msg)
+                            continue
                         global PROCESSES
-                        del PROCESSES[p.id]
+                        for t in PROCESSES:
+                            PROCESSES[t].responses.close()
+                            PROCESSES[t].messages.close()
+                            del PROCESSES[t].responses
+                            del PROCESSES[t].messages
+                            del PROCESSES[t].stop
+                            PROCESSES[t]._popen.terminate()
+                        PROCESSES.clear()
                         # p.join()
                         # p.terminate()
                         logger.debug('PROCESS {} TERMINATED'.format(p.id))
@@ -375,8 +386,19 @@ def catalog(pluginid, process=None):
             try:
                 method = getattr(messages, msg['type'])
                 if msg['type'] == 'end':
+                    if not p.messages.empty():
+                        logger.warning('Got end message but queue not empty. Getting another')
+                        p.messages.put(msg)
+                        continue
                     global PROCESSES
-                    del PROCESSES[p.id]
+                    for t in PROCESSES:
+                        PROCESSES[t].responses.close()
+                        PROCESSES[t].messages.close()
+                        del PROCESSES[t].responses
+                        del PROCESSES[t].messages
+                        del PROCESSES[t].stop
+                        PROCESSES[t]._popen.terminate()
+                    PROCESSES.clear()
                     # p.join()
                     # p.terminate()
                     logger.debug('PROCESS {} TERMINATED'.format(p.id))
@@ -459,7 +481,7 @@ def remove_addon(id):
             global REPOSITORIES
             index_to_del = None
             for (i,j) in enumerate(REPOSITORIES):
-                if REPOSITORIES[j]['name'] == addon['name']:
+                if j['name'] == addon['name']:
                     index_to_del = i
             if index_to_del:
                 del REPOSITORIES[index_to_del]
@@ -489,6 +511,9 @@ def get_items(plugin_id, url, context, LANGUAGE, settings):
         b = bridge()
         b.context = context
         items = plugin.run(b, url, LANGUAGE, settings)
+        del plugin
+        del b
+        del logger
     except:
         logger.exception('Encountered error in plugin: {}'.format(plugin_id))
         items = None

@@ -276,7 +276,7 @@ class KodiPlugin:
     # logger.debug('Saving settings {}'.format(xbmcaddon.ADDON_CACHE[self.id]))
             logger.debug('Saving settings')
             bridge._message({'type': 'saveSettings', 'addon': self.id, 'settings': xbmcaddon.ADDON_CACHE[self.id].settings})
-        if hasattr(bridge, 'progress') and bridge.progress:
+        if hasattr(bridge, 'progress') and bridge.progress.is_alive():
             logger.debug('Closing left over progress')
             bridge.closeprogress()
         ans = []
