@@ -157,10 +157,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
 				//this.fetchPost(options);
 				var match = /\/catalog\/(.*)/.exec(url);
 				if (match != null) {
-					catalog(match[1], data);
-					setTimeout(function() {
-						navigationDocument.removeDocument(temp);
-					}, 1000);
+					catalog(match[1], data, temp);
 				} else {
                     new DocumentController(this, url, temp, initial, data);
                 }
@@ -572,7 +569,7 @@ DocumentLoader.prototype.play = function(msg, time, playCache, history, options)
 					playCache[msg['url']] = time;
 				}
 				if (typeof total == "undefined" || total == 0) {
-				    history[msg['history']] = 0; //not started or not played
+				    //do nothing
 				} else if (time * 100 / total > 97) {
 				    history[msg['history']] = 1; //finished playing
 				} else {
@@ -663,7 +660,7 @@ DocumentLoader.prototype.play = function(msg, time, playCache, history, options)
 					playCache[msg['url']] = currenttime;
 				}
 				if (duration == 0) {
-				    history[msg['history']] = 0; //not started or not played
+				    //do nothing
 				} else if (currenttime * 100 / duration > 97) {
 				    history[msg['history']] = 1; //finished playing
 				} else {

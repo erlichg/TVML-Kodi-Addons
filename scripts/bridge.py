@@ -26,9 +26,8 @@ def play_stop(b, _id, stop_completion):
             gevent.sleep(1)
     b.play = None
     if time.time() - now < 18000:
-        logger.debug('detected player stop at time {}'.format(kodi_utils.b64decode(res)))
-        if stop_completion:
-            logger.debug('calling stop completion')
+        if res and stop_completion:
+            logger.debug('detected player stop at time {}'.format(kodi_utils.b64decode(res)))
             stop_completion(kodi_utils.b64decode(res))
     else:
         logger.debug('forced player stop due to unresponsiveness')
@@ -155,6 +154,7 @@ class bridge:
         #	gevent.sleep(1)
         try:
             self.progress.terminate()
+            del self.progress
         except:
             pass
         return None

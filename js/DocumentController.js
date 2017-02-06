@@ -191,7 +191,7 @@ DocumentController.prototype.handleHoldSelect = function(event) {
 	}
 }
 
-function catalog(id, url) {
+function catalog(id, url, loadingDocument) {
     if (typeof url == "undefined") {
         url = '';
     }
@@ -199,7 +199,7 @@ function catalog(id, url) {
     language = loadLanguage();
     settings = loadSettings(atob(id));
     history = loadHistory();
-    post('/catalog/'+id, btoa(JSON.stringify({'favs':JSON.stringify(favs), 'lang':language, 'settings':settings, 'url':url, 'history':JSON.stringify(history)})))
+    post('/catalog/'+id, btoa(JSON.stringify({'favs':JSON.stringify(favs), 'lang':language, 'settings':settings, 'url':url, 'history':JSON.stringify(history)})), loadingDocument)
 }
 
 function menu(id, url) {
@@ -229,17 +229,21 @@ function notify(url, data) {
 	});
 }
 
-function load(url, initial, replace) {
-	console.log("loading "+url);	
-	var loadingDocument = createLoadingDocument();
-	navigationDocument.pushDocument(loadingDocument);	
+function load(url, initial, replace, loadingDocument) {
+	console.log("loading "+url);
+	if (typeof loadingDocument == "undefined") {
+        var loadingDocument = createLoadingDocument();
+        navigationDocument.pushDocument(loadingDocument);
+    }
 	new DocumentController(documentLoader, url, loadingDocument, initial, null, replace);
 }
 
-function post(url, data) {
+function post(url, data, loadingDocument) {
 	console.log("posting "+url);
-	var loadingDocument = createLoadingDocument();
-	navigationDocument.pushDocument(loadingDocument);
+	if (typeof loadingDocument == "undefined") {
+        var loadingDocument = createLoadingDocument();
+        navigationDocument.pushDocument(loadingDocument);
+    }
 	new DocumentController(documentLoader, url, loadingDocument, false, data);
 	
 }

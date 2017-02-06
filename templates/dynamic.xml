@@ -7,12 +7,14 @@ See LICENSE.txt for this sample’s licensing information
 	<head id="segmentBar">
 	  <style>
 	  @media tv-template and (tv-theme:light) {
-      	.foo { color:rgb(0, 0, 0); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+      	.foo { color:rgb(0, 0, 0); tv-tint-color:rgb(0,0,0); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
       	.foo2 { color:rgb(0, 0, 0); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; }
+		  .foo3 { tv-position:footer; tv-align:right; margin: 0; tv-tint-color:rgb(0,0,0); tv-highlight-color:rgb(0, 0, 0); }
 	  }
 	  @media tv-template and (tv-theme:dark) {
-      	.foo { color:rgb(255, 255, 255); tv-highlight-color:rgb(0,0,0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+      	.foo { color:rgb(255, 255, 255); tv-tint-color:rgb(255,255,255); tv-highlight-color:rgb(0,0,0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
       	.foo2 { color:rgb(255, 255, 255); tv-highlight-color:rgb(255, 255, 255); tv-text-max-lines:15; }
+		  .foo3 { tv-position:footer; tv-align:right; margin: 0; tv-tint-color:rgb(255,255,255); tv-highlight-color:rgb(255,255,255); }
 	  }
 	</style>
 	</head>
@@ -29,9 +31,9 @@ See LICENSE.txt for this sample’s licensing information
 					<row>
 				 	<title class="foo">{{item.title}}</title>
 					{% if item.status == 1 %}
-					<badge src="resource://button-checkmark"/>
+					<badge class="foo" src="resource://button-checkmark"/>
 					{% elif item.status == 2 %}
-					<badge src="resource://button-play"/>
+					<badge class="foo" src="resource://button-play"/>
 					{% endif %}
 					</row>
 				 	<relatedContent>
@@ -58,9 +60,9 @@ See LICENSE.txt for this sample’s licensing information
 					<row>
 				 	<title class="foo">{{item.title}}</title>
 					{% if item.status == 1 %}
-					<badge src="resource://button-checkmark"/>
+					<badge class="foo" src="resource://button-checkmark"/>
 					{% elif item.status == 2 %}
-					<badge src="resource://button-play"/>
+					<badge class="foo" src="resource://button-play"/>
 					{% endif %}
 					</row>
 				</listItemLockup>
@@ -87,9 +89,9 @@ See LICENSE.txt for this sample’s licensing information
 				 	<title class="foo2">{{item.title}}</title>
 					<overlay style="padding: 0">
 					{% if item.status == 1 %}
-					<badge style="tv-position:footer; tv-align:right; margin: 0" src="resource://overlay-checkmark"/>
+					<badge class="foo3" src="resource://overlay-checkmark"/>
 					{% elif item.status == 2 %}
-					<badge style="tv-position:footer; tv-align:right; margin: 0" src="resource://button-play"/>
+					<badge class="foo3" src="resource://button-play"/>
 					{% endif %}
 					</overlay>
 				</lockup>
