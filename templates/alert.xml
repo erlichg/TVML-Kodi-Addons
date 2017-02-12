@@ -11,7 +11,7 @@
 	  }
 	</style>
 	</head>
-   <alertTemplate loadfunction="setTimeout(function() {navigationDocument.removeDocument(document);}, {{timeout|default(5000)}})">
+   <alertTemplate loadfunction="setTimeout(function() { navigationDocument.removeDocument(document); }, {{timeout|default(5000)}})" abortfunction="if ({{cont|default(false)}} == true) { load('{{url}}') }">
       <title class="foo">{{title}}</title>
       <description class="foo">{{description}}</description>
 	   <footer style="tv-position:footer"><text>This view will close automatically in {{timeout|default(5000) // 1000}}s</text></footer>
