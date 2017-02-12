@@ -156,6 +156,30 @@ See LICENSE.txt for this sample’s licensing information
             </section>
             <section>
                 <listItemLockup>
+                    <title style="tv-text-style:title3">Application settings</title>
+                    <relatedContent>
+                        <list style="width:1000">
+                            <section>
+                                <header><title>Clear persistent settings</title></header>
+                                <listItemLockup onselect="clearPlay();">
+                                    <title>Clear play history</title>
+                                    <subtitle>Clear history of all played items</subtitle>
+                                </listItemLockup>
+                                <listItemLockup onselect="clearSettings();">
+                                    <title>Clear addons settings</title>
+                                    <subtitle>Restore all addons settings to default</subtitle>
+                                </listItemLockup>
+                                <listItemLockup onselect="clearAll();">
+                                    <title>Clear all settings</title>
+                                    <subtitle>Clear all application settings</subtitle>
+                                </listItemLockup>
+                            </section>
+                        </list>
+                    </relatedContent>
+                </listItemLockup>
+            </section>
+            <section>
+                <listItemLockup>
                     <title style="tv-text-style:title3">About</title>
                     <relatedContent>
                         <list style="width:1000">
