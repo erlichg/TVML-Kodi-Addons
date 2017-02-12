@@ -3,12 +3,12 @@
 	<head>
 	  <style>
 	  @media tv-template and (tv-theme:light) {
-      	.foo { color:rgb(0, 0, 0); tv-highlight-color:rgb(0, 0, 0); }
-      	.foo2 { color:rgb(0, 0, 0); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; }
+      	.foo { color:rgb(0, 0, 0); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7;}
+      	.foo2 { color:rgb(0, 0, 0); tv-highlight-color:rgb(0, 0, 0);}
 	  }
 	  @media tv-template and (tv-theme:dark) {
-      	.foo { color:rgb(255, 255, 255); tv-highlight-color:rgb(0,0,0); }
-      	.foo2 { color:rgb(255, 255, 255); tv-highlight-color:rgb(255, 255, 255); tv-text-max-lines:15; }
+      	.foo { color:rgb(255, 255, 255); tv-highlight-color:rgb(0,0,0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7;}
+      	.foo2 { color:rgb(255, 255, 255); tv-highlight-color:rgb(255, 255, 255);}
 	  }
 	</style>
 	</head>
@@ -46,26 +46,26 @@
 								{% if field.type == "yesno" %}
 								<listItemLockup onselect="var field = JSON.parse(event.target.children.item(0).getAttribute('field')); event.target.children.item(2).textContent = (event.target.children.item(2).textContent == 'No' ? 'Yes' : 'No')">
 									<placeholder field='{{field | tojson}}'></placeholder>
-									<title class="foo">{{field.label}}</title><decorationLabel class="foo" id="{{field.label}}">{{'Yes' if field.value == 'True' or field.value == 'true' else 'No'}}</decorationLabel>
+									<title class="foo">{{field.label}}</title><decorationLabel class="foo2" id="{{field.label}}">{{'Yes' if field.value == 'True' or field.value == 'true' else 'No'}}</decorationLabel>
 								</listItemLockup>
 								{% elif field.type == "selection" %}
 								<listItemLockup onselect="var field = JSON.parse(event.target.children.item(0).getAttribute('field')); var s = event.target.children.item(2).textContent; var index=field.choices.indexOf(s); showSelectDialog(field.label, field.choices, index, function(ans) { if (typeof ans != 'undefined') {event.target.children.item(2).textContent=ans;}});">
 									<placeholder field='{{field | tojson}}'></placeholder>							
-									<title class="foo">{{field.label}}</title><decorationLabel class="foo" id="{{field.label}}">{{field.value}}</decorationLabel>
+									<title class="foo">{{field.label}}</title><decorationLabel class="foo2" id="{{field.label}}">{{field.value}}</decorationLabel>
 								</listItemLockup>
 								{% elif field.type == "textfield" %}
 								<listItemLockup onselect="var field = JSON.parse(event.target.children.item(0).getAttribute('field')); showInputDialog(field.label, field.description, field.placeholder, field.button, field.secure, function(ans) {if (typeof ans != 'undefined') {event.target.children.item(2).textContent = ans;}});">
 									<placeholder field='{{field | tojson}}'></placeholder>
-									<title class="foo">{{field.label}}</title><subtitle class="foo" id="{{field.label}}">{{field.value}}</subtitle><decorationImage class="foo" src="resource://list-chevron"/>
+									<title class="foo">{{field.label}}</title><subtitle class="foo2" id="{{field.label}}">{{field.value}}</subtitle><decorationImage class="foo" src="resource://list-chevron"/>
 								</listItemLockup>
 								{% elif field.type == "action" %}
 								<listItemLockup onselect="var field = JSON.parse(event.target.children.item(0).getAttribute('field')); performAction(field.action);">
 									<placeholder field='{{field | tojson}}'></placeholder>
-									<title class="foo">{{field.label}}</title><decorationLabel class="foo">{{field.value}}</decorationLabel>
+									<title class="foo">{{field.label}}</title><decorationLabel class="foo2">{{field.value}}</decorationLabel>
 								</listItemLockup>
 								{% elif field.type == "label" %}
 								<listItemLockup disabled="true">
-									<title class="foo">{{field.label}}</title><decorationLabel class="foo">{{field.value}}</decorationLabel>
+									<title class="foo">{{field.label}}</title><decorationLabel class="foo2">{{field.value}}</decorationLabel>
 								</listItemLockup>
 								{% endif %}	
 							{% endfor %}
