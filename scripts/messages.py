@@ -102,16 +102,18 @@ def inputdialog(plugin, msg, url=None, original_url=None, history=None):
 
 def alertdialog(plugin, msg, url=None, original_url=None, history=None):
     """Shows an alert dialog"""
-    return render_template('alert.xml', title=msg['title'], description=msg['description'], timeout=msg['timeout'])
+    return render_template('alert.xml', title=msg['title'], description=msg['description'], timeout=msg['timeout'], url=url, cont=msg['continue'])
 
 def progressdialog(plugin, msg, url=None, original_url=None, history=None):
     """Shows a progress dialog. Initially with progress 0"""
     logger.debug('returning progress template with {}'.format(msg))
     return render_template('progressdialog.xml', title=msg['title'], text=msg['text'], value=msg['value'], url=url, msgid=msg['id']), 214
 
+
 def updateprogressdialog(plugin, msg, url=None, original_url=None, history=None):
     logger.debug('updating progress template with {}'.format(msg))
     return render_template('progressdialog.xml', title=msg['title'], text=msg['text'], value=msg['value'], url=url, msgid=msg['id']), 216
+
 
 def selectdialog(plugin, msg, url=None, original_url=None, history=None):
     items = msg['list']
