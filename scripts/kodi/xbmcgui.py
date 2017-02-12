@@ -2802,7 +2802,7 @@ class Dialog(object):
 			dialog = xbmcgui.Dialog()
 			dialog.notification('Movie Trailers', 'Finding Nemo download finished.', xbmcgui.NOTIFICATION_INFO, 5000)
 		"""
-		return _xbmc.bridge.alertdialog(heading, message)
+		return _xbmc.bridge.alertdialog(heading, message, time, True)
 
 	def yesno(self, heading, line1, line2='', line3='', nolabel='', yeslabel='', autoclose=0):
 		"""Show a confirmation dialog 'YES/NO'.
@@ -2862,22 +2862,25 @@ class Dialog(object):
 		logger.debug('Calling bridge selectdialog')
 		ans = []
 		from Plugin import Item
-		for item in list_:
-			#url, title, subtitle=None, icon=None, details=None, menuurl='', info={})
-			i = Item(url=item['url'], title=convert_kodi_tags_to_html_tags(item['listitem'].label), subtitle=item['listitem'].getProperty('subtitle'), icon=item['listitem'].thumbnailImage if item['listitem'].thumbnailImage != 'DefaultFolder.png' else '', details=item['listitem'].getProperty('details'),info=item['listitem'].infos, context=item['listitem'].context)
-			if type(i.context) is list: #needs to be dict
-				i.context = {x[0]:x[1] for x in i.context}
-			infos = item['listitem'].infos
-			if 'poster' in infos:
-				i.icon = infos['poster']
-			if 'plot' in infos:
-				i.details = infos['plot']
-			if 'year' in infos:
-				i.year = infos['year']
-			if 'trailer' in infos:
-				i.context['Watch trailer'] = 'RunPlugin({})'.format(infos['trailer'])			
+		for (index,item) in enumerate(list_):
+			if item is dict:
+				#url, title, subtitle=None, icon=None, details=None, menuurl='', info={})
+				i = Item(url=index, title=convert_kodi_tags_to_html_tags(item['listitem'].label), subtitle=item['listitem'].getProperty('subtitle'), icon=item['listitem'].thumbnailImage if item['listitem'].thumbnailImage != 'DefaultFolder.png' else '', details=item['listitem'].getProperty('details'),info=item['listitem'].infos, context=item['listitem'].context)
+				if type(i.context) is list: #needs to be dict
+					i.context = {x[0]:x[1] for x in i.context}
+				infos = item['listitem'].infos
+				if 'poster' in infos:
+					i.icon = infos['poster']
+				if 'plot' in infos:
+					i.details = infos['plot']
+				if 'year' in infos:
+					i.year = infos['year']
+				if 'trailer' in infos:
+					i.context['Watch trailer'] = 'RunPlugin({})'.format(infos['trailer'])
+			else:
+				i = Item(url=index, title=item)
 			ans.append(i)
-		return _xbmc.bridge.selectdialog(striptags(heading), ans)	
+		return int(_xbmc.bridge.selectdialog(title=striptags(heading), list_=ans))-1 #selectdialog returns 1 based, we need 0 based
 
 	def contextmenu(self, list_):
 		"""

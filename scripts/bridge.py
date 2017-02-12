@@ -15,7 +15,7 @@ def play_stop(b, _id, stop_completion):
     while not b.thread.stop and time.time() - now < 18000: #Max wait for 5 hours in case of stuck/aborted app
         try:
             r = b.thread.responses.get(False)
-            logger.debug('found response for {}'.format(r['id']))
+            logger.debug('play_stop found response for {}'.format(r['id']))
             if r['id'] == _id:
                 logger.debug('received response to {}'.format(_id))
                 res = r['response']
@@ -46,7 +46,7 @@ def progress_stop(responses, stop, _id):
         while not stop.is_set() and time.time() - now < 300: #Max wait for 5 minutes in case of stuck/aborted app:
             try:
                 r = responses.get(False)
-                logger.debug('found response for {}'.format(r['id']))
+                logger.debug('progress_stop found response for {}'.format(r['id']))
                 if r['id'] == _id:
                     logger.debug('received progress close')
                     logger.debug('received response to {}'.format(_id))
@@ -81,10 +81,10 @@ class bridge:
         if not wait:
             return
         start = time.time()
-        while not self.thread.stop and time.time() - start < 3600: #wait for response at most 1 hour. This is meant to limit amount of threads on web server
+        while not self.thread.stop.is_set() and time.time() - start < 3600: #wait for response at most 1 hour. This is meant to limit amount of threads on web server
             try:
                 r = self.thread.responses.get(False)
-                logger.debug('found response for {}'.format(r['id']))
+                logger.debug('_message found response for {}'.format(r['id']))
                 if r['id'] == _id:
                     logger.debug('received response to {}'.format(_id))
                     return r['response']
@@ -98,9 +98,9 @@ class bridge:
             logger.warning('Aborting response wait due to time out')
         return None
 
-    def alertdialog(self, title, description, timeout=5000):
+    def alertdialog(self, title, description, timeout=5000, cont=False):
         """Show an alert dialog with title and description. Returns immediately"""
-        return self._message({'type':'alertdialog', 'title':title, 'description':description, 'timeout':timeout})
+        return self._message({'type':'alertdialog', 'title':title, 'description':description, 'timeout':timeout, 'continue':'true' if cont else 'false'})
 
     def inputdialog(self, title, description='', placeholder='', button='OK', secure=False):
         """Shows an input dialog to the user with text field. Returns the text the user typed or None if user aborted"""
@@ -160,7 +160,7 @@ class bridge:
         return None
 
     def selectdialog(self, title, text='', list_=[]):
-        """Shows a selection dialog"""
+        """Shows a selection dialog. Returns the index (1 based) of the answer"""
         ans = self._message({'type':'selectdialog', 'title':title, 'text':text, 'list':list_}, True)
         gevent.sleep(1)
         return ans

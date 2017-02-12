@@ -206,14 +206,19 @@ DocumentLoader.prototype.fetchPost = function(options) {
 				}.bind(this),
 				abort: function() { //if we get abort, remove the progress dialog
 					try {
+						var loadingDocument = createLoadingDocument();
 						if (typeof this.progressDocument != "undefined") {
-							console.log("Removing progress dialog");
-							var save = this.progressDocument;
-							this.progressDocument = undefined;
-							var loadingDocument = createLoadingDocument();
-							navigationDocument.replaceDocument(loadingDocument, save);
-							new DocumentController(this, url, loadingDocument, false, data);
-						}
+                            console.log("Removing progress dialog");
+                            var save = this.progressDocument;
+                            this.progressDocument = undefined;
+                            navigationDocument.replaceDocument(loadingDocument, save);
+                        }
+                        var match = /\/catalog\/(.*)/.exec(url);
+						if (match != null) {
+							catalog(match[1], data, loadingDocument);
+						} else {
+                    		new DocumentController(this, url, loadingDocument, false, data);
+                		}
 					} catch (err) {
 					}
 				}.bind(this)
@@ -261,14 +266,19 @@ DocumentLoader.prototype.fetchPost = function(options) {
 				    abort: function() { //if we get abort, remove the progress dialog
 				        console.log('In abort function');
 					    try {
+					    	var loadingDocument = createLoadingDocument();
 						    if (typeof this.progressDocument != "undefined") {
 							    console.log("Removing progress dialog");
 							    var save = this.progressDocument;
 							    this.progressDocument = undefined;
-							    var loadingDocument = createLoadingDocument();
 							    navigationDocument.replaceDocument(loadingDocument, save);
-							    new DocumentController(this, url, loadingDocument, false, data);
 						    }
+						    var match = /\/catalog\/(.*)/.exec(url);
+							if (match != null) {
+								catalog(match[1], data, loadingDocument);
+							} else {
+                    			new DocumentController(this, url, loadingDocument, false, data);
+                			}
 					    } catch (err) {
 					    }
 				    }.bind(this)
@@ -302,6 +312,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
             		navigationDocument.pushDocument(responseDoc);
         		}
         	}
+
         }
     }.bind(this);
     xhr.onerror = function() {
@@ -312,7 +323,15 @@ DocumentLoader.prototype.fetchPost = function(options) {
             navigationDocument.presentModal(alertDocument);
         }
     };
-    xhr.timeout = 60000;
+    xhr.ontimeout = function() {
+    	if (typeof options.error === "function") {
+            options.error(xhr);
+        } else {
+            const alertDocument = createAlertDocument('Timeout', 'The request timed-out');
+            navigationDocument.presentModal(alertDocument);
+        }
+	}
+    xhr.timeout = 120000; //timeout of 2 minutes
     if (typeof options.data == "undefined" || options.data == "") {
 	    xhr.send();
 	} else {

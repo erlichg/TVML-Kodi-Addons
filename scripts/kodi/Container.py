@@ -1,6 +1,7 @@
 import logging
 logger = logging.getLogger('TVMLServer')
 
+
 class Container:
 	def __init__(self, plugin):
 		self.plugin = plugin

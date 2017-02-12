@@ -25,7 +25,7 @@ function resolveControllerFromElement(elem) {
     }
 }
 
-function DocumentController(documentLoader, documentURL, loadingDocument, initial, data, replace, special) {
+function DocumentController(documentLoader, documentURL, loadingDocument, initial, data, replace, special, callback) {
     this.handleEvent = this.handleEvent.bind(this);
     this.handleHoldSelect = this.handleHoldSelect.bind(this);
     this._documentLoader = documentLoader;
@@ -47,15 +47,24 @@ function DocumentController(documentLoader, documentURL, loadingDocument, initia
         	    if (typeof loadingDocument != "undefined" && navigationDocument.documents.indexOf(loadingDocument)!=-1) { //if there's a loading document and it's on stack we need to remove it
         	        navigationDocument.removeDocument(loadingDocument);
         	    }
+        	    if (typeof callback != "undefined") {
+        	    	callback('success');
+				}
         	}.bind(this),
         	error: function(xhr) {
         	    const alertDocument = createLoadErrorAlertDocument(documentURL, xhr, false);
         	    this.handleDocument(alertDocument, loadingDocument);
+        	    if (typeof callback != "undefined") {
+        	    	callback('error');
+				}
         	}.bind(this),
         	abort: function() {
 	    	    if(loadingDocument) {
 			        navigationDocument.removeDocument(loadingDocument);
 	    	    }
+	    	    if (typeof callback != "undefined") {
+        	    	callback('abort');
+				}
         	}
     	}); 	       					
     } else if (typeof data != "undefined" && data != null) {
@@ -68,16 +77,25 @@ function DocumentController(documentLoader, documentURL, loadingDocument, initia
         	    //this.setupDocument(document);
         	    // Allow subclass to do custom handling for this document
         	    this.handleDocument(document, loadingDocument, isModal, replace);
+        	    if (typeof callback != "undefined") {
+        	    	callback('success');
+				}
         	}.bind(this),
         	error: function(xhr) {
         	    const alertDocument = createLoadErrorAlertDocument(documentURL, xhr, false);
         	    this.handleDocument(alertDocument, loadingDocument);
+        	    if (typeof callback != "undefined") {
+        	    	callback('error');
+				}
         	}.bind(this),
         	abort: function() {
 	    	    if(loadingDocument) {
 	    	        console.log('Going to remove loading document '+loadingDocument+'. Documents on stack are '+navigationDocument.documents);
 			        navigationDocument.removeDocument(loadingDocument);
 	    	    }
+	    	    if (typeof callback != "undefined") {
+        	    	callback('abort');
+				}
         	},
         	special: special
     	});
@@ -90,15 +108,24 @@ function DocumentController(documentLoader, documentURL, loadingDocument, initia
     	        ///this.setupDocument(document);
     	        // Allow subclass to do custom handling for this document
     	        this.handleDocument(document, loadingDocument, isModal, replace);
+    	        if (typeof callback != "undefined") {
+        	    	callback('success');
+				}
     	    }.bind(this),
     	    error: function(xhr) {
     	        const alertDocument = createLoadErrorAlertDocument(documentURL, xhr, false);
     	        this.handleDocument(alertDocument, loadingDocument);
+    	        if (typeof callback != "undefined") {
+        	    	callback('error');
+				}
     	    }.bind(this),
     	    abort: function() {
 		        if(loadingDocument) {
 			        navigationDocument.removeDocument(loadingDocument);
 		        }
+		        if (typeof callback != "undefined") {
+        	    	callback('abort');
+				}
     	    },
     	    special: special
     	});
@@ -191,6 +218,24 @@ DocumentController.prototype.handleHoldSelect = function(event) {
 	}
 }
 
+function clearPlay() {
+	localStorage.setItem('playCache', '{}');
+	localStorage.setItem('history', '{}');
+}
+
+function clearSettings() {
+	for (var i=0;i<localStorage.length;i++) {
+		var key = localStorage.key(i);
+		if (key!='playCache' && key!='history'&&key!='language'&&key!='favourites'&&key!='proxy') {
+			localStorage.setItem(key, '{}');
+		}
+	}
+}
+
+function clearAll() {
+	localStorage.clear();
+}
+
 function catalog(id, url, loadingDocument) {
     if (typeof url == "undefined") {
         url = '';
@@ -229,22 +274,22 @@ function notify(url, data) {
 	});
 }
 
-function load(url, initial, replace, loadingDocument) {
+function load(url, initial, replace, loadingDocument, callback) {
 	console.log("loading "+url);
-	if (typeof loadingDocument == "undefined") {
+	if (typeof loadingDocument == "undefined" || loadingDocument == null) {
         var loadingDocument = createLoadingDocument();
         navigationDocument.pushDocument(loadingDocument);
     }
-	new DocumentController(documentLoader, url, loadingDocument, initial, null, replace);
+	new DocumentController(documentLoader, url, loadingDocument, initial, null, replace, null, callback);
 }
 
-function post(url, data, loadingDocument) {
+function post(url, data, loadingDocument, callback) {
 	console.log("posting "+url);
-	if (typeof loadingDocument == "undefined") {
+	if (typeof loadingDocument == "undefined" || loadingDocument == null) {
         var loadingDocument = createLoadingDocument();
         navigationDocument.pushDocument(loadingDocument);
     }
-	new DocumentController(documentLoader, url, loadingDocument, false, data);
+	new DocumentController(documentLoader, url, loadingDocument, false, data, false, null, callback);
 	
 }
 
@@ -323,13 +368,15 @@ function toggleFavorites(addon) {
 
 
 function removeAddon(addon) {
-	post('/removeAddon', btoa(addon));
-	refreshMainScreen();
+	post('/removeAddon', btoa(addon), null, function() {
+		refreshMainScreen();
+	});
 }
 
 function installAddon(addon) {
-    post('/installAddon', btoa(addon));
-    refreshMainScreen();
+    post('/installAddon', btoa(addon), null, function() {
+    	refreshMainScreen();
+	});
 }
 
 function loadProxy() {
@@ -573,7 +620,7 @@ function performAction(action, p) {
 	if (result != null) {
 		var plugin = result[1];
 		var query = result[2];
-		catalog(btoa(plugin), btoa(query));
+		catalog(btoa(plugin), btoa(plugin+"?"+query));
 		return;
 	}
 	

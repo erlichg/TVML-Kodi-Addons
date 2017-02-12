@@ -466,11 +466,16 @@ def removeAddon():
     try:
         if request.method == 'POST':
             id = kodi_utils.b64decode(request.form.keys()[0])
-            remove_addon(id)
-        return json.dumps({'url': '/main', 'replace': True, 'initial': True}), 212 #Reload main screen
+            found = get_installed_addon(id)
+            if found:
+                remove_addon(id)
+        #return json.dumps({'url': '/main', 'replace': True, 'initial': True}), 212 #Reload main screen
+        return render_template('alert.xml', title='Succcess', description='Successfully removed addon {}'.format(found['name']))
     except:
         traceback.print_exc(file=sys.stdout)
-        return 'NOTOK', 206
+        #return 'NOTOK', 206
+        return render_template('alert.xml', title='Failed',
+                               description='Failed to remove addon {}'.format(found['name']))
 
 
 def remove_addon(id):
@@ -597,10 +602,10 @@ def installAddon():
                 if not found:
                     return render_template('alert.xml', title='Unknown addon', description="This addon has a requirement that cannot be found {}".format(r))
                 install_addon(found[0])
-            return json.dumps({'url': '/main', 'replace': True, 'initial': True}), 212  # Reload main screen
-            #return render_template('alert.xml', title='Installation complete',
-            #                       description="Successfully installed addon {}.\nPlease reload the main screen in order to view the new addon".format(
-            #                           plugin.name))
+            #return json.dumps({'url': '/main', 'replace': True, 'initial': True}), 212  # Reload main screen
+            return render_template('alert.xml', title='Installation complete',
+                                   description="Successfully installed addon {}".format(
+                                       plugin.name))
         except:
             logger.exception('Failed to download/install {}'.format(id))
             try:
@@ -968,7 +973,7 @@ def mmain(argv):
         {'name': 'Kodi repository', 'dirs': [{'xml': 'http://mirrors.kodi.tv/addons/krypton/addons.xml',
                                               'download': 'http://mirrors.kodi.tv/addons/krypton'}]},
         {'name': 'Kodi Israel', 'dirs': [{'xml': 'https://raw.githubusercontent.com/kodil/kodil/master/addons.xml',
-                                          'download': 'https://github.com/kodil/kodil/raw/master/repo'}]},
+                                          'download': 'https://raw.githubusercontent.com/kodil/kodil/master/repo'}]},
         #{'name': 'Exodus repository',
         # 'dirs': [{'xml': 'https://offshoregit.com/exodus/addons.xml', 'download': 'https://offshoregit.com/exodus/'}]}
     ]
@@ -987,8 +992,6 @@ def mmain(argv):
                 logger.debug('Loading kodi plugin {}'.format(plugin))
                 p = KodiPlugin(plugin)
                 #if [val for val in p.type if val in ['Video', 'Audio', 'Repository']]:
-                DB.execute('insert into INSTALLED VALUES(?,?,?,?,?,?,?,?,0)', (p.id, json.dumps(p.type), unicode(p.name), json.dumps(p.data), p.version, p.script, json.dumps(p.requires), p.icon))
-                logger.debug('Successfully loaded plugin: {}'.format(p))
                 if 'Repository' in p.type: #Need additional stuff
                     try:
                         with open(os.path.join(DATA_DIR, 'addons', plugin, 'addon.xml'), 'r') as f:
@@ -1003,9 +1006,15 @@ def mmain(argv):
                                 raise Exception('Failed to parse addon.xml')
                             for i in range(len(infos)):
                                 repo['dirs'].append({'xml': infos[i].text, 'download': datadirs[i].text})
+                            #check if already exists
+                            if not [d for d in repo['dirs'] if d not in [i for j in [r['dirs'] for r in REPOSITORIES] for i in j]]:
+                                #we have no dirs that don't already exists
+                                continue
                             REPOSITORIES.append(repo)
                     except:
                         logger.exception('Failed to parse installed repository {}'.format(plugin))
+                DB.execute('insert into INSTALLED VALUES(?,?,?,?,?,?,?,?,0)', (p.id, json.dumps(p.type), unicode(p.name), json.dumps(p.data), p.version, p.script, json.dumps(p.requires), p.icon))
+                logger.debug('Successfully loaded plugin: {}'.format(p))
             except Exception as e:
                 logger.error('Failed to load kodi plugin {}. Error: {}'.format(plugin, e))
 

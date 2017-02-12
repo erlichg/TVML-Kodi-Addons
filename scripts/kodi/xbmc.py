@@ -1130,7 +1130,8 @@ def executebuiltin(function, wait=False):
 		xbmc.executebuiltin('XBMC.RunXBE(c:\avalaunch.xbe)')
 	"""
 	logger.debug('evaluating {}'.format(function))
-	if Container.plugin.id in _xbmcaddon.ADDON_CACHE:
+	def saveSettings():
+		if Container.plugin.id in _xbmcaddon.ADDON_CACHE:
 			#logger.debug('Saving settings {}'.format(xbmcaddon.ADDON_CACHE[self.id]))
 			logger.debug('Saving settings')
 			bridge._message({'type':'saveSettings','addon':Container.plugin.id, 'settings':_xbmcaddon.ADDON_CACHE[Container.plugin.id].settings})
@@ -1138,22 +1139,27 @@ def executebuiltin(function, wait=False):
 			time.sleep(2)
 	m = re.search('.*Container.Update\(plugin://([^/]*)(.*)\)', function)
 	if m:
+		saveSettings()
 		bridge._message({'type':'load', 'url':'/catalog/{}'.format(kodi_utils.b64encode(m.group(1))), 'data':kodi_utils.b64encode(m.group(2))})
 		return str()
 	m = re.search('.*Container.Update\((.*)\)', function)
 	if m:
+		saveSettings()
 		bridge._message({'type':'load', 'url':'/catalog/{}'.format(kodi_utils.b64encode(Container.plugin.id)), 'data':kodi_utils.b64encode(m.group(1))})
 		return str()
 	m = re.search('.*Container.Refresh.*', function)
 	if m:
+		saveSettings()
 		bridge._message({'type':'load', 'url':'/catalog/{}'.format(kodi_utils.b64encode(Container.plugin.id)), 'data':'', 'replace':True})
 		return str()
 	m = re.search('.*RunPlugin\(plugin://([^/]*)(.*)\)', function)
 	if m:
+		saveSettings()
 		bridge._message({'type':'load', 'url':'/catalog/{}'.format(kodi_utils.b64encode(m.group(1))), 'data':kodi_utils.b64encode(m.group(2))})
 		return str()
 	m = re.search('.*RunPlugin\((.*)\)', function)
 	if m:
+		saveSettings()
 		bridge._message({'type':'load', 'url':'/catalog/{}'.format(kodi_utils.b64encode(Container.plugin.id)), 'data':kodi_utils.b64encode(m.group(1))})
 		return str()
 	m = re.search('Notification\(([^,]*), ([^,]*)(, ([^,]*), ([^,]*))*\)', function)
@@ -1243,6 +1249,8 @@ def getCondVisibility(condition):
 	if condition == 'Window.IsActive(virtualkeyboard)':
 		return False
 	if condition == 'Window.IsActive(yesnoDialog)':
+		return False
+	if condition == 'Window.IsVisible(progressdialog)':
 		return False
 	m = re.search('(!*)System.HasAddon\((.*)\)', condition)
 	if m:
@@ -1616,14 +1624,32 @@ def translatePath(path):
 		xbmc.translatePath(/Users/guyerlich/.TVMLSERVER/addons/plugin.video.nbcsnliveextra)
 	"""
 	if "special://home" in path :
-		return path.replace("special://home", os.path.join(os.path.expanduser("~"), '.TVMLSERVER'))
-	if 'special://profile/addon_data/' in path:
-		ans = path.replace('special://profile/addon_data/', '{}{}'.format(os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'userdata'), os.path.sep))
+		return path.replace("special://home", os.path.join(os.path.expanduser("~"), '.TVMLSERVER')).replace('/', os.path.sep)
+	if 'special://profile/addon_data' in path:
+		ans = path.replace('special://profile/addon_data', '{}'.format(os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'userdata'))).replace('/', os.path.sep)
 		if not os.path.isdir(ans):
 			os.makedirs(ans)
 		return ans
-	if 'special://temp/' in path:
-		return path.replace('special://temp/', '{}{}'.format(tempfile.gettempdir(), os.path.sep))
+	if 'special://temp' in path:
+		return path.replace('special://temp', '{}'.format(tempfile.gettempdir())).replace('/', os.path.sep)
+	if 'special://xbmc' in path:
+		return path.replace('special://xbmc', os.path.dirname(sys.executable)).replace('/', os.path.sep)
+	if 'special://masterprofile' in path:
+		ans = path.replace('special://masterprofile', '{}'.format(os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'userdata'))).replace('/', os.path.sep)
+		if not os.path.isdir(ans):
+			os.makedirs(ans)
+		return ans
+	if 'special://userdata' in path:
+		ans = path.replace('special://userdata', '{}'.format(os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'userdata'))).replace('/', os.path.sep)
+		if not os.path.isdir(ans):
+			os.makedirs(ans)
+		return ans
+	if 'special://database' in path:
+		ans = path.replace('special://database', '{}'.format(os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'userdata', Container.plugin.id))).replace('/', os.path.sep)
+		if not os.path.isdir(ans):
+			os.makedirs(ans)
+		return ans
+
 	logger.warning('{}.{}({}) not implemented'.format(__name__, sys._getframe().f_code.co_name, path))
 	return path
 

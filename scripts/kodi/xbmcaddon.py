@@ -23,15 +23,16 @@ class Addon(object):
     def __new__(cls, id=None, settings=None):
         if not id:
             import traceback
-            stack = traceback.extract_stack()
-            file = stack[-2][0]
-
-            search = os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'addons', '([^{}]+)'.format(os.path.sep)).encode('string-escape')
-            m = re.search(search, file)
-            if m:
-                id = m.group(1)
-            else:
-                raise Exception('Could not find addon ID automatically. search={}, stack={}'.format(search, file))
+            stack = traceback.extract_stack()[:-1]
+            print 'searching for id in {}'.format(stack)
+            for s in stack:
+                m = re.search(os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'addons', '([^{}]+)'.format(os.path.sep)).encode('string-escape'), s[0])
+                if m:
+                    print 'Found id {}'.format(m.group(1))
+                    id = m.group(1)
+                    break
+            if not id:
+                raise Exception('Could not find addon ID automatically')
         global ADDON_CACHE
         if id in ADDON_CACHE:
             return ADDON_CACHE[id]
@@ -56,25 +57,27 @@ class Addon(object):
             logger.debug('Creating new instance of addon {}'.format(id))
         if not id:
             import traceback
-            stack = traceback.extract_stack()
-            file = stack[-2][0]
-
-            m = re.search(os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'addons', '([^{}]+)'.format(os.path.sep), '.*').encode('string-escape'), file)
-            if m:
-                id = m.group(1)
-            else:
+            stack = traceback.extract_stack()[:-1]
+            print 'searching for id in {}'.format(stack)
+            for s in stack:
+                m = re.search(os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'addons', '([^{}]+)'.format(os.path.sep)).encode('string-escape'), s[0])
+                if m:
+                    print 'Found id {}'.format(m.group(1))
+                    id = m.group(1)
+                    break
+            if not id:
                 raise Exception('Could not find addon ID automatically')
 
         self.id = id
         self.strings = {}
+        self.strings_en = {}
         try:
             strings_po = os.path.join(self.getAddonInfo('path'), 'resources', 'language', xbmc.LANGUAGE, 'strings.po')
             if not os.path.isfile(strings_po):
                 strings_xml = os.path.join(self.getAddonInfo('path'), 'resources', 'language', xbmc.LANGUAGE, 'strings.xml')
-                if not os.path.isfile(strings_xml):
-                    logger.warning('Did not find {} strings. Using default english'.format(xbmc.LANGUAGE))
-                    strings_po = os.path.join(self.getAddonInfo('path'), 'resources', 'language', 'English', 'strings.po')
-                    strings_xml = os.path.join(self.getAddonInfo('path'), 'resources', 'language', 'English', 'strings.xml')
+            strings_po_en = os.path.join(self.getAddonInfo('path'), 'resources', 'language', 'English', 'strings.po')
+            if not os.path.isfile(strings_po_en):
+                strings_xml_en = os.path.join(self.getAddonInfo('path'), 'resources', 'language', 'English', 'strings.xml')
             if os.path.isfile(strings_po):
                 f = codecs.open(strings_po, mode='r', encoding='UTF-8')
                 contents = f.read()
@@ -99,6 +102,30 @@ class Addon(object):
                         id = e.attrib['id']
                         value = e.text
                         self.strings[id] = value
+            if os.path.isfile(strings_po_en):
+                f = codecs.open(strings_po_en, mode='r', encoding='UTF-8')
+                contents = f.read()
+                f.close()
+                pattern = re.compile('msgctxt "#(\d+)"\s+msgid "(.*)?"\s+msgstr "(.*)?"')
+                for match in pattern.finditer(contents) :
+                    msgctxt = match.group(1)
+                    msgid   = match.group(2)
+                    msgstr  = match.group(3)
+
+                    if (msgstr) :
+                        self.strings_en[msgctxt] = msgstr
+                    else :
+                        self.strings_en[msgctxt] = msgid
+            elif os.path.isfile(strings_xml_en):
+                f = codecs.open(strings_xml_en, mode='r', encoding='UTF-8')
+                contents = f.read().replace('&', '&amp;')
+                f.close()
+                tree = ET.fromstring(contents)
+                for e in tree.iter('string'):
+                    if 'id' in e.attrib:
+                        id = e.attrib['id']
+                        value = e.text
+                        self.strings_en[id] = value
         except:
             logger.exception('Failed to read addon strings')
 
@@ -148,7 +175,10 @@ class Addon(object):
         try:
             return self.strings[str(id)]
         except:
-            return id
+            try:
+                return self.strings_en[str(id)]
+            except:
+                return id
 
     def getSetting(self, id):
         """Returns the value of a setting as a unicode string.

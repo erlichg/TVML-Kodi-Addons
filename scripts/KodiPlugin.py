@@ -152,7 +152,7 @@ class KodiPlugin:
             bridge.play(url, type_='video')
             return
         orig = sys.path
-        sys.path.append(self.dir)
+
         sys.path.append(os.path.join(bundle_dir, 'scripts'))
         sys.path.append(os.path.join(bundle_dir, 'scripts', 'kodi'))
 
@@ -164,7 +164,9 @@ class KodiPlugin:
             tree = ET.parse(os.path.join(ADDONS_DIR, r, 'addon.xml'))
             for e2 in tree.iter('extension'):
                 if e2.attrib['point'] == 'xbmc.python.module':
-                    sys.path.append(os.path.join(ADDONS_DIR, r, e2.attrib['library']))
+                    sys.path.insert(0, os.path.join(ADDONS_DIR, r, e2.attrib['library']))
+
+        sys.path.insert(0, self.dir)
         print sys.path
 
 
@@ -185,10 +187,10 @@ class KodiPlugin:
                 sys.argv = [url, '1', '']
 
             if not sys.argv[0]:
-                sys.argv[0] = 'file://{}/'.format(self.id)
+                sys.argv[0] = 'plugin://{}/'.format(self.id)
 
             if not sys.argv[0].startswith('file://') and not sys.argv[0].startswith('plugin://'):
-                sys.argv[0] = 'file://{}{}'.format(self.id, sys.argv[0])
+                sys.argv[0] = 'plugin://{}{}'.format(self.id, sys.argv[0])
         # sys.argv = [script, '1', url]
             logger.debug('Calling plugin {} with {}'.format(self.name, sys.argv))
             import xbmcplugin, xbmcaddon
@@ -259,7 +261,11 @@ class KodiPlugin:
             sqlite3.dbapi2.connect = dbapi2_connect_patch
 
             xbmcplugin.items = []
-            imp.load_module(self.module, fp, self.dir, ('.py', 'rb', imp.PY_SOURCE))
+            import runpy
+            runpy.run_module(self.module, run_name='__main__')
+            #imp.load_module(self.module, fp, self.dir, ('.py', 'rb', imp.PY_SOURCE))
+        except SystemExit:
+            pass
         except:
             logger.exception('Failure in plugin run')
         sqlite3.connect = sqlite3_connect_orig
