@@ -186,6 +186,8 @@ class KodiPlugin:
                     xbmcaddon.Addon(r, copy.deepcopy(settings[r]) if r in settings else None)
 
         sys.path.insert(0, self.dir)
+        if '/' in self.module:
+            sys.path.insert(0, os.path.join(*([self.dir]+self.module.split('/')[:-1])))
         print sys.path
 
 
@@ -274,7 +276,7 @@ class KodiPlugin:
             xbmcplugin.items = []
             bridge.settings = settings #Save settings in bridge in case it needs to save them
             import runpy
-            runpy.run_module(self.module, run_name='__main__')
+            runpy.run_module(self.module.split('/')[-1], run_name='__main__')
             #imp.load_module(self.module, fp, self.dir, ('.py', 'rb', imp.PY_SOURCE))
         except SystemExit:
             pass
