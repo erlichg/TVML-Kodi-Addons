@@ -102,7 +102,12 @@ def inputdialog(plugin, msg, url=None, original_url=None, history=None):
 
 def alertdialog(plugin, msg, url=None, original_url=None, history=None):
     """Shows an alert dialog"""
-    return render_template('alert.xml', title=msg['title'], description=msg['description'], timeout=msg['timeout'], url=url, cont=msg['continue'])
+    timeout = 5000
+    try:
+        timeout = int(msg['timeout'])
+    except:
+        pass
+    return render_template('alert.xml', title=msg['title'], description=msg['description'], timeout=timeout, url=url, cont=msg['continue'])
 
 def progressdialog(plugin, msg, url=None, original_url=None, history=None):
     """Shows a progress dialog. Initially with progress 0"""
