@@ -79,6 +79,7 @@ if not os.path.isdir(os.path.join(DATA_DIR, 'logs')):
     sys.exit(2)
 LOGFILE = os.path.join(DATA_DIR, 'logs', 'tvmlserver.log')
 
+
 if not os.path.exists(os.path.join(DATA_DIR, 'db')):
     os.makedirs(os.path.join(DATA_DIR, 'db'))
 if not os.path.isdir(os.path.join(DATA_DIR, 'db')):
@@ -151,12 +152,13 @@ logger = logging.getLogger('TVMLServer')
 class MyProcess(multiprocessing.Process):
     def run(self):
         ans = self._target(*self._args, **self._kwargs)
-        logger.debug('Thread adding end message')
+        logger.debug('Process {} adding end message'.format(self.id))
         self.message({'type': 'end', 'ans': ans})
         self.onStop()
         self.stop.set()
 
     def response(self, id, response):
+        logger.debug('Adding response on process {}'.format(self.id))
         self.responses.put({'id': id, 'response': response})
 
     def message(self, msg):
@@ -284,7 +286,7 @@ def catalog(pluginid, process=None):
     if request.method == 'POST':
         try:
             post_data = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
-            logger.debug(post_data)
+            #logger.debug(post_data)
             favs_json = json.loads(post_data['favs'])
             url = post_data['url']
             LANGUAGE = post_data['lang']
@@ -431,7 +433,6 @@ def main():
     favs = []
     try:
         post_data = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
-        logger.debug(post_data)
         favs_json = json.loads(post_data['favs'])
         clear_favorites()
         for id in favs_json:

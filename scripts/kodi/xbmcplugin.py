@@ -131,7 +131,14 @@ def setResolvedUrl(handle, succeeded, listitem):
     image=listitem.thumbnailImage if listitem.thumbnailImage != 'DefaultFolder.png' else ''
     if listitem.getProperty('poster'):
         image = listitem.getProperty('poster')
-    _xbmc.bridge.play(listitem.path, title=listitem.getProperty('title'), description=listitem.getProperty('plot'), image=image, imdb=listitem.getProperty('imdb'), season=listitem.getProperty('season'), episode=listitem.getProperty('episode'))
+    imdb=listitem.getProperty('imdb')
+    if not imdb:
+        imdb = listitem.getProperty('imdb_id')
+    if not imdb:
+        imdb = listitem.getProperty('imdbnumber')
+    if not imdb:
+        imdb = listitem.getProperty('code')
+    _xbmc.bridge.play(listitem.path, title=listitem.getProperty('title'), description=listitem.getProperty('plot'), image=image, imdb=imdb, season=str(listitem.getProperty('season')), episode=str(listitem.getProperty('episode')))
 #global items
 #items = [listitem]
 

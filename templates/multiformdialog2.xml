@@ -20,7 +20,7 @@
 									if (typeof place == "undefined") break;
 									var field = JSON.parse(place.getAttribute("field"));
 									try {
-										var val = document.getElementById(field.label).textContent;
+										var val = document.getElementById(field.id).textContent;
 										ans[field.id] = val;
 									} catch (e) {}
 									i = i+1;
@@ -46,17 +46,17 @@
 								{% if field.type == "yesno" %}
 								<listItemLockup onselect="var field = JSON.parse(event.target.children.item(0).getAttribute('field')); event.target.children.item(2).textContent = (event.target.children.item(2).textContent == 'No' ? 'Yes' : 'No')">
 									<placeholder field='{{field | tojson}}'></placeholder>
-									<title class="foo">{{field.label}}</title><decorationLabel class="foo2" id="{{field.label}}">{{'Yes' if field.value == 'True' or field.value == 'true' else 'No'}}</decorationLabel>
+									<title class="foo">{{field.label}}</title><decorationLabel class="foo2" id="{{field.id}}">{{'Yes' if field.value == 'True' or field.value == 'true' else 'No'}}</decorationLabel>
 								</listItemLockup>
 								{% elif field.type == "selection" %}
 								<listItemLockup onselect="var field = JSON.parse(event.target.children.item(0).getAttribute('field')); var s = event.target.children.item(2).textContent; var index=field.choices.indexOf(s); showSelectDialog(field.label, field.choices, index, function(ans) { if (typeof ans != 'undefined') {event.target.children.item(2).textContent=ans;}});">
 									<placeholder field='{{field | tojson}}'></placeholder>							
-									<title class="foo">{{field.label}}</title><decorationLabel class="foo2" id="{{field.label}}">{{field.value}}</decorationLabel>
+									<title class="foo">{{field.label}}</title><decorationLabel class="foo2" id="{{field.id}}">{{field.value}}</decorationLabel>
 								</listItemLockup>
 								{% elif field.type == "textfield" %}
 								<listItemLockup onselect="var field = JSON.parse(event.target.children.item(0).getAttribute('field')); showInputDialog(field.label, field.description, field.placeholder, field.button, field.secure, function(ans) {if (typeof ans != 'undefined') {event.target.children.item(2).textContent = ans;}});">
 									<placeholder field='{{field | tojson}}'></placeholder>
-									<title class="foo">{{field.label}}</title><subtitle class="foo2" id="{{field.label}}">{{field.value}}</subtitle><decorationImage class="foo" src="resource://list-chevron"/>
+									<title class="foo">{{field.label}}</title><subtitle class="foo2" id="{{field.id}}">{{field.value}}</subtitle><decorationImage class="foo" src="resource://list-chevron"/>
 								</listItemLockup>
 								{% elif field.type == "action" %}
 								<listItemLockup onselect="var field = JSON.parse(event.target.children.item(0).getAttribute('field')); performAction(field.action);">

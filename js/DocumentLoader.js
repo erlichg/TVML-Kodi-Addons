@@ -125,10 +125,10 @@ DocumentLoader.prototype.fetchPost = function(options) {
 		} else if (xhr.status == 210) { //load/save settings
 			var msg = JSON.parse(xhr.responseText);
 			if (msg['type'] == 'saveSettings') {
-				saveSettings(msg['addon'], msg['settings']);
+				saveSettings(msg['settings']);
 				//options.abort();
 			} else if(msg['type'] == 'loadSettings') {
-				var settings = loadSettings(msg['addon']);
+				var settings = loadSettings();
 				this.fetchPost({
 					url:'/response/'+msg['msgid'],
 					data:btoa(JSON.stringify(settings))

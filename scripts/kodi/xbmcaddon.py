@@ -51,7 +51,7 @@ class Addon(object):
             self.Addon = xbmcaddon.Addon(id='script.recentlyadded')
         """
         try:
-            if self.settings and self.strings:
+            if self.settings and self.strings_en:
                 return
         except:
             logger.debug('Creating new instance of addon {}'.format(id))
@@ -194,9 +194,9 @@ class Addon(object):
             for s in self.settings[cat]:
                 if 'id' in s and s['id'] == id:
                     ans = unicode(s['value'])
-                    logger.debug('getSetting {}={}'.format(id, ans))
+                    #logger.debug('getSetting {}={}'.format(id, ans))
                     return ans
-        logger.debug('getSetting {}='.format(id))
+        #logger.debug('getSetting {}='.format(id))
         return ''
 
     def setSetting(self, id, value):
@@ -294,7 +294,6 @@ class Addon(object):
             elif field['type'] == 'text':
                 val = ans[id]
             self.setSetting(id, val)
-        xbmc.bridge._message({'type':'saveSettings','addon':self.id, 'settings':self.settings})
 
     def getAddonInfo(self, id):
         """Returns the value of an addon property as a string.

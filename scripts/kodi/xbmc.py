@@ -1130,36 +1130,30 @@ def executebuiltin(function, wait=False):
 		xbmc.executebuiltin('XBMC.RunXBE(c:\avalaunch.xbe)')
 	"""
 	logger.debug('evaluating {}'.format(function))
-	def saveSettings():
-		if Container.plugin.id in _xbmcaddon.ADDON_CACHE:
-			#logger.debug('Saving settings {}'.format(xbmcaddon.ADDON_CACHE[self.id]))
-			logger.debug('Saving settings')
-			bridge._message({'type':'saveSettings','addon':Container.plugin.id, 'settings':_xbmcaddon.ADDON_CACHE[Container.plugin.id].settings})
-			import time
-			time.sleep(2)
+
 	m = re.search('.*Container.Update\(plugin://([^/]*)(.*)\)', function)
 	if m:
-		saveSettings()
+		bridge.saveSettings()
 		bridge._message({'type':'load', 'url':'/catalog/{}'.format(kodi_utils.b64encode(m.group(1))), 'data':kodi_utils.b64encode(m.group(2))})
 		return str()
 	m = re.search('.*Container.Update\((.*)\)', function)
 	if m:
-		saveSettings()
+		bridge.saveSettings()
 		bridge._message({'type':'load', 'url':'/catalog/{}'.format(kodi_utils.b64encode(Container.plugin.id)), 'data':kodi_utils.b64encode(m.group(1))})
 		return str()
 	m = re.search('.*Container.Refresh.*', function)
 	if m:
-		saveSettings()
+		bridge.saveSettings()
 		bridge._message({'type':'load', 'url':'/catalog/{}'.format(kodi_utils.b64encode(Container.plugin.id)), 'data':'', 'replace':True})
 		return str()
 	m = re.search('.*RunPlugin\(plugin://([^/]*)(.*)\)', function)
 	if m:
-		saveSettings()
+		bridge.saveSettings()
 		bridge._message({'type':'load', 'url':'/catalog/{}'.format(kodi_utils.b64encode(m.group(1))), 'data':kodi_utils.b64encode(m.group(2))})
 		return str()
 	m = re.search('.*RunPlugin\((.*)\)', function)
 	if m:
-		saveSettings()
+		bridge.saveSettings()
 		bridge._message({'type':'load', 'url':'/catalog/{}'.format(kodi_utils.b64encode(Container.plugin.id)), 'data':kodi_utils.b64encode(m.group(1))})
 		return str()
 	m = re.search('Notification\(([^,]*), ([^,]*)(, ([^,]*), ([^,]*))*\)', function)

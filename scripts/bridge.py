@@ -76,7 +76,7 @@ class bridge:
             _id = kodi_utils.randomword()
             msg['id'] = '{}/{}'.format(self.thread.id, _id)
 
-        logger.debug('adding message: {}'.format(msg))
+        logger.debug('Adding message on process {}: {}'.format(self.thread.id, msg))
         self.thread.message(msg)
         if not wait:
             return
@@ -206,3 +206,15 @@ class bridge:
         else:
             raise Exception('Must have either fields or sections')
         return json.loads(kodi_utils.b64decode(s)) if s else None
+
+
+    def saveSettings(self):
+        import xbmcaddon
+        settings_after = {id: xbmcaddon.ADDON_CACHE[id].settings for id in xbmcaddon.ADDON_CACHE}
+        for id in self.settings:
+            if id not in settings_after:
+                settings_after[id] = self.settings[id]
+        if self.settings != settings_after:
+            logger.debug('Saving settings')
+            self._message({'type': 'saveSettings', 'settings': settings_after})
+            time.sleep(2) #Allow time for client to process message before continuing

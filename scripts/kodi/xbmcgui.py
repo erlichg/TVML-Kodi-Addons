@@ -1206,7 +1206,7 @@ class ListItem(object):
 		self.thumbnailImage = thumbnailImage
 		self.path = path
 		self.infos = {}
-		self.context = {}
+		self.context = []
 		
 	def __repr__(self):
 		return str({'label':self.label, 'label2':self.label2, 'iconImage':self.iconImage, 'thumbnailImage':self.thumbnailImage, 'path':self.path, 'infos':self.infos, 'context':self.context})
@@ -1437,11 +1437,13 @@ class ListItem(object):
 			listitem.addContextMenuItems([('Theater Showtimes',
 					'XBMC.RunScript(special://home/scripts/showtimes/default.py,Iron Man)')])
 		"""
+		if not items:
+			return
 		logger.debug('adding contextmenus {}'.format(items))
 		if replaceItems:
 			self.context = items
 		else:
-			self.context.update(items)
+			self.context += items
 
 	def setPath(self, path):
 		"""

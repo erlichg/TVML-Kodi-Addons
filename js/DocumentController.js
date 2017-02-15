@@ -218,9 +218,24 @@ DocumentController.prototype.handleHoldSelect = function(event) {
 	}
 }
 
+const singleton_loading_document = createLoadingDocument();
+function addLoadingDocument() {
+	removeLoadingDocument();
+	navigationDocument.pushDocument(singleton_loading_document);
+}
+
+function removeLoadingDocument() {
+	try {
+		navigationDocument.removeDocument(singleton_loading_document);
+	} catch (e) {
+
+	}
+}
+
 function clearPlay() {
 	localStorage.setItem('playCache', '{}');
 	localStorage.setItem('history', '{}');
+	refreshMainScreen();
 }
 
 function clearSettings() {
@@ -230,10 +245,12 @@ function clearSettings() {
 			localStorage.setItem(key, '{}');
 		}
 	}
+	refreshMainScreen();
 }
 
 function clearAll() {
 	localStorage.clear();
+	refreshMainScreen();
 }
 
 function catalog(id, url, loadingDocument) {
@@ -242,7 +259,7 @@ function catalog(id, url, loadingDocument) {
     }
     favs = loadFavourites();
     language = loadLanguage();
-    settings = loadSettings(atob(id));
+    settings = loadSettings();
     history = loadHistory();
     post('/catalog/'+id, btoa(JSON.stringify({'favs':JSON.stringify(favs), 'lang':language, 'settings':settings, 'url':url, 'history':JSON.stringify(history)})), loadingDocument)
 }
@@ -253,7 +270,7 @@ function menu(id, url) {
     }
     favs = loadFavourites();
     language = loadLanguage();
-    settings = loadSettings(atob(id));
+    settings = loadSettings();
     post('/menu/'+id, btoa(JSON.stringify({'favs':JSON.stringify(favs), 'lang':language, 'settings':settings, 'url':url})))
 }
 
@@ -293,9 +310,9 @@ function post(url, data, loadingDocument, callback) {
 	
 }
 
-function saveSettings(addon, settings) {
+function saveSettings(settings) {
 	console.log("saving settings: "+JSON.stringify(settings));
-	localStorage.setItem(addon, JSON.stringify(settings));
+	localStorage.setItem("addon_settings", JSON.stringify(settings));
 }
 
 function loadHistory() {
@@ -312,16 +329,8 @@ function loadHistory() {
     return history;
 }
 
-function loadSettings(addon) {
-	var addonsSettings = localStorage.getItem("addonsSettings");
-	if (addonsSettings != null) {
-	    addonsSettings = JSON.parse(addonsSettings);
-	    for (var a in addonsSettings) {
-		    localStorage.setItem(a, JSON.stringify(addonsSettings[a]));		    
-	    }
-	    localStorage.removeItem("addonsSettings");
-    }
-	var addonSettings = localStorage.getItem(addon);
+function loadSettings() {
+	var addonSettings = localStorage.getItem("addon_settings");
     if(addonSettings == null) {
 	    addonSettings = "{}";
     }
@@ -530,7 +539,17 @@ function showSelectDialog(title, choices, index, callback) {
   <document>
 	<head>
 	  <style>
-	  </style>
+	  @media tv-template and (tv-theme:light) {
+      	.foo { color:rgb(0, 0, 0); tv-tint-color:rgb(0,0,0); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+      	.foo2 { color:rgb(0, 0, 0); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; }
+		  .foo3 { tv-position:footer; tv-align:right; margin: 0; tv-tint-color:rgb(0,0,0); tv-highlight-color:rgb(0, 0, 0); }
+	  }
+	  @media tv-template and (tv-theme:dark) {
+      	.foo { color:rgb(255, 255, 255); tv-tint-color:rgb(255,255,255); tv-highlight-color:rgb(0,0,0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+      	.foo2 { color:rgb(255, 255, 255); tv-highlight-color:rgb(255, 255, 255); tv-text-max-lines:15; }
+		  .foo3 { tv-position:footer; tv-align:right; margin: 0; tv-tint-color:rgb(255,255,255); tv-highlight-color:rgb(255,255,255); }
+	  }
+	</style>
 	  <banner>
          <title>${decode_utf8(title)}</title>
       </banner>
@@ -541,11 +560,11 @@ function showSelectDialog(title, choices, index, callback) {
 	for (var item in choices) {
 		if (item == index) {
 			template = template + `<listItemLockup autoHighlight="true">										
-				 	<title>${decode_utf8(choices[item])}</title>
+				 	<title class="foo">${decode_utf8(choices[item])}</title>
 				</listItemLockup>`;
 		} else {
 			template = template + `<listItemLockup>										
-				 	<title>${decode_utf8(choices[item])}</title>
+				 	<title class="foo">${decode_utf8(choices[item])}</title>
 				</listItemLockup>`;
 		}
 	}

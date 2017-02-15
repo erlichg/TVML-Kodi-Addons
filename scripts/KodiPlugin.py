@@ -137,17 +137,33 @@ class KodiPlugin:
         return json.dumps({'id': self.id, 'name': self.name, 'module': self.module})
 
     def settings(self, bridge, url, LANGUAGE, settings):
-
+        logger = logging.getLogger(self.id)
         import xbmc
         xbmc.bridge = bridge
         xbmc.LANGUAGE = LANGUAGE
         import xbmcaddon
-        xbmcaddon.Addon(self.id, settings)
-        xbmcaddon.Addon(self.id).openSettings()
-
+        import copy
+        xbmcaddon.Addon(self.id, copy.deepcopy(settings[self.id]) if self.id in settings else None) #send a copy of the settings to save original
+        xbmcaddon.Addon(self.id).openSettings() #Open settings dialog
+        settings_after = xbmcaddon.ADDON_CACHE[self.id].settings
+        if self.id not in settings or settings[self.id] != settings_after:
+            logger.debug('Saving settings')
+            settings[self.id] = settings_after
+            bridge._message({'type': 'saveSettings', 'settings': settings})
+        else:
+            logger.debug('settings haven\'t changed')
 
     def run(self, bridge, url, LANGUAGE, settings):
         logger = logging.getLogger(self.id)
+        import xbmc
+
+        xbmc.bridge = bridge
+        import Container
+        xbmc.Container = Container.Container(self)
+        xbmc.LANGUAGE = LANGUAGE
+        if type(url) is not str:
+            raise Exception('Kodi plugin only accepts one string argument')
+
         if url.startswith('http') or url.startswith('https'):
             bridge.play(url, type_='video')
             return
@@ -155,6 +171,8 @@ class KodiPlugin:
 
         sys.path.append(os.path.join(bundle_dir, 'scripts'))
         sys.path.append(os.path.join(bundle_dir, 'scripts', 'kodi'))
+
+        import xbmcplugin, xbmcaddon, copy
 
         for r in self.requires:
             if not os.path.exists(os.path.join(ADDONS_DIR, r)):
@@ -165,22 +183,15 @@ class KodiPlugin:
             for e2 in tree.iter('extension'):
                 if e2.attrib['point'] == 'xbmc.python.module':
                     sys.path.insert(0, os.path.join(ADDONS_DIR, r, e2.attrib['library']))
+                    xbmcaddon.Addon(r, copy.deepcopy(settings[r]) if r in settings else None)
 
         sys.path.insert(0, self.dir)
         print sys.path
 
 
-        import xbmc
 
-        xbmc.bridge = bridge
-        import Container
-        xbmc.Container = Container.Container(self)
-        xbmc.LANGUAGE = LANGUAGE
-        if type(url) is not str:
-            raise Exception('Kodi plugin only accepts one string argument')
 
         try:
-            fp = open(os.path.join(bundle_dir, self.dir, self.script), 'rb')
             if '?' in url:
                 sys.argv = [url.split('?')[0], '1', '?{}'.format(url.split('?')[1])]
             else:
@@ -194,7 +205,7 @@ class KodiPlugin:
         # sys.argv = [script, '1', url]
             logger.debug('Calling plugin {} with {}'.format(self.name, sys.argv))
             import xbmcplugin, xbmcaddon
-            xbmcaddon.Addon(self.id, settings)
+            xbmcaddon.Addon(self.id, copy.deepcopy(settings[self.id]) if self.id in settings else None)
             import imp
 
     # some patches for internal python funcs
@@ -261,6 +272,7 @@ class KodiPlugin:
             sqlite3.dbapi2.connect = dbapi2_connect_patch
 
             xbmcplugin.items = []
+            bridge.settings = settings #Save settings in bridge in case it needs to save them
             import runpy
             runpy.run_module(self.module, run_name='__main__')
             #imp.load_module(self.module, fp, self.dir, ('.py', 'rb', imp.PY_SOURCE))
@@ -271,17 +283,21 @@ class KodiPlugin:
         sqlite3.connect = sqlite3_connect_orig
         sqlite3.dbapi2.connect = dbapi2_connect_orig
         urllib.quote_plus = quote_plus_orig
-        fp.close()
         sys.path = orig
 # sys.argv = old_sys_argv
         items = xbmcplugin.items
         logger.debug('Plugin {} ended with: {}'.format(self.name, items))
 
-# some cleanup
-        if self.id in xbmcaddon.ADDON_CACHE:
-    # logger.debug('Saving settings {}'.format(xbmcaddon.ADDON_CACHE[self.id]))
+        # some cleanup
+        settings_after = {id:xbmcaddon.ADDON_CACHE[id].settings for id in xbmcaddon.ADDON_CACHE}
+        for id in settings:
+            if id not in settings_after:
+                settings_after[id] = settings[id]
+        if settings != settings_after:
             logger.debug('Saving settings')
-            bridge._message({'type': 'saveSettings', 'addon': self.id, 'settings': xbmcaddon.ADDON_CACHE[self.id].settings})
+            bridge._message({'type': 'saveSettings', 'settings': settings_after})
+        else:
+            logger.debug('settings haven\'t changed')
         if hasattr(bridge, 'progress') and bridge.progress.is_alive():
             logger.debug('Closing left over progress')
             bridge.closeprogress()
@@ -298,8 +314,11 @@ class KodiPlugin:
                 icon=item['listitem'].thumbnailImage if item['listitem'].thumbnailImage != 'DefaultFolder.png' else '',
                 details=item['listitem'].getProperty('details'), info=item['listitem'].infos,
                 context=item['listitem'].context)
-            if type(i.context) is list:  # needs to be dict
-                i.context = {x[0]: x[1] for x in i.context}
+            try:
+                if type(i.context) is list:  # needs to be dict
+                    i.context = {x[0]: x[1] for x in i.context}
+            except:
+                pass
             infos = item['listitem'].infos
             if 'poster' in infos:
                 i.icon = infos['poster']
