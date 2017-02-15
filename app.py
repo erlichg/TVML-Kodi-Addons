@@ -3,7 +3,7 @@ import sys, os, imp, urllib, json, time, traceback, re, getopt, tempfile, Advanc
 from threading import Timer
 from contextlib import contextmanager
 
-VERSION='0.5'
+VERSION='0.6'
 
 try:
     from flask import Flask, render_template, send_from_directory, request, send_file, redirect
