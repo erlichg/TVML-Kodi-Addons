@@ -219,8 +219,10 @@ DocumentController.prototype.handleHoldSelect = function(event) {
 }
 
 const singleton_loading_document = createLoadingDocument();
-function addLoadingDocument() {
+function addLoadingDocument(title) {
 	removeLoadingDocument();
+	title = title || "Loading...";
+	singleton_loading_document.getElementById("title").textContent = title;
 	navigationDocument.pushDocument(singleton_loading_document);
 }
 
@@ -228,7 +230,7 @@ function removeLoadingDocument() {
 	try {
 		navigationDocument.removeDocument(singleton_loading_document);
 	} catch (e) {
-
+		//nothing to do
 	}
 }
 
@@ -311,7 +313,7 @@ function post(url, data, loadingDocument, callback) {
 }
 
 function saveSettings(settings) {
-	console.log("saving settings: "+JSON.stringify(settings));
+	//console.log("saving settings: "+JSON.stringify(settings));
 	localStorage.setItem("addon_settings", JSON.stringify(settings));
 }
 
@@ -339,7 +341,7 @@ function loadSettings() {
     } catch (e) {
 	    addonSettings = {};
     }
-    console.log('Loaded addon settings '+JSON.stringify(addonSettings));
+    //console.log('Loaded addon settings '+JSON.stringify(addonSettings));
     return addonSettings;
 }
 
@@ -639,7 +641,7 @@ function performAction(action, p) {
 	if (result != null) {
 		var plugin = result[1];
 		var query = result[2];
-		catalog(btoa(plugin), btoa(plugin+"?"+query));
+		catalog(btoa(plugin), btoa("plugin://"+plugin+"/?"+query));
 		return;
 	}
 	

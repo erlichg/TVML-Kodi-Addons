@@ -291,8 +291,9 @@ def catalog(pluginid, process=None):
             url = post_data['url']
             LANGUAGE = post_data['lang']
             settings = post_data['settings']
-            history = json.loads(post_data['history'])
+            #history = json.loads(post_data['history'])
         except:
+            logger.exception('Failed to parse post data')
             url = request.form.keys()[0]
 
     try:

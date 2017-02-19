@@ -138,7 +138,7 @@ def setResolvedUrl(handle, succeeded, listitem):
         imdb = listitem.getProperty('imdbnumber')
     if not imdb:
         imdb = listitem.getProperty('code')
-    _xbmc.bridge.play(listitem.path, title=listitem.getProperty('title'), description=listitem.getProperty('plot'), image=image, imdb=imdb, season=str(listitem.getProperty('season')), episode=str(listitem.getProperty('episode')))
+    _xbmc.bridge.play(listitem.path, title=listitem.getProperty('title'), description=listitem.getProperty('plot'), image=image, imdb=imdb, season=str(listitem.getProperty('season')) if listitem.getProperty('season') else None, episode=str(listitem.getProperty('episode')) if listitem.getProperty('episode') else None)
 #global items
 #items = [listitem]
 

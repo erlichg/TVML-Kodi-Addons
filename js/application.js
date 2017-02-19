@@ -131,12 +131,19 @@ function createLoadingDocument(title) {
 	console.log("Creating loading document");
     const template = `<?xml version="1.0" encoding="UTF-8" ?>
         <document>
+            <head id="menuBar">
+                <style>
+                    @media tv-template and (tv-theme:light) {
+                    .foo { color:rgb(0, 0, 0); tv-highlight-color:rgb(0, 0, 0);}
+                    }
+                    @media tv-template and (tv-theme:dark) {
+                    .foo { color:rgb(255, 255, 255); tv-highlight-color:rgb(255,255,255);}
+                    }
+                </style>
+            </head>
             <loadingTemplate>
-            	<background>
-					<img src="/templates/background.png"/>
-				</background>
             	<activityIndicator>
-                    <title style="color:rgb(241,241,241)">${title}</title>
+                    <title class="foo" id="title">${title}</title>
                 </activityIndicator>
             </loadingTemplate>
         </document>

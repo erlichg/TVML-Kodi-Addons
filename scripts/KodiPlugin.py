@@ -17,10 +17,15 @@ ADDONS_DIR = os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'addons')
 
 
 def convert_kodi_tags_to_html_tags(s):
-    s = s.replace('[B]', '<b>')
-    s = s.replace('[/B]', '</b>')
-    s = s.replace('[I]', '<i>')
-    s = s.replace('[/I]', '</i>')
+    m = re.search('(.*)\[B\](.*)\[/B\](.*)', s)
+    if m:
+        s = '{}<title class="bold">{}</title>{}'.format(m.group(1),m.group(2),m.group(3))
+    m = re.search('(.*)\[I\](.*)\[/I\](.*)', s)
+    if m:
+        s = '{}<title class="italics">{}</title>{}'.format(m.group(1), m.group(2), m.group(3))
+    m = re.search('(.*)\[COLOR (.*)\](.*)\[/COLOR\](.*)', s)
+    if m:
+        s = '{}<title class="{}">{}</title>{}'.format(m.group(1), m.group(2), m.group(3), m.group(4))
     return s
 
 def parse_addon_xml(text, repo=None, dir=None):

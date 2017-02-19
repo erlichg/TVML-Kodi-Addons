@@ -331,7 +331,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
             navigationDocument.presentModal(alertDocument);
         }
 	}
-    xhr.timeout = 120000; //timeout of 2 minutes
+    xhr.timeout = 180000; //timeout of 3 minutes
     if (typeof options.data == "undefined" || options.data == "") {
 	    xhr.send();
 	} else {

@@ -2972,9 +2972,11 @@ class DialogProgress(object):
 
 			pDialog.update(25, 'Importing modules...')
 		"""
-		if not line1 and not line2 and not line3:
+		if not line1:
 			line1 = self.line1
+		if not line2:
 			line2 = self.line2
+		if not line3:
 			line3 = self.line3
 		return _xbmc.bridge.updateprogressdialog(float(percent)/100, '{}\n{}\n{}'.format(line1, line2, line3))
 

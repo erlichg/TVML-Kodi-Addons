@@ -42,9 +42,9 @@ def end(plugin, msg, url=None, original_url=None, history=None):
             item.info['poster'] = item.icon
         item.width = 300
         item.height = 300
-        imdb = item.info['imdb'] if 'imdb' in item.info else None
-        season = item.info['season'] if 'season' in item.info else None
-        episode = item.info['episode'] if 'episode' in item.info else None
+        imdb = item.info['imdb'] if 'imdb' in item.info else item.info['imdb_id'] if 'imdb_id' in item.info else item.info['imdbnumber'] if 'imdbnumber' in item.info else None
+        season = str(item.info['season']) if 'season' in item.info else None
+        episode = str(item.info['episode']) if 'episode' in item.info else None
         if imdb:
             # we save in history the imdb id of the movie
             search = imdb;
