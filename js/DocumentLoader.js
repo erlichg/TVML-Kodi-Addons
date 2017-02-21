@@ -142,7 +142,9 @@ DocumentLoader.prototype.fetchPost = function(options) {
                 if (typeof end == "undefined" || !end) {
                     options.url = msg['return_url'];
                     this.fetchPost(options);
-                }
+                } else {
+                	removeLoadingDocument();
+				}
             } else if(type == 'modal') { //modal results
                 var responseDoc = new DOMParser().parseFromString(msg['doc'], "application/xml");
                 responseDoc = this.prepareDocument(responseDoc);
@@ -213,7 +215,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
                     if (typeof options.success === "function") {
                         options.success(this.progressDocument);
                     } else {
-                        navigationDocument.pushDocument(this.progressDocument);
+                        replaceLoadingDocument(this.progressDocument);
                     }
                 }
                 var progress = this.progressDocument.getElementById("progress")
@@ -231,7 +233,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
                             this.progressDocument = undefined; //delete it so as not to call "unload"
                             navigationDocument.removeDocument(temp);
                         }
-                        navigationDocument.pushDocument(doc);
+                        replaceLoadingDocument(doc);
                     }.bind(this),
                     abort: function() { //if we get abort, remove the progress dialog
                         try {
@@ -260,9 +262,10 @@ DocumentLoader.prototype.fetchPost = function(options) {
                     //update progress document with updated values
                     try {
                         console.log("updating progress dialog");
-                        var updated_progress = new DOMParser().parseFromString(msg['doc'], "application/xml").getElementById("progress");
+                        var new_doc = new DOMParser().parseFromString(msg['doc'], "application/xml");
+                        var updated_progress = new_doc.getElementById("progress");
                         progress.setAttribute('value', updated_progress.getAttribute('value'))
-                        var updated_text = xhr.response.getElementById("text");
+                        var updated_text = new_doc.getElementById("text");
                         this.progressDocument.getElementById("text").textContent = updated_text.textContent;
                     } catch (err) {
                         console.log("Failed to update progress dialog");
@@ -285,7 +288,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
                             this.progressDocument = undefined; //delete it so as not to call "unload"
                             navigationDocument.replaceDocument(doc, temp);
                         } else {
-                            navigationDocument.pushDocument(doc);
+                            replaceLoadingDocument(doc);
                         }
                     }.bind(this),
                     abort: function () { //if we get abort, remove the progress dialog
@@ -316,6 +319,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
                 }
                 if (typeof end == "undefined" || !end) {
                     options.url = msg['return_url'];
+                    options.silent = false;
                     this.fetchPost(options);
                 }
             } else if (type == 'special') { //special results
@@ -341,14 +345,14 @@ DocumentLoader.prototype.fetchPost = function(options) {
                         if (typeof options.success === "function") {
                             options.success(responseDoc);
                         } else {
-                            navigationDocument.pushDocument(responseDoc);
+                            replaceLoadingDocument(responseDoc);
                         }
                     }, 1000);
                 } else {
                     if (typeof options.success === "function") {
                         options.success(responseDoc);
                     } else {
-                        navigationDocument.pushDocument(responseDoc);
+                        replaceLoadingDocument(responseDoc);
                     }
                 }
                 if (typeof end == "undefined" || !end) {
@@ -358,10 +362,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
                 }
             }
         } catch (err) {
-            if (typeof options.silent == "undefined" || !options.silent) {
-                //immediately remove loading document.
-                removeLoadingDocument();
-            }
+			removeLoadingDocument();
             console.log(err);
             if (typeof options.error === "function") {
                 options.error(xhr);
@@ -372,10 +373,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
         }
     }.bind(this);
     xhr.onerror = function() {
-        if (typeof options.silent == "undefined" || !options.silent) {
-            //immediately remove loading document.
-            removeLoadingDocument();
-        }
+		removeLoadingDocument();
         if (typeof options.error === "function") {
             options.error(xhr);
         } else {
@@ -384,10 +382,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
         }
     };
     xhr.ontimeout = function() {
-        if (typeof options.silent == "undefined" || !options.silent) {
-            //immediately remove loading document.
-            removeLoadingDocument();
-        }
+		removeLoadingDocument();
         if (typeof options.error === "function") {
             options.error(xhr);
         } else {

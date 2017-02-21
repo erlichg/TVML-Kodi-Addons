@@ -1032,6 +1032,7 @@ def mmain(argv):
     ]
 
     with open_db() as DB:
+        DB.execute('create table if not exists SETTINGS(id text, string text)')
         DB.execute('drop table if exists ADDONS')
         DB.execute('create table ADDONS(id text, repo text, dir text, type text, name text, data text, version text, script text, requires text, icon text)')
         DB.execute('drop table if exists INSTALLED')

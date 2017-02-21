@@ -76,14 +76,14 @@ See LICENSE.txt for this sample’s licensing information
 			  </banner>
 	  <collectionList>
 		  <grid>
-			  
+
 			  <section>
-		  {% for item in menu %}		  
+		  {% for item in menu %}
 				
 				{% if msgid is defined %}
-				<lockup onholdselect="if (Object.keys({{item.context}}).length > 0) { showSelectDialog('{{item.title}}', Object.keys({{item.context}}), 0, function(ans) { if (typeof ans != 'undefined') {performAction({{item.context}}[ans], '{{plugin.id}}');}});}" onselect="notify('/response/{{msgid}}/{{loop.index}}'); load('{{url}}')">
+				<lockup onhighlight="event.target.ownerDocument.getElementById('title').textContent='{{item.title}}'; event.target.ownerDocument.getElementById('subtitle').textContent='{{item.details}}';" onholdselect="if (Object.keys({{item.context}}).length > 0) { showSelectDialog('{{item.title}}', Object.keys({{item.context}}), 0, function(ans) { if (typeof ans != 'undefined') {performAction({{item.context}}[ans], '{{plugin.id}}');}});}" onselect="notify('/response/{{msgid}}/{{loop.index}}'); load('{{url}}')">
 				{% else %}
-				<lockup onholdselect="if (Object.keys({{item.context}}).length > 0) { showSelectDialog('{{item.title}}', Object.keys({{item.context}}), 0, function(ans) { if (typeof ans != 'undefined') {performAction({{item.context}}[ans], '{{plugin.id}}');}});}" onselect="catalog('{{plugin.id | base64encode}}', '{{item.url | base64encode}}')">
+				<lockup onhighlight="event.target.ownerDocument.getElementById('title').textContent='{{item.title}}'; event.target.ownerDocument.getElementById('subtitle').textContent='{{item.details}}';" onholdselect="if (Object.keys({{item.context}}).length > 0) { showSelectDialog('{{item.title}}', Object.keys({{item.context}}), 0, function(ans) { if (typeof ans != 'undefined') {performAction({{item.context}}[ans], '{{plugin.id}}');}});}" onselect="catalog('{{plugin.id | base64encode}}', '{{item.url | base64encode}}')">
 				{% endif %}						
 					<img style="tv-placeholder: movie;" src="{{item.icon}}" width="{{item.width}}" height="{{item.height}}"/>
 				 	<title class="foo2">{{item.title}}</title>

@@ -137,9 +137,10 @@ DocumentController.prototype.handleDocument = function(document, isModal, replac
 			navigationDocument.removeDocument(navigationDocument.documents[navigationDocument.documents.length-1]); //remove previous document
 		}
 		console.log("pushing document");
-		navigationDocument.pushDocument(document);
+		replaceLoadingDocument(document);
 	} else {
-		console.log("presenting modal document") ;
+		console.log("presenting modal document");
+		removeLoadingDocument();
 		navigationDocument.presentModal(document);
 		document.addEventListener("select", function(e) {
 			navigationDocument.dismissModal();
@@ -187,10 +188,17 @@ DocumentController.prototype.handleHoldSelect = function(event) {
 const singleton_loading_document = createLoadingDocument();
 function addLoadingDocument(title) {
 	title = title || "Loading...";
-	singleton_loading_document.getElementById("title").textContent = title;
-	if (navigationDocument.documents.indexOf(singleton_loading_document)==-1) { //only if loading document not already on stack
-		navigationDocument.pushDocument(singleton_loading_document);
+	if (singleton_loading_document.getElementById("title").textContent != title) {
+        singleton_loading_document.getElementById("title").textContent = title;
+    }
+	if (navigationDocument.documents.indexOf(singleton_loading_document)==navigationDocument.documents.length-1) {
+		return;
 	}
+	if (navigationDocument.documents.indexOf(singleton_loading_document)!=-1) { //if loading document already on stack we need to remove it
+        removeLoadingDocument();
+    }
+	navigationDocument.pushDocument(singleton_loading_document);
+
 }
 
 function removeLoadingDocument() {
@@ -198,6 +206,14 @@ function removeLoadingDocument() {
 		navigationDocument.removeDocument(singleton_loading_document);
 	} catch (e) {
 		//nothing to do
+	}
+}
+
+function replaceLoadingDocument(newdoc) {
+	if (navigationDocument.documents.indexOf(singleton_loading_document)!=-1) { //if loading document already on stack
+    	navigationDocument.replaceDocument(newdoc, singleton_loading_document);
+	} else {
+		navigationDocument.pushDocument(newdoc);
 	}
 }
 
