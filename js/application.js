@@ -62,8 +62,6 @@ App.onLaunch = function(options) {
     });
 
     // Show a loading spinner while additional JavaScript files are being evaluated
-    const loadingDocument = createLoadingDocument();
-    navigationDocument.pushDocument(loadingDocument);
 
     // evaluateScripts is responsible for loading the JavaScript files neccessary
     // for this app to run. It can be used at any time in your apps lifecycle.
@@ -77,12 +75,12 @@ App.onLaunch = function(options) {
             // Instantiate the controller with root template. The controller is passed in the loading document which
             // was pushed while scripts were being evaluated, and controller will replace it with root template once
             // fetched from the server.
-            var rootDoc = new DocumentController(documentLoader, startDocURL, loadingDocument, true);			
+            var rootDoc = new DocumentController(documentLoader, startDocURL, true);
         } else {
             // Handle error cases in your code. You should present a readable and user friendly
             // error message to the user in an alert dialog.
             const alertDocument = createEvalErrorAlertDocument();
-            navigationDocument.replaceDocument(alertDocument, loadingDocument);
+            navigationDocument.pushDocument(alertDocument);
             throw new EvalError("application.js: unable to evaluate scripts.");
         }
     });

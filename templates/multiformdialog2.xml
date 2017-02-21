@@ -25,11 +25,7 @@
 									} catch (e) {}
 									i = i+1;
 								};
-								this.fetchPost({
-									url: "/response/{{msgid}}",
-									data: btoa(JSON.stringify(ans))
-								});
-								if ("{{url}}" != "") load("{{url}}");
+								notify("/response/{{msgid}}", btoa(JSON.stringify(ans)));
 								'>
 		<banner>
 			<title class="foo">{{title}}</title>

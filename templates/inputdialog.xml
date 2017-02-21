@@ -7,7 +7,7 @@
 		</banner>
 		<textField id="text" secure="{{secure}}">{{placeholder}}</textField>		
 		<footer>
-			<button abort="/response/{{msgid}}" onselect="var ans = event.currentTarget.parentNode.parentNode.children.item(1).getFeature('Keyboard').text; notify('/response/{{msgid}}/' + btoa(ans)); load('{{url}}');">
+			<button abort="/response/{{msgid}}" onselect="var ans = event.currentTarget.parentNode.parentNode.children.item(1).getFeature('Keyboard').text; notify('/response/{{msgid}}/' + btoa(ans));">
 				<text>{{button}}</text>
 			</button>
 		</footer>		 

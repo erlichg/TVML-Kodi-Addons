@@ -28,7 +28,7 @@ def end(plugin, msg, url=None, original_url=None, history=None):
     #print items
     if not items or len(items) == 0:
         logger.debug('end sending 206')
-        return '', 206
+        return {'messagetype':'nothing', 'return_url':url}
     template = None
 
     for item in items:
@@ -65,7 +65,8 @@ def end(plugin, msg, url=None, original_url=None, history=None):
     #	item.width = avg_width
     #	item.height = avg_height
     #print items
-    return render_template("dynamic.xml", menu=items, plugin = plugin)
+    doc = render_template("dynamic.xml", menu=items, plugin = plugin)
+    return {'doc':doc, 'return_url':url}
 
 def play(plugin, msg, url=None, original_url=None, history=None):
     """Opens the player on msg url attribute"""
@@ -90,7 +91,7 @@ def play(plugin, msg, url=None, original_url=None, history=None):
         history = original_url
     #since url paremeter is the original url that was called which resulted in a play message, we can save this url for time
     #return render_template('player.xml', url=msg['url'], type=msg['playtype'])
-    return json.dumps({'history':history, 'continue': url, 'url': msg['url'], 'stop': msg['stop'], 'type':msg['playtype'], 'imdb':msg['imdb'], 'title':msg['title'], 'description':msg['description'], 'image':msg['image'], 'season':msg['season'], 'episode':msg['episode']}), 202
+    return json.dumps({'messagetype':'play', 'history':history, 'continue': url, 'url': msg['url'], 'stop': msg['stop'], 'type':msg['playtype'], 'imdb':msg['imdb'], 'title':msg['title'], 'description':msg['description'], 'image':msg['image'], 'season':msg['season'], 'episode':msg['episode']})
 
 def isplaying(plugin, msg, url=None, original_url=None, history=None):
     pass
@@ -98,7 +99,8 @@ def isplaying(plugin, msg, url=None, original_url=None, history=None):
 
 def inputdialog(plugin, msg, url=None, original_url=None, history=None):
     """Shows an input dialog with text field. Returns the response"""
-    return render_template('inputdialog.xml', title=msg['title'], description=msg['description'], placeholder=msg['placeholder'], button=msg['button'], url=url, msgid=msg['id'], secure=msg['secure']), 208 #present modal
+    doc = render_template('inputdialog.xml', title=msg['title'], description=msg['description'], placeholder=msg['placeholder'], button=msg['button'], url=url, msgid=msg['id'], secure=msg['secure'])
+    return {'doc':doc,'messagetype':'modal', 'return_url':url}
 
 def alertdialog(plugin, msg, url=None, original_url=None, history=None):
     """Shows an alert dialog"""
@@ -107,49 +109,60 @@ def alertdialog(plugin, msg, url=None, original_url=None, history=None):
         timeout = int(msg['timeout'])
     except:
         pass
-    return render_template('alert.xml', title=msg['title'], description=msg['description'], timeout=timeout, url=url, cont=msg['continue'])
+    doc = render_template('alert.xml', title=msg['title'], description=msg['description'], timeout=timeout, url=url, cont=msg['continue'])
+    return {'doc': doc, 'return_url':url}
 
 def progressdialog(plugin, msg, url=None, original_url=None, history=None):
     """Shows a progress dialog. Initially with progress 0"""
     logger.debug('returning progress template with {}'.format(msg))
-    return render_template('progressdialog.xml', title=msg['title'], text=msg['text'], value=msg['value'], url=url, msgid=msg['id']), 214
+    doc = render_template('progressdialog.xml', title=msg['title'], text=msg['text'], value=msg['value'], url=url, msgid=msg['id'])
+    return {'doc': doc, 'messagetype':'progress', 'return_url':url}
 
 
 def updateprogressdialog(plugin, msg, url=None, original_url=None, history=None):
     logger.debug('updating progress template with {}'.format(msg))
-    return render_template('progressdialog.xml', title=msg['title'], text=msg['text'], value=msg['value'], url=url, msgid=msg['id']), 216
+    doc = render_template('progressdialog.xml', title=msg['title'], text=msg['text'], value=msg['value'], url=url, msgid=msg['id'])
+    return {'doc': doc, 'messagetype':'updateprogress', 'return_url':url}
 
 
 def selectdialog(plugin, msg, url=None, original_url=None, history=None):
     items = msg['list']
     logger.debug(items)
     if not items or len(items) == 0:
-        return '', 204
+        return {'messagetype':'nothing', 'return_url':url}
     if items[0].title and items[0].subtitle and items[0].icon and items[0].details:
-        return render_template('list.xml', menu=items, title=msg['title'], text = msg['text'].split('\n'), msgid=msg['id'], url=url), 208 #present modal
+        doc = render_template('list.xml', menu=items, title=msg['title'], text = msg['text'].split('\n'), msgid=msg['id'], url=url)
+        return {'doc': doc, 'messagetype':'modal', 'return_url':url}
     if items[0].title and items[0].icon:
-        return render_template('grid.xml', menu=items, title=msg['title'], text = msg['text'].split('\n'), msgid=msg['id'], url=url), 208 #present modal
-    return render_template('nakedlist.xml', menu=items, title=msg['title'], text = msg['text'].split('\n'), msgid=msg['id'], url=url), 208 #present modal
+        doc = render_template('grid.xml', menu=items, title=msg['title'], text = msg['text'].split('\n'), msgid=msg['id'], url=url)
+        return {'doc': doc, 'messagetype': 'modal', 'return_url':url}
+    doc = render_template('nakedlist.xml', menu=items, title=msg['title'], text = msg['text'].split('\n'), msgid=msg['id'], url=url)
+    return {'doc': doc, 'messagetype': 'modal', 'return_url':url}
 
 
 def closeprogress(plugin, msg, url=None, original_url=None, history=None):
     """Close the progress dialog"""
     logger.debug('close progress message')
-    return '', 206
+    return {'messagetype':'closeprogress', 'return_url':url}
 
 def formdialog(plugin, msg, url=None, original_url=None, history=None):
     #{'type':'formdialog', 'title':title, 'texts':texts, 'buttons':buttons}
-    return render_template('multiformdialog2.xml', title=msg['title'], sections=msg['sections'], msgid=msg['id'], url=url if msg['cont'] else '')
+    doc = render_template('multiformdialog2.xml', title=msg['title'], sections=msg['sections'], msgid=msg['id'], url=url if msg['cont'] else '')
+    return {'doc': doc, 'return_url':url}
 
 def saveSettings(plugin, msg, url=None, original_url=None, history=None):
     logger.debug('SaveSettings in messages')
     msg['url'] = url
-    return json.dumps(msg), 210
+    msg['messagetype'] = 'savesettings'
+    msg['return_url'] = url
+    return msg
 
 def loadSettings(plugin, msg, url=None, original_url=None, history=None):
     logger.debug('loadSettings in messages')
-    return json.dumps({'type':'loadSettings', 'addon':plugin.id, 'msgid':msg['id'], 'url': url }), 210
+    return {'messagetype':'loadsettings', 'addon':plugin.id, 'msgid':msg['id'], 'url': url , 'return_url':url}
 
 def load(plugin, msg, url=None, original_url=None, history=None):
     msg['cont'] = url
-    return json.dumps(msg), 212
+    msg['messagetype'] = 'load'
+    msg['return_url'] = url
+    return msg

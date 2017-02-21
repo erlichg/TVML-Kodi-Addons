@@ -224,11 +224,12 @@ def route(pid, id, res=None):
         logger.debug('received response on process {}'.format(pid))
         if p is not None:
             p.responses.put({'id': id, 'response': res})
-            return 'OK', 204
-        return render_template('alert.xml', title='Communication error',
+            return json.dumps({'messagetype': 'nothing', 'end': True})
+        doc = render_template('alert.xml', title='Communication error',
                                description="Failed to load page.\nThis could mean the server had a problem, or the request dialog timed-out\nPlease try again")
+        return json.dumps({'doc':doc, 'end':True})
     else:
-        return 'OK', 204
+        return json.dumps({'messagetype': 'nothing', 'end':True})
 
 
 @app.route('/icon.png')
@@ -255,7 +256,7 @@ def cache(id):
 def toggle_proxy():
     global PROXY
     PROXY = not PROXY
-    return 'OK', 206
+    return json.dumps({'messagetype': 'nothing', 'end':True})
 
 @app.route('/addons/<path:filename>')
 def kodiplugin_icon(filename):
@@ -310,14 +311,16 @@ def catalog(pluginid, process=None):
             logger.debug('menu {}, {}'.format(decoded_id, process))
         plugin = get_installed_addon(decoded_id)
         if not plugin:
-            return render_template('alert.xml', title='Missing plugin',
+            doc = render_template('alert.xml', title='Missing plugin',
                                    description="Failed to run plugin {}.\nYou may need to install it manually".format(decoded_id))
+            return json.dumps({'doc': doc, 'end': True})
 
         global PROCESSES
         if process:
             if not process in PROCESSES:
-                return render_template('alert.xml', title='Fatal error',
+                doc = render_template('alert.xml', title='Fatal error',
                                        description="Failed to load page.\nSomething has gone terribly wrong.\nPlease try to restart the App")
+                return json.dumps({'doc': doc, 'end': True})
             p = PROCESSES[process]
         else:
             if request.full_path.startswith('/catalog'):
@@ -349,6 +352,7 @@ def catalog(pluginid, process=None):
                             logger.warning('Got end message but queue not empty. Getting another')
                             p.messages.put(msg)
                             continue
+
                         global PROCESSES
                         for t in PROCESSES:
                             PROCESSES[t].responses.close()
@@ -371,7 +375,12 @@ def catalog(pluginid, process=None):
                     # else:
                     # No url and no response so add 'fake' url
                     #	return_url = '{}/{}/{}'.format(request.url, 'fake', p.id)
-                    return method(plugin, msg, return_url, decoded_url, history)
+                    ans = method(plugin, msg, return_url, decoded_url, history)
+                    #time.sleep(1)
+                    ans['end'] = msg['type'] == 'end'
+                    if not ans['end'] and not 'return_url' in ans:
+                        print 'blah'
+                    return json.dumps(ans)
                 except:
                     logger.exception('Error in while alive')
         except:
@@ -405,8 +414,12 @@ def catalog(pluginid, process=None):
                     # p.join()
                     # p.terminate()
                     logger.debug('PROCESS {} TERMINATED'.format(p.id))
-                return method(plugin, msg, request.url, decoded_url, history) if process else method(plugin, msg,
+                ans = method(plugin, msg, request.url, decoded_url, history) if process else method(plugin, msg,
                                                                                '{}/{}'.format(request.url, p.id), decoded_url, history)
+                ans['end'] = msg['type'] == 'end'
+                if not ans['end'] and not 'return_url' in ans:
+                    print 'blah'
+                return json.dumps(ans)
             except:
                 logger.exception('Error while waiting for process messages after death')
         logger.debug('finished 5 sec wait')
@@ -421,37 +434,46 @@ def catalog(pluginid, process=None):
             logger.exception('Process not found or cannot be killed')
         logger.error('PROCESS {} CRASHED'.format(p.id))
 
-        return render_template('alert.xml', title='Communication error',
+        doc = render_template('alert.xml', title='Communication error',
                                description="Failed to load page.\nThis could mean the server had a problem, or the request dialog timed-out\nPlease try again")
+        return json.dumps({'doc':doc, 'end':True})
     except:
         logger.exception('Error in catalog')
-        return render_template('alert.xml', title='Communication error',
+        doc = render_template('alert.xml', title='Communication error',
                                description="Failed to load page.\nThis could mean the server had a problem, or the request dialog timed-out\nPlease try again")
+        return json.dumps({'doc': doc, 'end': True})
 
 
 @app.route('/main', methods=['POST'])
 def main():
-    favs = []
     try:
-        post_data = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
-        favs_json = json.loads(post_data['favs'])
-        clear_favorites()
-        for id in favs_json:
-            addon = get_installed_addon(id)
-            if not addon:
-                logger.warning('No match found for favorite addon {}'.format(id))
-                continue  # no match found
-            set_installed_addon_favorite(id, True)
-        global LANGUAGE
-        LANGUAGE = post_data['lang']
-        global PROXY
-        PROXY = True if post_data['proxy'] == 'true' else False
-    except:
-        pass
+        favs = []
+        try:
+            post_data = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
+            favs_json = json.loads(post_data['favs'])
+            clear_favorites()
+            for id in favs_json:
+                addon = get_installed_addon(id)
+                if not addon:
+                    logger.warning('No match found for favorite addon {}'.format(id))
+                    continue  # no match found
+                set_installed_addon_favorite(id, True)
+            global LANGUAGE
+            LANGUAGE = post_data['lang']
+            global PROXY
+            PROXY = True if post_data['proxy'] == 'true' else False
+        except:
+            pass
 
-    filtered_plugins =  [p for p in get_all_installed_addons() if [val for val in json.loads(p['type']) if val in ['Video', 'Audio']]] #Show only plugins with video/audio capability since all others are not supported
-    fav_plugins = [p for p in filtered_plugins if p['favorite']]
-    return render_template('main.xml', menu=filtered_plugins, favs=fav_plugins, url=request.full_path, proxy='On' if PROXY else 'Off', version=VERSION, languages=["Afrikaans", "Albanian", "Amharic", "Arabic", "Armenian", "Azerbaijani", "Basque", "Belarusian", "Bosnian", "Bulgarian", "Burmese", "Catalan", "Chinese", "Croatian", "Czech", "Danish", "Dutch", "English", "Esperanto", "Estonian", "Faroese", "Finnish", "French", "Galician", "German", "Greek", "Hebrew", "Hindi", "Hungarian", "Icelandic", "Indonesian", "Italian", "Japanese", "Korean", "Latvian", "Lithuanian", "Macedonian", "Malay", "Malayalam", "Maltese", "Maori", "Mongolian", "Norwegian", "Ossetic", "Persian", "Persian", "Polish", "Portuguese", "Romanian", "Russian", "Serbian", "Silesian", "Sinhala", "Slovak", "Slovenian", "Spanish", "Spanish", "Swedish", "Tajik", "Tamil", "Telugu", "Thai", "Turkish", "Ukrainian", "Uzbek", "Vietnamese", "Welsh"], current_language=LANGUAGE)
+        filtered_plugins =  [p for p in get_all_installed_addons() if [val for val in json.loads(p['type']) if val in ['Video', 'Audio']]] #Show only plugins with video/audio capability since all others are not supported
+        fav_plugins = [p for p in filtered_plugins if p['favorite']]
+        doc = render_template('main.xml', menu=filtered_plugins, favs=fav_plugins, url=request.full_path, proxy='On' if PROXY else 'Off', version=VERSION, languages=["Afrikaans", "Albanian", "Amharic", "Arabic", "Armenian", "Azerbaijani", "Basque", "Belarusian", "Bosnian", "Bulgarian", "Burmese", "Catalan", "Chinese", "Croatian", "Czech", "Danish", "Dutch", "English", "Esperanto", "Estonian", "Faroese", "Finnish", "French", "Galician", "German", "Greek", "Hebrew", "Hindi", "Hungarian", "Icelandic", "Indonesian", "Italian", "Japanese", "Korean", "Latvian", "Lithuanian", "Macedonian", "Malay", "Malayalam", "Maltese", "Maori", "Mongolian", "Norwegian", "Ossetic", "Persian", "Persian", "Polish", "Portuguese", "Romanian", "Russian", "Serbian", "Silesian", "Sinhala", "Slovak", "Slovenian", "Spanish", "Spanish", "Swedish", "Tajik", "Tamil", "Telugu", "Thai", "Turkish", "Ukrainian", "Uzbek", "Vietnamese", "Welsh"], current_language=LANGUAGE)
+        return json.dumps({'doc':doc, 'end': True})
+    except:
+        logger.exception('Failed to load main screen')
+        doc = render_template('alert.xml', title='Application error',
+                              description="Failed to main page.\nThis means the server has a problem")
+        return json.dumps({'doc': doc, 'end': True})
 
 @app.route('/setLanguage', methods=['POST'])
 def set_language():
@@ -460,7 +482,7 @@ def set_language():
         LANGUAGE = kodi_utils.b64decode(request.form.keys()[0])
     except:
         logger.exception('Failed to set language')
-    return '', 204
+    return json.dumps({'messagetype':'nothing', 'end': True})
 
 
 @app.route('/removeAddon', methods=['POST'])
@@ -472,12 +494,13 @@ def removeAddon():
             if found:
                 remove_addon(id)
         #return json.dumps({'url': '/main', 'replace': True, 'initial': True}), 212 #Reload main screen
-        return render_template('alert.xml', title='Succcess', description='Successfully removed addon {}'.format(found['name']))
+        doc = render_template('alert.xml', title='Succcess', description='Successfully removed addon {}'.format(found['name']))
+        return json.dumps({'doc': doc, 'end': True})
     except:
         traceback.print_exc(file=sys.stdout)
-        #return 'NOTOK', 206
-        return render_template('alert.xml', title='Failed',
+        doc = render_template('alert.xml', title='Failed',
                                description='Failed to remove addon {}'.format(found['name']))
+        return json.dumps({'doc': doc, 'end': True, 'end': True})
 
 
 def remove_addon(id):
@@ -589,11 +612,13 @@ def installAddon():
             id = kodi_utils.b64decode(request.form.keys()[0])
             already_installed = get_installed_addon(id)
             if already_installed:
-                return render_template('alert.xml', title='Already installed',
+                doc = render_template('alert.xml', title='Already installed',
                                        description="This addon is already installed")
+                return json.dumps({'doc': doc, 'end': True})
             found = find_addon(id)
             if not found:
-                return render_template('alert.xml', title='Unknown addon', description="This addon cannot be found")
+                doc = render_template('alert.xml', title='Unknown addon', description="This addon cannot be found")
+                return json.dumps({'doc': doc, 'end': True})
             install_addon(found[0])
             plugin = KodiPlugin(id)
             for r in plugin.requires:
@@ -602,21 +627,25 @@ def installAddon():
                     continue
                 found = find_addon(r)
                 if not found:
-                    return render_template('alert.xml', title='Unknown addon', description="This addon has a requirement that cannot be found {}".format(r))
+                    doc = render_template('alert.xml', title='Unknown addon', description="This addon has a requirement that cannot be found {}".format(r))
+                    return json.dumps({'doc': doc, 'end': True})
                 install_addon(found[0])
             #return json.dumps({'url': '/main', 'replace': True, 'initial': True}), 212  # Reload main screen
-            return render_template('alert.xml', title='Installation complete',
+            doc = render_template('alert.xml', title='Installation complete',
                                    description="Successfully installed addon {}".format(
                                        plugin.name))
+            return json.dumps({'doc': doc, 'end': True})
         except:
             logger.exception('Failed to download/install {}'.format(id))
             try:
                 remove_addon(id)
             except:
                 pass
-            return render_template('alert.xml', title='Install error',
+            doc = render_template('alert.xml', title='Install error',
                                    description="Failed to install addon.\nThis could be due to a network error or bad repository parsing")
-    return render_template('alert.xml', title='URL error', description='This URL is invalid')
+            return json.dumps({'doc': doc, 'end': True})
+    doc = render_template('alert.xml', title='URL error', description='This URL is invalid')
+    return json.dumps({'doc': doc, 'end': True})
 
 
 def find_addon(id):
@@ -701,16 +730,19 @@ def getAddonData():
             if found:
                 addon = dict(found[0])
         if not addon:
-            return render_template('alert.xml', title='Unknown addon', description="This addon cannot be found")
+            doc = render_template('alert.xml', title='Unknown addon', description="This addon cannot be found")
+            return json.dumps({'doc': doc, 'end': True})
         addon['type'] = json.loads(addon['type'])
         #addon['dir'] = json.loads(addon['dir'])
         addon['data'] = json.loads(addon['data'])
         addon['requires'] = json.loads(addon['requires'])
-        return render_template('addonDetails.xml', addon=addon)
+        doc = render_template('addonDetails.xml', addon=addon)
+        return json.dumps({'doc': doc, 'end': True, 'end': True})
     except:
         logger.exception('Failed to get data on {}'.format(id))
-        return render_template('alert.xml', title='Error',
+        doc = render_template('alert.xml', title='Error',
                                description="Failed to get data on addon.\nThis could be due to a network error or bad repository parsing")
+        return json.dumps({'doc': doc, 'end': True})
 
 @app.route('/refreshRepositories')
 def refresh_repositories():
@@ -719,27 +751,29 @@ def refresh_repositories():
         REFRESH_EVENT.clear()
         multiprocessing.Process(target=get_available_addons, args=(REPOSITORIES, REFRESH_EVENT)).start()
     gevent.sleep(1)
-    return json.dumps({'url': '/refreshProgress'}), 212
+    return json.dumps({'messagetye':'load', 'url': '/refreshProgress'})
 
 @app.route('/refreshProgress')
 def refresh_progress():
     if not REFRESH_EVENT.is_set():
         gevent.sleep(1)
-        return render_template('progressdialog.xml', title='Please wait', text='Refreshing repositories. This may take some time', value='0', url='/refreshProgress'), 214
-    return '', 206
+        doc = render_template('progressdialog.xml', title='Please wait', text='Refreshing repositories. This may take some time', value='0', url='/refreshProgress')
+        return json.dumps({'doc': doc, 'messagetype': 'progress'})
+    return json.dumps({'messagetype': 'nothing'})
 
 @app.route('/viewLog')
 def viewLog():
     with open(LOGFILE, 'r') as f:
         log = f.readlines()
         log.reverse()
-        return render_template('logTemplate.xml', title='TVMLServer log', text=''.join(log))
+        doc = render_template('logTemplate.xml', title='TVMLServer log', text=''.join(log))
+        return json.dumps({'doc': doc, 'end': True})
 
 
 @app.route('/clearLog')
 def clear_log():
     open(LOGFILE, 'w').close()
-
+    return json.dumps({'messagetype': 'nothing', 'end': True})
 
 @app.route('/checkForUpdate')
 def check_for_update():
@@ -749,13 +783,15 @@ def check_for_update():
         latest = json['tag_name']
         current = VERSION
         if latest != current:
-            return render_template('alert.xml', title='Update found', description='New version detected {}\nCurrent version is {}\n\nSorry, no auto-update yet.\nPlease visit https://github.com/ggyeh/TVML-Kodi-Addons/releases/latest to download'.format(latest, current))
+            doc = render_template('alert.xml', title='Update found', description='New version detected {}\nCurrent version is {}\n\nSorry, no auto-update yet.\nPlease visit https://github.com/ggyeh/TVML-Kodi-Addons/releases/latest to download'.format(latest, current))
         else:
-            return render_template('alert.xml', title='Up to date',
+            doc = render_template('alert.xml', title='Up to date',
                            decsription='You are running the latest version')
+        return json.dumps({'doc': doc, 'end': True})
     except:
-        return render_template('alert.xml', title='UError',
+        doc = render_template('alert.xml', title='UError',
                                decsription='Failed to check for new version')
+        return json.dumps({'doc': doc, 'end': True})
 
 
 @app.route('/restart')
@@ -777,7 +813,8 @@ def restart():
 
 @app.route('/repositories')
 def respositories():
-    return render_template('repositories.xml', title='Repositories', repositories=[r['name'] for r in REPOSITORIES])
+    doc = render_template('repositories.xml', title='Repositories', repositories=[r['name'] for r in REPOSITORIES])
+    return json.dumps({'doc': doc, 'end': True})
 
 
 @app.route('/addonsForRepository', methods=['POST'])
@@ -785,7 +822,8 @@ def addonsForRepository():
     try:
         if not REFRESH_EVENT.is_set():
             gevent.sleep(1)
-            return render_template('progressdialog.xml', title='Please wait', text='Refreshing repositories. This may take some time', value='0', url='/addonsForRepository', data=request.form.keys()[0]), 214
+            doc = render_template('progressdialog.xml', title='Please wait', text='Refreshing repositories. This may take some time', value='0', url='/addonsForRepository', data=request.form.keys()[0])
+            return json.dumps({'doc': doc, 'messagetype': 'progress'})
         name = kodi_utils.b64decode(request.form.keys()[0])
         with open_db() as DB:
             repo_addons = [row for row in DB.execute('select * from ADDONS where repo=?', (name,))]
@@ -804,10 +842,12 @@ def addonsForRepository():
         for type in addons:
             addons[type] = sorted(addons[type], key=lambda a: a['name'])
 
-        return render_template('addonsList.xml', addons=addons)
+        doc = render_template('addonsList.xml', addons=addons)
+        return json.dumps({'doc': doc, 'end': True})
     except Exception as e:
         logger.exception('Failed to show addons by repository {}'.format(name))
-        return render_template('alert.xml', title='Error', description='{}'.format(e))
+        doc = render_template('alert.xml', title='Error', description='{}'.format(e))
+        return json.dumps({'doc': doc, 'end': True})
 
 
 @app.route('/addRepository', methods=['POST'])
@@ -815,11 +855,14 @@ def addRepository():
     try:
         path = kodi_utils.b64decode(request.form.keys()[0])
         if not os.path.exists(path):
-            return render_template('alert.xml', title='Error', description='{} does not exist'.format(path))
+            doc = render_template('alert.xml', title='Error', description='{} does not exist'.format(path))
+            return json.dumps({'doc': doc, 'end': True})
         if not os.path.isfile(path):
-            return render_template('alert.xml', title='Error', description='{} is not a valid file'.format(path))
+            doc = render_template('alert.xml', title='Error', description='{} is not a valid file'.format(path))
+            return json.dumps({'doc': doc, 'end': True})
         if not zipfile.is_zipfile(path):
-            return render_template('alert.xml', title='Error', description='{} is not a valid zipfile'.format(path))
+            doc = render_template('alert.xml', title='Error', description='{} is not a valid zipfile'.format(path))
+            return json.dumps({'doc': doc, 'end': True})
         with zipfile.ZipFile(path, 'r') as zip:
             xml = [f for f in zip.namelist() if f.endswith('addon.xml')][0]
             dir = os.path.join(DATA_DIR, 'addons')
@@ -839,15 +882,17 @@ def addRepository():
                 repo['dirs'].append({'xml': infos[i].text, 'download': datadirs[i].text})
             global REPOSITORIES
             if repo['name'] in [r['name'] for r in REPOSITORIES]:
-                return render_template('alert.xml', title='Already exists', description='Repository with this name already exists')
+                doc = render_template('alert.xml', title='Already exists', description='Repository with this name already exists')
+                return json.dumps({'doc':doc, 'end':True})
             REPOSITORIES.append(repo)
             global REFRESH_EVENT
             REFRESH_EVENT.clear()
             multiprocessing.Process(target=get_available_addons, args=(REPOSITORIES, REFRESH_EVENT)).start()
-            return json.dumps({'url': '/main', 'replace': True, 'initial': True}), 212  # Reload main screen
+            return json.dumps({'messagetype':'load', 'url': '/main', 'replace': True, 'initial': True, 'end':True})
     except Exception as e:
         logger.exception('Failed to add repository {}'.format(path))
-        return render_template('alert.xml', title='Error', description='{}'.format(e))
+        doc = render_template('alert.xml', title='Error', description='{}'.format(e))
+        return json.dumps({'doc':doc, 'end':True})
 
 
 @app.route('/browseAddons', methods=['POST', 'GET'])
@@ -858,7 +903,8 @@ def browse_addons():
         search='.*{}.*'.format(request.form.keys()[0])
     if not REFRESH_EVENT.is_set():
         gevent.sleep(1)
-        return render_template('progressdialog.xml', title='Please wait', text='Refreshing repositories. This may take some time', value='0', url='/browseAddons'), 214
+        doc = render_template('progressdialog.xml', title='Please wait', text='Refreshing repositories. This may take some time', value='0', url='/browseAddons')
+        return json.dumps({'doc':doc, 'messagetype':'progress'})
     with open_db() as DB:
         rows = [row for row in DB.execute('select * from ADDONS')]
     all = {}
@@ -876,7 +922,8 @@ def browse_addons():
             if not type in all:
                 all[type] = []
             all[type].append(row)
-    return render_template('addonsList.xml', addons=all)
+    doc = render_template('addonsList.xml', addons=all)
+    return json.dumps({'doc':doc, 'end':True})
 
 
 @app.route('/allAddons')
@@ -884,7 +931,8 @@ def all_addons():
     """This method will return all available addons in a search template"""
     if not REFRESH_EVENT.is_set():
         gevent.sleep(1)
-        return render_template('progressdialog.xml', title='Please wait', text='Refreshing repositories. This may take some time', value='0', url='/browseAddons'), 214
+        doc = render_template('progressdialog.xml', title='Please wait', text='Refreshing repositories. This may take some time', value='0', url='/allAddons')
+        return json.dumps({'doc':doc, 'messagetype':'progress'})
     with open_db() as DB:
         rows = [row for row in DB.execute('select * from ADDONS')]
     all = {}
@@ -900,7 +948,8 @@ def all_addons():
                 all[row['id']] = row #overrite newer version
         else:
             all[row['id']] = row
-    return render_template('addons.xml', all=all)
+    doc = render_template('addons.xml', all=all)
+    return json.dumps({'doc': doc, 'end': True})
 
 last_dir = os.path.expanduser("~")
 @app.route('/browse', methods=['GET', 'POST'])
@@ -922,12 +971,14 @@ def browse():
             if filter:
                 files = [f for f in files if os.path.isdir(kodi_utils.b64decode(f['url'])) or re.match(filter, f['title'])]
             up = kodi_utils.b64encode(os.path.dirname(dir))
-            return render_template('browse.xml', title=dir, files=files, up=up)
+            doc = render_template('browse.xml', title=dir, files=files, up=up)
+            return json.dumps({'doc': doc, 'end': True})
         else:
-            return dir, 218
+            return json.dumps({'ans':dir, 'messagetype':'special', 'end':True})
     except:
         logger.exception('Failed to browse {}'.format(dir))
-        return render_template('alert.xml', title='Error', description='Failed to browse {}'.format(dir))
+        doc = render_template('alert.xml', title='Error', description='Failed to browse {}'.format(dir))
+        return json.dumps({'doc': doc, 'end': True})
 
 
 def help(argv):

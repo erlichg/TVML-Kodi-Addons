@@ -25,7 +25,7 @@ function resolveControllerFromElement(elem) {
     }
 }
 
-function DocumentController(documentLoader, documentURL, loadingDocument, initial, data, replace, special, callback) {
+function DocumentController(documentLoader, documentURL, initial, data, replace, special, callback) {
     this.handleEvent = this.handleEvent.bind(this);
     this.handleHoldSelect = this.handleHoldSelect.bind(this);
     this._documentLoader = documentLoader;
@@ -42,26 +42,24 @@ function DocumentController(documentLoader, documentURL, loadingDocument, initia
         	success: function(document, isModal) {
         	    // Add the event listener for document
         	    // this.setupDocument(document);
-        	    const main = navigationDocument.documents[0];
-        	    navigationDocument.replaceDocument(document, main);
-        	    if (typeof loadingDocument != "undefined" && navigationDocument.documents.indexOf(loadingDocument)!=-1) { //if there's a loading document and it's on stack we need to remove it
-        	        navigationDocument.removeDocument(loadingDocument);
-        	    }
+				if (navigationDocument.documents.length !=0) {
+                    const main = navigationDocument.documents[0];
+                    navigationDocument.replaceDocument(document, main);
+                } else {
+					navigationDocument.pushDocument(document);
+				}
         	    if (typeof callback != "undefined") {
         	    	callback('success');
 				}
         	}.bind(this),
         	error: function(xhr) {
         	    const alertDocument = createLoadErrorAlertDocument(documentURL, xhr, false);
-        	    this.handleDocument(alertDocument, loadingDocument);
+        	    this.handleDocument(alertDocument);
         	    if (typeof callback != "undefined") {
         	    	callback('error');
 				}
         	}.bind(this),
         	abort: function() {
-	    	    if(loadingDocument) {
-			        navigationDocument.removeDocument(loadingDocument);
-	    	    }
 	    	    if (typeof callback != "undefined") {
         	    	callback('abort');
 				}
@@ -76,23 +74,19 @@ function DocumentController(documentLoader, documentURL, loadingDocument, initia
         	    // Add the event listener for document
         	    //this.setupDocument(document);
         	    // Allow subclass to do custom handling for this document
-        	    this.handleDocument(document, loadingDocument, isModal, replace);
+        	    this.handleDocument(document, isModal, replace);
         	    if (typeof callback != "undefined") {
         	    	callback('success');
 				}
         	}.bind(this),
         	error: function(xhr) {
         	    const alertDocument = createLoadErrorAlertDocument(documentURL, xhr, false);
-        	    this.handleDocument(alertDocument, loadingDocument);
+        	    this.handleDocument(alertDocument);
         	    if (typeof callback != "undefined") {
         	    	callback('error');
 				}
         	}.bind(this),
         	abort: function() {
-	    	    if(loadingDocument) {
-	    	        console.log('Going to remove loading document '+loadingDocument+'. Documents on stack are '+navigationDocument.documents);
-			        navigationDocument.removeDocument(loadingDocument);
-	    	    }
 	    	    if (typeof callback != "undefined") {
         	    	callback('abort');
 				}
@@ -107,22 +101,19 @@ function DocumentController(documentLoader, documentURL, loadingDocument, initia
     	        // Add the event listener for document
     	        ///this.setupDocument(document);
     	        // Allow subclass to do custom handling for this document
-    	        this.handleDocument(document, loadingDocument, isModal, replace);
+    	        this.handleDocument(document, isModal, replace);
     	        if (typeof callback != "undefined") {
         	    	callback('success');
 				}
     	    }.bind(this),
     	    error: function(xhr) {
     	        const alertDocument = createLoadErrorAlertDocument(documentURL, xhr, false);
-    	        this.handleDocument(alertDocument, loadingDocument);
+    	        this.handleDocument(alertDocument);
     	        if (typeof callback != "undefined") {
         	    	callback('error');
 				}
     	    }.bind(this),
     	    abort: function() {
-		        if(loadingDocument) {
-			        navigationDocument.removeDocument(loadingDocument);
-		        }
 		        if (typeof callback != "undefined") {
         	    	callback('abort');
 				}
@@ -140,40 +131,20 @@ DocumentController.prototype.setupDocument = function(document) {
     document.addEventListener("holdselect", this.handleHoldSelect);    
 };
 
-DocumentController.prototype.handleDocument = function(document, loadingDocument, isModal, replace) {	
-    if (loadingDocument && navigationDocument.documents.indexOf(loadingDocument)!=-1) {
-	    if (typeof isModal == "undefined") {
-		    if (typeof replace == "boolean" && replace && navigationDocument.documents.length > 1) {
-				navigationDocument.removeDocument(navigationDocument.documents[navigationDocument.documents.length-2]); //last document should be the loader so remove previous document							
-			}
-		    console.log("Replacing loading document");
-			navigationDocument.replaceDocument(document, loadingDocument);			
-        } else {
-	        //navigationDocument.removeDocument(loadingDocument);
-	        console.log("Presenting modal document");
-	        navigationDocument.presentModal(document);
-	        document.addEventListener("unload", function(e) {
-		       navigationDocument.removeDocument(loadingDocument); 
-	        });
-	        document.addEventListener("select", function(e) {
-		       navigationDocument.dismissModal();
-	        });
-        }     
-    } else {
-	    if (typeof isModal == "undefined") {
-		    if (typeof replace == "boolean" && replace && navigationDocument.documents.length > 1) {
-				navigationDocument.removeDocument(navigationDocument.documents[navigationDocument.documents.length-1]); //remove previous document							
-			}
-		    console.log("pushing document");
-        	navigationDocument.pushDocument(document);
-        } else {
-	        console.log("presenting modal document") ;
-	        navigationDocument.presentModal(document);
-	        document.addEventListener("select", function(e) {
-		       navigationDocument.dismissModal();
-	        });
-        }
-    }
+DocumentController.prototype.handleDocument = function(document, isModal, replace) {
+    if (typeof isModal == "undefined") {
+		if (typeof replace == "boolean" && replace && navigationDocument.documents.length > 1) {
+			navigationDocument.removeDocument(navigationDocument.documents[navigationDocument.documents.length-1]); //remove previous document
+		}
+		console.log("pushing document");
+		navigationDocument.pushDocument(document);
+	} else {
+		console.log("presenting modal document") ;
+		navigationDocument.presentModal(document);
+		document.addEventListener("select", function(e) {
+			navigationDocument.dismissModal();
+		});
+	}
 };
 
 DocumentController.prototype.handleEvent = function(event) {
@@ -183,13 +154,8 @@ DocumentController.prototype.handleEvent = function(event) {
     if (controllerOptions) {
         const controllerClass = controllerOptions.type;
         const documentURL = controllerOptions.url;
-        var loadingDocument;
-        if (!controllerClass.preventLoadingDocument) {
-            loadingDocument = createLoadingDocument();
-            navigationDocument.pushDocument(loadingDocument);
-        }
         // Create the subsequent controller based on the atribute and its value. Controller would handle its presentation.
-        new controllerClass(this._documentLoader, documentURL, loadingDocument);
+        new controllerClass(this._documentLoader, documentURL);
     }
     else if (target.tagName === 'description') {
         // Handle description tag, if no URL was specified
@@ -220,10 +186,11 @@ DocumentController.prototype.handleHoldSelect = function(event) {
 
 const singleton_loading_document = createLoadingDocument();
 function addLoadingDocument(title) {
-	removeLoadingDocument();
 	title = title || "Loading...";
 	singleton_loading_document.getElementById("title").textContent = title;
-	navigationDocument.pushDocument(singleton_loading_document);
+	if (navigationDocument.documents.indexOf(singleton_loading_document)==-1) { //only if loading document not already on stack
+		navigationDocument.pushDocument(singleton_loading_document);
+	}
 }
 
 function removeLoadingDocument() {
@@ -255,7 +222,7 @@ function clearAll() {
 	refreshMainScreen();
 }
 
-function catalog(id, url, loadingDocument) {
+function catalog(id, url) {
     if (typeof url == "undefined") {
         url = '';
     }
@@ -263,7 +230,7 @@ function catalog(id, url, loadingDocument) {
     language = loadLanguage();
     settings = loadSettings();
     history = loadHistory();
-    post('/catalog/'+id, btoa(JSON.stringify({'favs':JSON.stringify(favs), 'lang':language, 'settings':settings, 'url':url, 'history':JSON.stringify(history)})), loadingDocument)
+    post('/catalog/'+id, btoa(JSON.stringify({'favs':JSON.stringify(favs), 'lang':language, 'settings':settings, 'url':url, 'history':JSON.stringify(history)})))
 }
 
 function menu(id, url) {
@@ -280,6 +247,7 @@ function notify(url, data) {
 	console.log("notify: "+url);
 	documentLoader.fetchPost({
 		url:url,
+		silent: true,
 		data: data,
 		abort: function() {
 						
@@ -293,22 +261,14 @@ function notify(url, data) {
 	});
 }
 
-function load(url, initial, replace, loadingDocument, callback) {
+function load(url, initial, replace, callback) {
 	console.log("loading "+url);
-	if (typeof loadingDocument == "undefined" || loadingDocument == null) {
-        var loadingDocument = createLoadingDocument();
-        navigationDocument.pushDocument(loadingDocument);
-    }
-	new DocumentController(documentLoader, url, loadingDocument, initial, null, replace, null, callback);
+	new DocumentController(documentLoader, url, initial, null, replace, null, callback);
 }
 
-function post(url, data, loadingDocument, callback) {
+function post(url, data, callback) {
 	console.log("posting "+url);
-	if (typeof loadingDocument == "undefined" || loadingDocument == null) {
-        var loadingDocument = createLoadingDocument();
-        navigationDocument.pushDocument(loadingDocument);
-    }
-	new DocumentController(documentLoader, url, loadingDocument, false, data, false, null, callback);
+	new DocumentController(documentLoader, url, false, data, false, null, callback);
 	
 }
 
@@ -362,7 +322,7 @@ function loadFavourites() {
 }
 
 function refreshMainScreen() {
-    new DocumentController(documentLoader, startDocURL, null, true);
+    new DocumentController(documentLoader, startDocURL, true);
 }
 
 function toggleFavorites(addon) {
@@ -379,13 +339,13 @@ function toggleFavorites(addon) {
 
 
 function removeAddon(addon) {
-	post('/removeAddon', btoa(addon), null, function() {
+	post('/removeAddon', btoa(addon), function() {
 		refreshMainScreen();
 	});
 }
 
 function installAddon(addon) {
-    post('/installAddon', btoa(addon), null, function() {
+    post('/installAddon', btoa(addon), function() {
     	refreshMainScreen();
 	});
 }
@@ -409,8 +369,6 @@ function toggleProxy() {
 }
 
 function restartServer() {
-	var loadingDocument = createLoadingDocument('Restarting. Please wait...');
-	navigationDocument.pushDocument(loadingDocument);
 	documentLoader.fetchPost({
 		url:'/restart',
 		success: function() {
@@ -424,7 +382,7 @@ function restartServer() {
 		}
 	});
 	setTimeout(function() {
-		new DocumentController(documentLoader, startDocURL, loadingDocument, true);
+		new DocumentController(documentLoader, startDocURL, true);
 	}, 5000);
 }
 
@@ -452,14 +410,6 @@ var last_filter = null;
 function browse(dir, filter, special) {
 	if (typeof special == 'undefined' || special == null) {
 		special = last_special;
-	} else {
-	    //since this is first time a browse is called, we need to add another loading document that will be 'replaced'
-	    navigationDocument.pushDocument(createLoadingDocument());
-	    const special_orig = special;
-	    special = function(ans) {
-	        navigationDocument.popDocument(); //remove the extra loading document
-	        special_orig(ans);
-	    }
 	}
 	if (typeof filter == 'undefined' || filter == null) {
 	    filter = last_filter;
@@ -470,12 +420,10 @@ function browse(dir, filter, special) {
 	}
 	last_special = special;
 	last_filter = filter;
-	var loadingDocument = createLoadingDocument();
-	navigationDocument.pushDocument(loadingDocument);
 	if (typeof dir == "undefined" || dir == null) {
-		new DocumentController(documentLoader, '/browse', loadingDocument, false, btoa(JSON.stringify({'dir':'', 'filter':filter})), true, special);
+		new DocumentController(documentLoader, '/browse', false, btoa(JSON.stringify({'dir':'', 'filter':filter})), true, special);
 	} else {
-		new DocumentController(documentLoader, '/browse', loadingDocument, false, btoa(JSON.stringify({'dir':dir, 'filter':filter})), true, special);
+		new DocumentController(documentLoader, '/browse', false, btoa(JSON.stringify({'dir':dir, 'filter':filter})), true, special);
 	}
 }
 

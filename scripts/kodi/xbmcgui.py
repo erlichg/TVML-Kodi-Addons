@@ -2783,7 +2783,7 @@ class Dialog(object):
 		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		return str()
 
-	def notification(self, heading, message, icon='', time=0, sound=True):
+	def notification(self, heading, message, icon='', time=5000, sound=True):
 		"""
 		Show a Notification alert.
 
@@ -2804,7 +2804,9 @@ class Dialog(object):
 			dialog = xbmcgui.Dialog()
 			dialog.notification('Movie Trailers', 'Finding Nemo download finished.', xbmcgui.NOTIFICATION_INFO, 5000)
 		"""
-		return _xbmc.bridge.alertdialog(heading, message, time, True)
+		#return _xbmc.bridge.alertdialog(heading, message, time, True)
+		#TVML app still doesn't support a floating popup notification
+		pass
 
 	def yesno(self, heading, line1, line2='', line3='', nolabel='', yeslabel='', autoclose=0):
 		"""Show a confirmation dialog 'YES/NO'.
