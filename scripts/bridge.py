@@ -3,38 +3,6 @@ import multiprocessing, gevent, logging
 logger = logging.getLogger('TVMLServer')
 
 
-
-def play_stop(b, _id, stop_completion):
-    res = None
-    try:
-        import setproctitle
-        setproctitle.setproctitle('python TVMLServer (play wait {})'.format(_id))
-    except:
-        pass
-    now = time.time()
-    while not b.thread.stop and time.time() - now < 18000: #Max wait for 5 hours in case of stuck/aborted app
-        try:
-            r = b.thread.responses.get(False)
-            logger.debug('play_stop found response for {}'.format(r['id']))
-            if r['id'] == _id:
-                logger.debug('received response to {}'.format(_id))
-                res = r['response']
-                break
-            else:
-                b.thread.responses.put(r)
-        except:
-            gevent.sleep(1)
-    b.play = None
-    if time.time() - now < 18000:
-        if res and stop_completion:
-            logger.debug('detected player stop at time {}'.format(kodi_utils.b64decode(res)))
-            stop_completion(kodi_utils.b64decode(res))
-    else:
-        logger.debug('forced player stop due to unresponsiveness')
-        if stop_completion:
-            stop_completion(0)
-
-
 def progress_stop(responses, stop, _id):
     try:
         import setproctitle
@@ -166,17 +134,23 @@ class bridge:
         return ans
 
     def play(self, url, type_='video', title=None, description=None, image=None, imdb=None, season=None, episode=None, stop_completion=None):
-        """Plays a url"""
+        """
+        Playes an item
+        :param url: url to play
+        :param type_: 'video' or 'audio'
+        :param title: item title
+        :param description: item description
+        :param image: item artwork
+        :param imdb: imdb id
+        :param season: season number
+        :param episode: episode number
+        :param stop_completion: callback when item has finished playing. Called with stop time and total time
+        :return:
+        """
         logger.debug('Playing {}'.format(url))
         self.play = url
         _id = kodi_utils.randomword()
-        try:
-            p = multiprocessing.Process(target=play_stop, args=(self, _id, stop_completion))
-            p.daemon = True
-            p.start()
-        except:
-            logger.exception('Failed to start play progress process.')
-        self._message({'type':'play', 'url':url, 'stop':'/response/{}/{}'.format(self.thread.id, _id), 'playtype': type_, 'title':title, 'description':description, 'image':image, 'imdb':imdb, 'season':season, 'episode':episode})
+        self._message({'type':'play', 'url':url, 'playtype': type_, 'title':title, 'description':description, 'image':image, 'imdb':imdb, 'season':season, 'episode':episode})
         return
 
     def isplaying(self):
@@ -210,11 +184,5 @@ class bridge:
 
     def saveSettings(self):
         import xbmcaddon
-        settings_after = {id: xbmcaddon.ADDON_CACHE[id].settings for id in xbmcaddon.ADDON_CACHE}
-        for id in self.settings:
-            if id not in settings_after:
-                settings_after[id] = self.settings[id]
-        if self.settings != settings_after:
-            logger.debug('Saving settings')
-            self._message({'type': 'saveSettings', 'settings': settings_after})
-            time.sleep(2) #Allow time for client to process message before continuing
+        for id in xbmcaddon.ADDON_CACHE:
+            kodi_utils.set_settings(id, xbmcaddon.ADDON_CACHE[id].settings)

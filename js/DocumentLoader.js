@@ -44,51 +44,17 @@ DocumentLoader.prototype.fetchPost = function(options) {
     xhr.onload = function() {
         try {
             var msg = xhr.response;
+            console.log('Got message '+msg);
             var end = msg['end'];
             var type = msg['messagetype'] || "undefined";
             if (type == 'play') { //play
-                var time;
-                var playCache = localStorage.getItem('playCache');
-                var history = localStorage.getItem('history');
-                if (playCache == null) {
-                    playCache = '{}';
-                }
-                if (history == null) {
-                    history = '{}';
-                }
-                playCache = JSON.parse(playCache);
-                history = JSON.parse(history);
-                var imdb = msg['imdb'];
-                var season = msg['season'];
-                var episode = msg['episode'];
-                if (imdb != null) {
-                    var search = imdb;
-                    if (season != null) {
-                        search += "S"+season;
-                    }
-                    if (episode != null) {
-                        search += "E"+episode;
-                    }
-                    if (playCache[search] != null) { //if we've played this item before, retrieve it's stop time
-                        time = playCache[search];
-                    } else if (playCache[msg['url']] != null) { //if we've played this url before, retrieve it's stop time
-                        time = playCache[msg['url']];
-                    } else {
-                        time = 0;
-                    }
-                } else {
-                    if (playCache[msg['url']] != null) { //if we've played this url before, retrieve it's stop time
-                        time = playCache[msg['url']];
-                    } else {
-                        time = 0;
-                    }
-                }
+                var time = msg['time'];
                 //VLC player
                 try {
                     if (time != 0) {
                         var formattedTime = this.formatTime(Math.floor(time/1000)); //convert to fomatted time in seconds
                         if (formattedTime == "00:00") {
-                            this.play(msg, 0, playCache, function(time) {
+                            this.play(msg, 0, function(time) {
                                 //continue if needed
                                 if (typeof end == "undefined" || !end) {
                                     options.url = msg['return_url'];
@@ -99,7 +65,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
                             var resume = createResumeDocument(formattedTime);
                             resume.getElementById("resume").addEventListener("select", function() {
                                 navigationDocument.removeDocument(resume);
-                                this.play(msg, time, playCache, history, function(time) {
+                                this.play(msg, time, function(time) {
                                     //continue if needed
                                     if (typeof end == "undefined" || !end) {
                                         options.url = msg['return_url'];
@@ -109,7 +75,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
                             }.bind(this));
                             resume.getElementById("begin").addEventListener("select", function() {
                                 navigationDocument.removeDocument(resume);
-                                this.play(msg, 0, playCache, history, function(time) {
+                                this.play(msg, 0, function(time) {
                                     //continue if needed
                                     if (typeof end == "undefined" || !end) {
                                         options.url = msg['return_url'];
@@ -120,7 +86,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
                             navigationDocument.pushDocument(resume);
                         }
                     } else {
-                        this.play(msg, time, playCache, history, function(time) {
+                        this.play(msg, time, function(time) {
                             //continue if needed
                             if (typeof end == "undefined" || !end) {
                                 options.url = msg['return_url'];
@@ -152,24 +118,6 @@ DocumentLoader.prototype.fetchPost = function(options) {
                 if (typeof end == "undefined" || !end) {
                     options.url = msg['return_url'];
                     options.silent = true; //load next page silently so as not to show loading document
-                    this.fetchPost(options);
-                }
-            } else if (type == 'savesettings') {
-                saveSettings(msg['settings']);
-                if (typeof end == "undefined" || !end) {
-                    options.url = msg['return_url'];
-                    this.fetchPost(options);
-                }
-            } else if(type == 'loadsettings') {
-                var settings = loadSettings();
-                //return response
-                this.fetchPost({
-                    url:'/response/'+msg['msgid'],
-                    silent: true,
-                    data:btoa(JSON.stringify(settings))
-                });
-                if (typeof end == "undefined" || !end) {
-                    options.url = msg['return_url'];
                     this.fetchPost(options);
                 }
             } else if (type == 'load') { //load url
@@ -621,47 +569,27 @@ function traverseElements(elem, callback) {
     }
 }
 
-DocumentLoader.prototype.play = function(msg, time, playCache, history, callback) {
+DocumentLoader.prototype.play = function(msg, time, callback) {
     try {
         var player = VLCPlayer.createPlayerWithUrlTimeImageDescriptionTitleImdbSeasonEpisodeCallback(msg['url'], time, this.prepareURL(msg['image']), msg['description'], msg['title'], msg['imdb'], msg['season'], msg['episode'], function(time) {
             try {
                 var total = player.getDuration();
                 console.log("player ended with "+time+"ms out of "+total+"ms");
-                if (total != 0 && (total - time) * 100/total <=3) { //if we've stopped at more than 97% play time, don't resume
+                if (typeof time == "undefined") {
                     time = 0;
                 }
-                console.log("calculated time is "+time);
-                var imdb = msg['imdb'];
-                var season = msg['season'];
-                var episode = msg['episode'];
-                if (imdb != null) {
-                    var search = imdb;
-                    if (season != null) {
-                        search += "S"+season;
-                    }
-                    if (episode != null) {
-                        search += "E"+episode;
-                    }
-                    playCache[search] = time;
-                } else {
-                    playCache[msg['url']] = time;
+                if (typeof total == "undefined") {
+                    total = 0;
                 }
-                if (typeof total == "undefined" || total == 0 || time == 0) {
-                    //do nothing
-                } else if (time * 100 / total > 95) {
-                    history[msg['history']] = 1; //finished playing
-                } else {
-                    history[msg['history']] = 2; //middle of playing
-                }
-                localStorage.setItem('playCache', JSON.stringify(playCache)); //save this url's stop time for future playback
-                localStorage.setItem('history', JSON.stringify(history)); //save this url's stop time for future playback
-                var url = this.prepareURL(msg['stop']+"/"+btoa(time.toString()));
+                var url = this.prepareURL(msg['stop']+"/"+btoa(JSON.stringify({'time':time.toString(), 'total':total.toString()})));
                 console.log("notifying "+url);
                 VLCPlayer.notify(url);
             } catch (e) {
                 console.log(e);
             }
-            callback(time);
+            setTimeout(function() {
+				callback(time);
+			}, 0);
         }.bind(this));
         console.log("after create player: "+player);
 
@@ -717,37 +645,22 @@ DocumentLoader.prototype.play = function(msg, time, playCache, history, callback
             }, {"interval":1});
             myPlayer.addEventListener("stateDidChange", function(e) {
                 if(e.state == "end") {
-                    if (duration !=0 && (duration - currenttime) * 100/duration <=3) { //if we've stopped at more than 97% play time, don't resume
-                        currenttime = 0;
-                    }
-                    currenttime = currenttime * 1000;
-                    var imdb = msg['imdb'];
-                    var season = msg['season'];
-                    var episode = msg['episode'];
-                    if (imdb != null) {
-                        var search = imdb;
-                        if (season != null) {
-                            search += "S"+season;
+                	try {
+                        if (typeof duration == "undefined") {
+                            duration = 0;
                         }
-                        if (episode != null) {
-                            search += "E"+episode;
+                        if (typeof currenttime == "undefined") {
+                            currenttime = 0;
                         }
-                        playCache[search] = currenttime;
-                    } else {
-                        playCache[msg['url']] = currenttime;
-                    }
-                    if (typeof duration == "undefined" || duration == 0 || currenttime == 0) {
-                        //do nothing
-                    } else if (currenttime * 100 / duration > 95) {
-                        history[msg['history']] = 1; //finished playing
-                    } else {
-                        history[msg['history']] = 2; //middle of playing
-                    }
-                    localStorage.setItem('playCache', JSON.stringify(playCache)); //save this url's stop time for future playback
-                    localStorage.setItem('history', JSON.stringify(history)); //save this url's stop time for future playback
-                    var url = this.prepareURL(msg['stop']+"/"+btoa(currenttime.toString()));
-                    notify(url);
-                    callback(currenttime);
+                        currenttime = currenttime * 1000; //since we're getting ms from player
+                        var url = this.prepareURL(msg['stop'] + "/" + btoa(JSON.stringify({'time': currenttime.toString(), 'total': duration.toString()})));
+                        notify(url);
+                    } catch (err) {
+                		console.log(err);
+					}
+                    setTimeout(function() {
+						callback(currenttime);
+					});
                 }
             }.bind(this), false);
         }
@@ -755,9 +668,19 @@ DocumentLoader.prototype.play = function(msg, time, playCache, history, callback
         console.log(e);
         var alert = createAlertDocument("Error", "Error playing URL "+msg['url'], true);
         navigationDocument.presentModal(alert);
-        var url = this.prepareURL(msg['stop']+"/"+btoa(time.toString()));
-        notify(url);
-        callback(null);
+        if (typeof time == "undefined") {
+			time = 0;
+		}
+		if (typeof total == "undefined") {
+			total = 0;
+		}
+		var url = this.prepareURL(msg['stop']+"/"+btoa(JSON.stringify({'time':time.toString(), 'total':total.toString()})));
+		console.log("notifying "+url);
+		VLCPlayer.notify(url);
+		setTimeout(function() {
+			callback(null);
+		});
+
     }
 
 }

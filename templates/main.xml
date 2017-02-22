@@ -111,7 +111,7 @@ See LICENSE.txt for this sample’s licensing information
                         <list style="width: 1000">
                             <section>
                                 <header><title>Languages</title></header>
-                                <listItemLockup style="height: 200" onselect="showSelectDialog('Select language', {{languages}}, {{languages}}.indexOf('{{current_language}}'), function(ans) { if (typeof ans != 'undefined') {localStorage.setItem('language', ans); notify('/setLanguage', btoa(ans)); event.target.children.item(1).textContent=ans;}});">
+                                <listItemLockup style="height: 200" onselect="showSelectDialog('Select language', {{languages}}, {{languages}}.indexOf('{{current_language}}'), function(ans) { if (typeof ans != 'undefined') {notify('/setLanguage', btoa(ans)); event.target.children.item(1).textContent=ans;}});">
                                     <title>Addons language</title>
                                     <decorationLabel class="foo">{{current_language}}</decorationLabel>
                                     <subtitle style="tv-text-max-lines: 4">Modify the language used internally by addons to show menus and metadata. Support for this language is dependent on the addon itself</subtitle>
@@ -137,17 +137,21 @@ See LICENSE.txt for this sample’s licensing information
                                     <title>View server log</title>
                                     <subtitle style="tv-text-max-lines: 2">View internal server log of all activity</subtitle>
                                 </listItemLockup>
-                                <listItemLockup onselect="notify('/clearLog')">
-                                    <title>Clear server log</title>
-                                    <subtitle>Clear the server log</subtitle>
+                                <listItemLockup onselect="clearPlay();">
+                                    <title>Clear play history</title>
+                                    <subtitle>Clear history of all played items</subtitle>
+                                </listItemLockup>
+                                <listItemLockup onselect="clearSettings();">
+                                    <title>Clear addons settings</title>
+                                    <subtitle>Restore all addons settings to default</subtitle>
+                                </listItemLockup>
+                                <listItemLockup onselect="clearAll();">
+                                    <title>Clear all settings</title>
+                                    <subtitle>Clear all application settings</subtitle>
                                 </listItemLockup>
                                 <listItemLockup style="height: 150" onselect="restartServer()">
                                     <title>Restart server</title>
                                     <subtitle style="tv-text-max-lines: 2">Restart the server process. Use this when unusual stuff happens</subtitle>
-                                </listItemLockup>
-                                <listItemLockup onselect="load('/checkForUpdate')">
-                                    <title>Check for update</title>
-                                    <subtitle>Check for update. No auto-update yet. Sorry</subtitle>
                                 </listItemLockup>
                             </section>
                         </list>
@@ -161,18 +165,7 @@ See LICENSE.txt for this sample’s licensing information
                         <list style="width:1000">
                             <section>
                                 <header><title>Clear persistent settings</title></header>
-                                <listItemLockup onselect="clearPlay();">
-                                    <title>Clear play history</title>
-                                    <subtitle>Clear history of all played items</subtitle>
-                                </listItemLockup>
-                                <listItemLockup onselect="clearSettings();">
-                                    <title>Clear addons settings</title>
-                                    <subtitle>Restore all addons settings to default</subtitle>
-                                </listItemLockup>
-                                <listItemLockup onselect="clearAll();">
-                                    <title>Clear all settings</title>
-                                    <subtitle>Clear all application settings</subtitle>
-                                </listItemLockup>
+
                             </section>
                         </list>
                     </relatedContent>
@@ -199,6 +192,10 @@ See LICENSE.txt for this sample’s licensing information
                                 <listItemLockup>
                                     <title>Version</title>
                                     <decorationLabel>{{version}}</decorationLabel>
+                                </listItemLockup>
+                                <listItemLockup onselect="load('/checkForUpdate')">
+                                    <title>Check for update</title>
+                                    <subtitle>Check for update. No auto-update yet. Sorry</subtitle>
                                 </listItemLockup>
                             </section>
                         </list>

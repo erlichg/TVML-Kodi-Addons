@@ -251,9 +251,6 @@ class Addon(object):
             for attrib in self.settings[cat]:
                 if 'visible' in attrib and not isvisible(attrib):
                     continue
-                if 'type' in attrib and attrib['type'] == 'lsep':
-                    fields.append({'type':'label', 'label':self.getLocalizedString(attrib['label']), 'value':''})
-                    continue
                 if 'label' not in attrib:
                     continue
                 _type = attrib['type']
@@ -269,6 +266,14 @@ class Addon(object):
                     fields.append({'id':attrib['id'], 'type':'textfield', 'label':self.getLocalizedString(attrib['label']), 'value':attrib['value'], 'secure':'option' in attrib and 'hidden' in attrib['option']})
                 elif _type == 'action':
                     fields.append({'id':attrib['id'], 'type':'action', 'label':self.getLocalizedString(attrib['label']), 'action':attrib['action'], 'value':attrib['value'] if 'value' in attrib else ''})
+                elif _type == 'lsep' or _type == 'sep':
+                    fields.append({'type':'sep', 'label':self.getLocalizedString(attrib['label'])})
+                elif _type == 'ipaddress':
+                    fields.append({'id': attrib['id'], 'type': 'ipaddress', 'label': self.getLocalizedString(attrib['label']), 'value': attrib['value'], 'secure': 'option' in attrib and 'hidden' in attrib['option']})
+                elif _type == 'number':
+                    fields.append({'id': attrib['id'], 'type': 'number', 'label': self.getLocalizedString(attrib['label']), 'value': attrib['value'], 'secure': 'option' in attrib and 'hidden' in attrib['option']})
+                elif _type == 'slider':
+                    fields.append({'id': attrib['id'], 'type': 'slider', 'label': self.getLocalizedString(attrib['label']), 'value': attrib['value'], 'secure': 'option' in attrib and 'hidden' in attrib['option']})
                 else:
                     fields.append({'type':'label', 'label':self.getLocalizedString(attrib['label']), 'value':'Not supported'})
             if not fields:
@@ -291,7 +296,7 @@ class Addon(object):
             elif field['type'] == 'enum':
                 values = field['values'].split("|") if 'values' in field else [self.getLocalizedString(s) for s in field['lvalues'].split("|")]
                 val = values.index(ans[id])
-            elif field['type'] == 'text':
+            elif field['type'] in ['text', 'ipaddress', 'number', 'slider']:
                 val = ans[id]
             self.setSetting(id, val)
 

@@ -218,23 +218,17 @@ function replaceLoadingDocument(newdoc) {
 }
 
 function clearPlay() {
-	localStorage.setItem('playCache', '{}');
-	localStorage.setItem('history', '{}');
+	notify('/clearPlay');
 	refreshMainScreen();
 }
 
 function clearSettings() {
-	for (var i=0;i<localStorage.length;i++) {
-		var key = localStorage.key(i);
-		if (key!='playCache' && key!='history'&&key!='language'&&key!='favourites'&&key!='proxy') {
-			localStorage.setItem(key, '{}');
-		}
-	}
+	notify('/clearSettings');
 	refreshMainScreen();
 }
 
 function clearAll() {
-	localStorage.clear();
+	notify('/clearAll');
 	refreshMainScreen();
 }
 
@@ -443,7 +437,7 @@ function browse(dir, filter, special) {
 	}
 }
 
-function showInputDialog(title, description, placeholder, button, secure, callback) {
+function showInputDialog(title, description, placeholder, button, secure, keyboard, prepopulate, callback) {
 	if(typeof description == "undefined") {
 		description = '';
 	}
@@ -456,6 +450,9 @@ function showInputDialog(title, description, placeholder, button, secure, callba
 	if(typeof secure == "undefined") {
 		secure = false;
 	}
+	if (typeof keyboard == "undefined") {
+		keyboard = 'default';
+	}
 	var template = `<?xml version="1.0" encoding="UTF-8" ?>
 	<document>
 		<formTemplate>
@@ -463,7 +460,7 @@ function showInputDialog(title, description, placeholder, button, secure, callba
 				<title>${title}</title>
 				<description>${description}</description> 
 			</banner>               
-			<textField id="text" secure="${secure}">${placeholder}</textField>		
+			<textField id="text" secure="${secure}" keyboardType="${keyboard}">${placeholder}</textField>		
 			<footer>
 				<button id="button">
 					<text>${button}</text>
@@ -485,6 +482,9 @@ function showInputDialog(title, description, placeholder, button, secure, callba
 			callback();
 		}
 	});
+	if (typeof prepopulate != "undefined") {
+		dialog.getElementById("text").getFeature('Keyboard').text = prepopulate;
+	}
 	navigationDocument.presentModal(dialog);
 }
 

@@ -11,7 +11,7 @@ import xbmcaddon as _xbmcaddon
 import time, re, os, sys, tempfile, logging, zipfile
 logger = logging.getLogger('TVMLServer')
 import kodi_utils
-
+import random
 if getattr(sys, 'frozen', False):
 	# we are running in a bundle
 	bundle_dir = sys._MEIPASS
@@ -488,18 +488,16 @@ class PlayList(object):
 
 		Use PlayList[int position] or __getitem__(int position) to get a PlayListItem.
 		"""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
-		pass
+		self.playlist = []
+		self.position = -1
 
 	def __getitem__(self, item):
 		"""x.__getitem__(y) <==> x[y]"""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
-		return _xbmcgui.ListItem()
+		return self.playlist.__getitem__(item)
 
 	def __len__(self):
 		"""x.__len__() <==> len(x)"""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
-		return int()
+		return self.playlist.__len__()
 
 	def add(self, url, listitem=None, index=-1):
 		"""Adds a new file to the playlist.
@@ -516,8 +514,10 @@ class PlayList(object):
 			listitem.setInfo('video', {'Title': 'Ironman', 'Genre': 'Science Fiction'})
 			playlist.add(url=video, listitem=listitem, index=7)
 		"""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
-		pass
+		if index==-1:
+			self.playlist.append({'url':url, 'listitem':listitem})
+		else:
+			self.playlist.insert(index, {'url':url, 'listitem':listitem})
 
 	def load(self, filename):
 		"""Load a playlist.
@@ -529,7 +529,7 @@ class PlayList(object):
 		:return: ``False`` if unable to load playlist, True otherwise.
 		"""
 		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
-		return bool(1)
+		return False
 
 	def remove(self, filename):
 		"""Remove an item with this filename from the playlist.
@@ -541,13 +541,11 @@ class PlayList(object):
 
 	def clear(self):
 		"""Clear all items in the playlist."""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
-		pass
+		self.playlist = []
 
 	def shuffle(self):
 		"""Shuffle the playlist."""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
-		pass
+		random.shuffle(self.playlist)
 
 	def unshuffle(self):
 		"""Unshuffle the playlist."""
@@ -556,18 +554,15 @@ class PlayList(object):
 
 	def size(self):
 		"""Returns the total number of PlayListItems in this playlist."""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
-		return int()
+		return len(self.playlist)
 
 	def getposition(self):
 		"""Returns the position of the current song in this playlist."""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
-		return int()
+		return self.position
 
 	def getPlayListId(self):
 		"""getPlayListId() --returns an integer."""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
-		return int()
+		return id(self)
 
 
 class PlayListItem(object):

@@ -30,9 +30,9 @@ See LICENSE.txt for this sample’s licensing information
 				{% endif %}
 					<row>
 				 	<title class="foo">{{item.title}}</title>
-					{% if item.status == 1 %}
+					{% if item.play_state == 2 %}
 					<badge class="foo" src="resource://button-checkmark"/>
-					{% elif item.status == 2 %}
+					{% elif item.play_state == 1 %}
 					<badge class="foo" src="resource://button-play"/>
 					{% endif %}
 					</row>
@@ -59,9 +59,9 @@ See LICENSE.txt for this sample’s licensing information
 				{% endif %}
 					<row>
 				 	<title class="foo">{{item.title}}</title>
-					{% if item.status == 1 %}
+					{% if item.play_state == 2 %}
 					<badge class="foo" src="resource://button-checkmark"/>
-					{% elif item.status == 2 %}
+					{% elif item.play_state == 1 %}
 					<badge class="foo" src="resource://button-play"/>
 					{% endif %}
 					</row>
@@ -88,9 +88,9 @@ See LICENSE.txt for this sample’s licensing information
 					<img style="tv-placeholder: movie;" src="{{item.icon}}" width="{{item.width}}" height="{{item.height}}"/>
 				 	<title class="foo2">{{item.title}}</title>
 					<overlay style="padding: 0">
-					{% if item.status == 1 %}
+					{% if item.play_state == 2 %}
 					<badge class="foo3" src="resource://overlay-checkmark"/>
-					{% elif item.status == 2 %}
+					{% elif item.play_state == 1 %}
 					<badge class="foo3" src="resource://button-play"/>
 					{% endif %}
 					</overlay>

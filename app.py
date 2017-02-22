@@ -1,7 +1,8 @@
 from __future__ import division
 import sys, os, imp, urllib, json, time, traceback, re, getopt, tempfile, AdvancedHTMLParser, urllib2, urlparse, zipfile, shutil, requests, logging, psutil, subprocess, sqlite3
 from threading import Timer
-from contextlib import contextmanager
+from scripts import kodi_utils
+import jinja2
 
 VERSION='0.6'
 
@@ -86,14 +87,13 @@ if not os.path.isdir(os.path.join(DATA_DIR, 'db')):
     print '{} not a directory or cannot be created'.format(os.path.join(DATA_DIR, 'db'))
     sys.exit(2)
 DB_FILE = os.path.join(DATA_DIR, 'db', 'TVMLServer.db')
-
+kodi_utils.DB_FILE = DB_FILE
+open_db = kodi_utils.open_db
 
 sys.path.append(os.path.join(bundle_dir, 'scripts'))
 sys.path.append(os.path.join(bundle_dir, 'scripts', 'kodi'))
 sys.path.append(os.path.join(DATA_DIR, 'addons'))
 
-from scripts import kodi_utils
-import jinja2
 
 app = Flask(__name__, template_folder=os.path.join(bundle_dir, 'templates'))
 app.jinja_env.filters['base64encode'] = kodi_utils.b64encode
@@ -105,25 +105,7 @@ class EverythingConverter(PathConverter):
     regex = '.*?'
 app.url_map.converters['everything'] = EverythingConverter
 
-@contextmanager
-def open_db():
-    global DB_FILE
-    if not os.path.exists(DB_FILE):
-        open(DB_FILE, 'w').close()
-    for i in range(10):
-        try:
-            CONN = sqlite3.connect(DB_FILE)
-        except:
-            logger.exception('Failed to open DB')
-            time.sleep(1)
-    if not CONN:
-        raise Exception('DB is locked')
-    CONN.row_factory = sqlite3.Row
-    DB = CONN.cursor()
-    yield DB
-    CONN.commit()
-    DB.close()
-    CONN.close()
+
 
 
 from scripts.Plugin import Plugin, Item
@@ -231,17 +213,26 @@ def route(pid, id, res=None):
     else:
         return json.dumps({'messagetype': 'nothing', 'end':True})
 
+@app.route('/playstop/<s>/<text>', methods=['GET'])
+def playstop(s, text):
+    try:
+        s = kodi_utils.b64decode(s)
+        text = json.loads(kodi_utils.b64decode(text))
+        kodi_utils.set_play_history(s, text['time'], text['total'])
+    except:
+        logger.exception('Failed to set play history')
+    return json.dumps({'messagetype': 'nothing', 'end': True})
+
 
 @app.route('/icon.png')
 def icon():
     return send_from_directory(bundle_dir, 'icon.png')
 
 
-PROXY=False
 
 @app.route('/cache/<id>')
 def cache(id):
-    if PROXY:
+    if kodi_utils.get_config('proxy'):
         file = imageCache.get(id)
         if file:
             return send_file(file)
@@ -254,8 +245,8 @@ def cache(id):
 
 @app.route('/toggleProxy')
 def toggle_proxy():
-    global PROXY
-    PROXY = not PROXY
+    proxy = not kodi_utils.get_config('proxy')
+    kodi_utils.set_config('proxy', proxy)
     return json.dumps({'messagetype': 'nothing', 'end':True})
 
 @app.route('/addons/<path:filename>')
@@ -281,18 +272,10 @@ def template(filename):
 # @app.route('/catalog/<pluginid>/<url>/<process>')
 def catalog(pluginid, process=None):
     url = None
-    LANGUAGE='English'
-    settings = None
-    history = None
     if request.method == 'POST':
         try:
             post_data = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
-            #logger.debug(post_data)
-            favs_json = json.loads(post_data['favs'])
             url = post_data['url']
-            LANGUAGE = post_data['lang']
-            settings = post_data['settings']
-            #history = json.loads(post_data['history'])
         except:
             logger.exception('Failed to parse post data')
             url = request.form.keys()[0]
@@ -318,15 +301,13 @@ def catalog(pluginid, process=None):
         global PROCESSES
         if process:
             if not process in PROCESSES:
-                doc = render_template('alert.xml', title='Fatal error',
-                                       description="Failed to load page.\nSomething has gone terribly wrong.\nPlease try to restart the App")
-                return json.dumps({'doc': doc, 'end': True})
+                return json.dumps({'messagetype': 'nothing', 'end': True}) #For some reason the process has already ended and was deleted
             p = PROCESSES[process]
         else:
             if request.full_path.startswith('/catalog'):
-                p = Process(target=get_items, args=(plugin['id'], decoded_url, CONTEXT, LANGUAGE, settings))
+                p = Process(target=get_items, args=(plugin['id'], decoded_url, CONTEXT))
             else:
-                p = Process(target=get_menu, args=(plugin['id'], decoded_url, LANGUAGE, settings))
+                p = Process(target=get_menu, args=(plugin['id'], decoded_url))
             logger.debug('saving process id {}'.format(p.id))
             PROCESSES[p.id] = p
 
@@ -375,7 +356,7 @@ def catalog(pluginid, process=None):
                     # else:
                     # No url and no response so add 'fake' url
                     #	return_url = '{}/{}/{}'.format(request.url, 'fake', p.id)
-                    ans = method(plugin, msg, return_url, decoded_url, history)
+                    ans = method(plugin, msg, return_url, decoded_url)
                     #time.sleep(1)
                     ans['end'] = msg['type'] == 'end'
                     if not ans['end'] and not 'return_url' in ans:
@@ -414,8 +395,8 @@ def catalog(pluginid, process=None):
                     # p.join()
                     # p.terminate()
                     logger.debug('PROCESS {} TERMINATED'.format(p.id))
-                ans = method(plugin, msg, request.url, decoded_url, history) if process else method(plugin, msg,
-                                                                               '{}/{}'.format(request.url, p.id), decoded_url, history)
+                ans = method(plugin, msg, request.url, decoded_url) if process else method(plugin, msg,
+                                                                               '{}/{}'.format(request.url, p.id), decoded_url)
                 ans['end'] = msg['type'] == 'end'
                 if not ans['end'] and not 'return_url' in ans:
                     print 'blah'
@@ -447,27 +428,12 @@ def catalog(pluginid, process=None):
 @app.route('/main', methods=['POST'])
 def main():
     try:
-        favs = []
-        try:
-            post_data = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
-            favs_json = json.loads(post_data['favs'])
-            clear_favorites()
-            for id in favs_json:
-                addon = get_installed_addon(id)
-                if not addon:
-                    logger.warning('No match found for favorite addon {}'.format(id))
-                    continue  # no match found
-                set_installed_addon_favorite(id, True)
-            global LANGUAGE
-            LANGUAGE = post_data['lang']
-            global PROXY
-            PROXY = True if post_data['proxy'] == 'true' else False
-        except:
-            pass
-
+        favs = kodi_utils.get_config('favorite_addons')
+        proxy = kodi_utils.get_config('proxy_mode')
+        language = kodi_utils.get_config('addon_language')
         filtered_plugins =  [p for p in get_all_installed_addons() if [val for val in json.loads(p['type']) if val in ['Video', 'Audio']]] #Show only plugins with video/audio capability since all others are not supported
         fav_plugins = [p for p in filtered_plugins if p['favorite']]
-        doc = render_template('main.xml', menu=filtered_plugins, favs=fav_plugins, url=request.full_path, proxy='On' if PROXY else 'Off', version=VERSION, languages=["Afrikaans", "Albanian", "Amharic", "Arabic", "Armenian", "Azerbaijani", "Basque", "Belarusian", "Bosnian", "Bulgarian", "Burmese", "Catalan", "Chinese", "Croatian", "Czech", "Danish", "Dutch", "English", "Esperanto", "Estonian", "Faroese", "Finnish", "French", "Galician", "German", "Greek", "Hebrew", "Hindi", "Hungarian", "Icelandic", "Indonesian", "Italian", "Japanese", "Korean", "Latvian", "Lithuanian", "Macedonian", "Malay", "Malayalam", "Maltese", "Maori", "Mongolian", "Norwegian", "Ossetic", "Persian", "Persian", "Polish", "Portuguese", "Romanian", "Russian", "Serbian", "Silesian", "Sinhala", "Slovak", "Slovenian", "Spanish", "Spanish", "Swedish", "Tajik", "Tamil", "Telugu", "Thai", "Turkish", "Ukrainian", "Uzbek", "Vietnamese", "Welsh"], current_language=LANGUAGE)
+        doc = render_template('main.xml', menu=filtered_plugins, favs=fav_plugins, url=request.full_path, proxy='On' if proxy else 'Off', version=VERSION, languages=["Afrikaans", "Albanian", "Amharic", "Arabic", "Armenian", "Azerbaijani", "Basque", "Belarusian", "Bosnian", "Bulgarian", "Burmese", "Catalan", "Chinese", "Croatian", "Czech", "Danish", "Dutch", "English", "Esperanto", "Estonian", "Faroese", "Finnish", "French", "Galician", "German", "Greek", "Hebrew", "Hindi", "Hungarian", "Icelandic", "Indonesian", "Italian", "Japanese", "Korean", "Latvian", "Lithuanian", "Macedonian", "Malay", "Malayalam", "Maltese", "Maori", "Mongolian", "Norwegian", "Ossetic", "Persian", "Persian", "Polish", "Portuguese", "Romanian", "Russian", "Serbian", "Silesian", "Sinhala", "Slovak", "Slovenian", "Spanish", "Spanish", "Swedish", "Tajik", "Tamil", "Telugu", "Thai", "Turkish", "Ukrainian", "Uzbek", "Vietnamese", "Welsh"], current_language=language)
         return json.dumps({'doc':doc, 'end': True})
     except:
         logger.exception('Failed to load main screen')
@@ -475,11 +441,41 @@ def main():
                               description="Failed to main page.\nThis means the server has a problem")
         return json.dumps({'doc': doc, 'end': True})
 
+
+@app.route('/clearPlay')
+def clear_play():
+    try:
+        with open_db() as DB:
+            DB.execute('delete from HISTORY')
+    except:
+        logger.exception('Failed to clear history')
+    return json.dumps({'messagetype': 'nothing', 'end': True})
+
+@app.route('/clearSettings')
+def clear_settings():
+    try:
+        with open_db() as DB:
+            DB.execute('delete from SETTINGS')
+    except:
+        logger.exception('Failed to clear settings')
+    return json.dumps({'messagetype': 'nothing', 'end': True})
+
+@app.route('/clearAll')
+def clear_all():
+    try:
+        with open_db() as DB:
+            DB.execute('delete from SETTINGS')
+            DB.execute('delete from HISTORY')
+            DB.execute('delete from CONFIG')
+    except:
+        logger.exception('Failed to clear all')
+    return json.dumps({'messagetype': 'nothing', 'end': True})
+
 @app.route('/setLanguage', methods=['POST'])
 def set_language():
     try:
-        global LANGUAGE
-        LANGUAGE = kodi_utils.b64decode(request.form.keys()[0])
+        language = kodi_utils.b64decode(request.form.keys()[0])
+        kodi_utils.set_config('addon_language', language)
     except:
         logger.exception('Failed to set language')
     return json.dumps({'messagetype':'nothing', 'end': True})
@@ -527,7 +523,7 @@ def remove_addon(id):
         DB.execute('delete from INSTALLED where id=?', (id,))
 
 
-def get_items(plugin_id, url, context, LANGUAGE, settings):
+def get_items(plugin_id, url, context):
     if 'setproctitle' in sys.modules:
         setproctitle.setproctitle('python TVMLServer ({}:{})'.format(plugin_id, url))
     kodi_utils.windows_pyinstaller_multiprocess_hack()
@@ -540,7 +536,7 @@ def get_items(plugin_id, url, context, LANGUAGE, settings):
             raise Exception('could not load plugin')
         b = bridge()
         b.context = context
-        items = plugin.run(b, url, LANGUAGE, settings)
+        items = plugin.run(b, url)
         del plugin
         del b
         del logger
@@ -551,7 +547,7 @@ def get_items(plugin_id, url, context, LANGUAGE, settings):
     return items
 
 
-def get_menu(plugin_id, url, LANGUAGE, settings):
+def get_menu(plugin_id, url):
     print('Getting menu for: {}'.format(url))
     url = url.split('?')[1] if '?' in url else url
     try:
@@ -559,19 +555,15 @@ def get_menu(plugin_id, url, LANGUAGE, settings):
         if not plugin:
             raise Exception('could not load plugin')
         b = bridge()
-        items = plugin.settings(b, url, LANGUAGE, settings)
+        items = plugin.settings(b, url)
     except:
         logger.exception('Encountered error in plugin: {}'.format(plugin_id))
         items = None
     return items
 
 
-def get_settings():
-    logger.debug('getting settings')
-    try:
-        b = bridge()
-    except:
-        logger.exception('Encountered error in settings')
+
+
 
 
 def is_ascii(s):
@@ -673,18 +665,24 @@ def get_installed_addon(id):
         row = DB.execute('select * from INSTALLED where id=?', (id,)).fetchone()
         return row
 
-def set_installed_addon_favorite(id, fav):
+@app.route('/setFavorite', methods=['POST'])
+def set_installed_addon_favorite():
     """Updates the favorite column of the installed addon in the DB"""
-    with open_db() as DB:
+    try:
+        post_data = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
+        id = post_data['id']
+        fav = post_data['fav']
+        ans = kodi_utils.get_config('favorite_addons')
+        if not ans:
+            ans = []
         if fav:
-            DB.execute('update INSTALLED set favorite=1 where id=?',(id,))
+            ans.append(id)
         else:
-            DB.execute('update INSTALLED set favorite=0 where id=?', (id,))
-
-
-def clear_favorites():
-    with open_db() as DB:
-        DB.execute('update INSTALLED set favorite=0')
+            ans.remove(id)
+        kodi_utils.set_config('favorite_addons', ans)
+    except:
+        logger.exception('Failed to update addon favorite')
+    return json.dumps({'messagetype': 'nothing', 'end': True})
 
 
 def get_all_installed_addons():
@@ -1032,7 +1030,9 @@ def mmain(argv):
     ]
 
     with open_db() as DB:
-        DB.execute('create table if not exists SETTINGS(id text, string text)')
+        DB.execute('create table if not exists SETTINGS(id text primary_key, string text)')
+        DB.execute('create table if not exists CONFIG(id text primary_key, string text)')
+        DB.execute('create table if not exists HISTORY(s text primary_key, time integer, total integer)')
         DB.execute('drop table if exists ADDONS')
         DB.execute('create table ADDONS(id text, repo text, dir text, type text, name text, data text, version text, script text, requires text, icon text)')
         DB.execute('drop table if exists INSTALLED')

@@ -1,26 +1,13 @@
-from flask import Flask, render_template, send_from_directory, request
-import json
-import imageCache
+from flask import Flask, render_template
 import kodi_utils
-import traceback, sys, logging
+import logging
 logger = logging.getLogger('TVMLServer')
 
-import time
-import threading
-
-# utility - spawn a thread to execute target for each args
-def run_parallel_in_threads(target, args_list):
-    # wrapper to collect return value in a Queue
-    def task_wrapper(*args):
-        target(*args)
-    threads = [threading.Thread(target=task_wrapper, args=(args,)) for args in args_list]
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join()
 
 
-def end(plugin, msg, url=None, original_url=None, history=None):
+
+
+def end(plugin, msg, url=None, original_url=None):
     """Called on plugin end (i.e. when run function returns).
         renders various templates based on items attributes (ans attribute in msg)
     """
@@ -30,7 +17,6 @@ def end(plugin, msg, url=None, original_url=None, history=None):
         logger.debug('end sending 206')
         return {'messagetype':'nothing', 'return_url':url}
     template = None
-
     for item in items:
         if item.icon:
             if item.icon.startswith('addons'):
@@ -55,8 +41,13 @@ def end(plugin, msg, url=None, original_url=None, history=None):
         else:
             # we save in history the original item url
             search = item.url
-        if history and search in history:
-            item.status = history[search]
+        state = kodi_utils.get_play_history(search)
+        if state['time'] == 0 or state['total'] == 0:
+            item.play_state = 0 #item hasn't been played
+        elif state['time'] * 100 / state['total'] >= 95:
+            item.play_state = 2 #item has finished playing
+        else:
+            item.play_state = 1 #item is in mid play
     #widths = [item.width for item in items]
     #heights = [item.height for item in items]
     #avg_width = reduce(lambda x, y: x + y, widths) / len(widths)
@@ -68,7 +59,8 @@ def end(plugin, msg, url=None, original_url=None, history=None):
     doc = render_template("dynamic.xml", menu=items, plugin = plugin)
     return {'doc':doc, 'return_url':url}
 
-def play(plugin, msg, url=None, original_url=None, history=None):
+
+def play(plugin, msg, url=None, original_url=None):
     """Opens the player on msg url attribute"""
     if msg['image']:
         if msg['image'].startswith('addons'):
@@ -76,33 +68,37 @@ def play(plugin, msg, url=None, original_url=None, history=None):
         else:
             msg['image'] = '/cache/{}'.format(kodi_utils.b64encode(msg['image']))
     logger.debug('image after cache = {}'.format(msg['image']))
-    imdb = msg['imdb']
-    season = msg['season']
-    episode = msg['episode']
-    if imdb:
-        #we save in history the imdb id of the movie
-        history = imdb;
-        if season:
-            history += "S"+season;
-        if episode:
-            history += "E"+episode;
+    if msg['imdb']:
+        # we save in history the imdb id of the movie
+        search = msg['imdb'];
+        if msg['season']:
+            search += "S" + msg['season'];
+        if msg['episode']:
+            search += "E" + msg['episode'];
     else:
-        #we save in history the original item url
-        history = original_url
+        # we save in history the original item url
+        search = original_url
+    state = kodi_utils.get_play_history(search)
+    if state['time'] == 0 or state['total'] == 0:
+        time = 0  # item hasn't been played
+    elif state['time'] * 100 / state['total'] >= 95:
+        time = 0  # item has finished playing so start at beginning
+    else:
+        time = state['time']  # item is in mid play
     #since url paremeter is the original url that was called which resulted in a play message, we can save this url for time
     #return render_template('player.xml', url=msg['url'], type=msg['playtype'])
-    return json.dumps({'messagetype':'play', 'history':history, 'continue': url, 'url': msg['url'], 'stop': msg['stop'], 'type':msg['playtype'], 'imdb':msg['imdb'], 'title':msg['title'], 'description':msg['description'], 'image':msg['image'], 'season':msg['season'], 'episode':msg['episode']})
+    return {'messagetype':'play', 'stop':'/playstop/{}'.format(kodi_utils.b64encode(search)), 'time':time, 'continue': url, 'url': msg['url'], 'type':msg['playtype'], 'imdb':msg['imdb'], 'title':msg['title'], 'description':msg['description'], 'image':msg['image'], 'season':msg['season'], 'episode':msg['episode'], 'return_url':url}
 
-def isplaying(plugin, msg, url=None, original_url=None, history=None):
+def isplaying(plugin, msg, url=None, original_url=None):
     pass
 
 
-def inputdialog(plugin, msg, url=None, original_url=None, history=None):
+def inputdialog(plugin, msg, url=None, original_url=None):
     """Shows an input dialog with text field. Returns the response"""
     doc = render_template('inputdialog.xml', title=msg['title'], description=msg['description'], placeholder=msg['placeholder'], button=msg['button'], url=url, msgid=msg['id'], secure=msg['secure'])
     return {'doc':doc,'messagetype':'modal', 'return_url':url}
 
-def alertdialog(plugin, msg, url=None, original_url=None, history=None):
+def alertdialog(plugin, msg, url=None, original_url=None):
     """Shows an alert dialog"""
     timeout = 5000
     try:
@@ -112,20 +108,20 @@ def alertdialog(plugin, msg, url=None, original_url=None, history=None):
     doc = render_template('alert.xml', title=msg['title'], description=msg['description'], timeout=timeout, url=url, cont=msg['continue'])
     return {'doc': doc, 'return_url':url}
 
-def progressdialog(plugin, msg, url=None, original_url=None, history=None):
+def progressdialog(plugin, msg, url=None, original_url=None):
     """Shows a progress dialog. Initially with progress 0"""
     logger.debug('returning progress template with {}'.format(msg))
     doc = render_template('progressdialog.xml', title=msg['title'], text=msg['text'], value=msg['value'], url=url, msgid=msg['id'])
     return {'doc': doc, 'messagetype':'progress', 'return_url':url}
 
 
-def updateprogressdialog(plugin, msg, url=None, original_url=None, history=None):
+def updateprogressdialog(plugin, msg, url=None, original_url=None):
     logger.debug('updating progress template with {}'.format(msg))
     doc = render_template('progressdialog.xml', title=msg['title'], text=msg['text'], value=msg['value'], url=url, msgid=msg['id'])
     return {'doc': doc, 'messagetype':'updateprogress', 'return_url':url}
 
 
-def selectdialog(plugin, msg, url=None, original_url=None, history=None):
+def selectdialog(plugin, msg, url=None, original_url=None):
     items = msg['list']
     logger.debug(items)
     if not items or len(items) == 0:
@@ -140,28 +136,19 @@ def selectdialog(plugin, msg, url=None, original_url=None, history=None):
     return {'doc': doc, 'messagetype': 'modal', 'return_url':url}
 
 
-def closeprogress(plugin, msg, url=None, original_url=None, history=None):
+def closeprogress(plugin, msg, url=None, original_url=None):
     """Close the progress dialog"""
     logger.debug('close progress message')
     return {'messagetype':'closeprogress', 'return_url':url}
 
-def formdialog(plugin, msg, url=None, original_url=None, history=None):
+
+def formdialog(plugin, msg, url=None, original_url=None):
     #{'type':'formdialog', 'title':title, 'texts':texts, 'buttons':buttons}
     doc = render_template('multiformdialog2.xml', title=msg['title'], sections=msg['sections'], msgid=msg['id'], url=url if msg['cont'] else '')
     return {'doc': doc, 'return_url':url}
 
-def saveSettings(plugin, msg, url=None, original_url=None, history=None):
-    logger.debug('SaveSettings in messages')
-    msg['url'] = url
-    msg['messagetype'] = 'savesettings'
-    msg['return_url'] = url
-    return msg
 
-def loadSettings(plugin, msg, url=None, original_url=None, history=None):
-    logger.debug('loadSettings in messages')
-    return {'messagetype':'loadsettings', 'addon':plugin.id, 'msgid':msg['id'], 'url': url , 'return_url':url}
-
-def load(plugin, msg, url=None, original_url=None, history=None):
+def load(plugin, msg, url=None, original_url=None):
     msg['cont'] = url
     msg['messagetype'] = 'load'
     msg['return_url'] = url

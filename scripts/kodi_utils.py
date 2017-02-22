@@ -1,6 +1,10 @@
-import base64, random, string, sys, os, logging
+import base64, random, string, sys, os, logging, json
 from StringIO import StringIO
 import struct
+from contextlib import contextmanager
+import sqlite3, time
+
+logger = logging.getLogger(__name__)
 
 def b64decode(data):
 	"""Decode base64, padding being optional.
@@ -119,3 +123,103 @@ def windows_pyinstaller_multiprocess_hack():
 
         # Second override 'Popen' class with our modified version.
         forking.Popen = _Popen
+
+@contextmanager
+def open_db():
+    global DB_FILE
+    if not os.path.exists(DB_FILE):
+        open(DB_FILE, 'w').close()
+    for i in range(10):
+        try:
+            CONN = sqlite3.connect(DB_FILE)
+        except:
+            logger.exception('Failed to open DB')
+            time.sleep(1)
+    if not CONN:
+        raise Exception('DB is locked')
+    CONN.row_factory = sqlite3.Row
+    DB = CONN.cursor()
+    yield DB
+    CONN.commit()
+    DB.close()
+    CONN.close()
+
+
+def get_settings(id):
+    try:
+        with open_db() as DB:
+            DB.execute('select * from SETTINGS where id=?', (id,))
+            ans = DB.fetchone()
+        if not ans:
+            return None
+        ans = json.loads(ans['string'])
+        return ans
+    except:
+        logger.exception('Encountered error in get_settings')
+        return None
+
+def set_settings(id, settings):
+    try:
+        settings = json.dumps(settings)
+        with open_db() as DB:
+            DB.execute('update SETTINGS set string=? where id=?', (settings, id, ))
+            if DB.rowcount == 0:
+                DB.execute('insert into SETTINGS values(?,?)', (id, settings, ))
+    except:
+        logger.exception('Failed to update DB')
+
+def get_config(id):
+    try:
+        with open_db() as DB:
+            DB.execute('select * from CONFIG where id=?', (id,))
+            ans = DB.fetchone()
+        if not ans:
+            return None
+        ans = json.loads(ans['string'])
+        return ans
+    except:
+        logger.exception('Encountered error in get_config')
+        return None
+
+def set_config(id, value):
+    try:
+        value = json.dumps(value)
+        with open_db() as DB:
+            DB.execute('update CONFIG set string=? where id=?', (value, id, ))
+            if DB.rowcount == 0:
+                DB.execute('insert into CONFIG values(?,?)', (id, value, ))
+    except:
+        logger.exception('Failed to update DB')
+
+
+def get_play_history(s):
+    """
+    Gets the play state of the item
+    :param s: a unique string describing the movie (i.e. imdb id or direct stream url)
+    :return: {'time':time, 'total':total}  where time is last stop time and total is total time of item
+    """
+    try:
+        with open_db() as DB:
+            DB.execute('select * from HISTORY where s=?', (s, ))
+            ans = DB.fetchone()
+        return ans if ans else {'time':0, 'total':0}
+    except:
+        logger.exception('Failed to retrieve play history')
+        return {'time':0, 'total':0}
+
+
+def set_play_history(s, time, total):
+    """
+    Sets the state of the item in play history
+    :param s: a unique string describing the movie (i.e. imdb id or direct stream url)
+    :param time: last stop item
+    :param total: total time of item
+    :return: None
+    """
+    try:
+        with open_db() as DB:
+            DB.execute('update HISTORY set time=?, total=? where s=?', (time, total, s, ))
+            if DB.rowcount == 0:
+                DB.execute('insert into HISTORY values(?,?,?)', (s, time, total, ))
+    except:
+        logger.exception('Failed to save play history')

@@ -141,31 +141,31 @@ class KodiPlugin:
     def __repr__(self):
         return json.dumps({'id': self.id, 'name': self.name, 'module': self.module})
 
-    def settings(self, bridge, url, LANGUAGE, settings):
+    def settings(self, bridge, url):
+        settings = kodi_utils.get_settings(self.id)
         logger = logging.getLogger(self.id)
         import xbmc
         xbmc.bridge = bridge
-        xbmc.LANGUAGE = LANGUAGE
+        xbmc.LANGUAGE = kodi_utils.get_config('addon_language')
+        if not xbmc.LANGUAGE:
+            xbmc.LANGUAGE = 'English'
         import xbmcaddon
         import copy
-        xbmcaddon.Addon(self.id, copy.deepcopy(settings[self.id]) if self.id in settings else None) #send a copy of the settings to save original
+        xbmcaddon.Addon(self.id, copy.deepcopy(settings)) #send a copy of the settings to save original
         xbmcaddon.Addon(self.id).openSettings() #Open settings dialog
-        settings_after = xbmcaddon.ADDON_CACHE[self.id].settings
-        if self.id not in settings or settings[self.id] != settings_after:
-            logger.debug('Saving settings')
-            settings[self.id] = settings_after
-            bridge._message({'type': 'saveSettings', 'settings': settings})
-        else:
-            logger.debug('settings haven\'t changed')
+        for id in xbmcaddon.ADDON_CACHE:
+            kodi_utils.set_settings(id, xbmcaddon.ADDON_CACHE[id].settings)
 
-    def run(self, bridge, url, LANGUAGE, settings):
+    def run(self, bridge, url):
         logger = logging.getLogger(self.id)
         import xbmc
 
         xbmc.bridge = bridge
         import Container
         xbmc.Container = Container.Container(self)
-        xbmc.LANGUAGE = LANGUAGE
+        xbmc.LANGUAGE = kodi_utils.get_config('addon_language')
+        if not xbmc.LANGUAGE:
+            xbmc.LANGUAGE = 'English'
         if type(url) is not str:
             raise Exception('Kodi plugin only accepts one string argument')
 
@@ -188,7 +188,7 @@ class KodiPlugin:
             for e2 in tree.iter('extension'):
                 if e2.attrib['point'] == 'xbmc.python.module':
                     sys.path.insert(0, os.path.join(ADDONS_DIR, r, e2.attrib['library']))
-                    xbmcaddon.Addon(r, copy.deepcopy(settings[r]) if r in settings else None)
+                    xbmcaddon.Addon(r, copy.deepcopy(kodi_utils.get_settings(r)))
 
         sys.path.insert(0, self.dir)
         if '/' in self.module:
@@ -212,7 +212,7 @@ class KodiPlugin:
         # sys.argv = [script, '1', url]
             logger.debug('Calling plugin {} with {}'.format(self.name, sys.argv))
             import xbmcplugin, xbmcaddon
-            xbmcaddon.Addon(self.id, copy.deepcopy(settings[self.id]) if self.id in settings else None)
+            xbmcaddon.Addon(self.id, copy.deepcopy(kodi_utils.get_settings(self.id)))
             import imp
 
     # some patches for internal python funcs
@@ -279,7 +279,6 @@ class KodiPlugin:
             sqlite3.dbapi2.connect = dbapi2_connect_patch
 
             xbmcplugin.items = []
-            bridge.settings = settings #Save settings in bridge in case it needs to save them
             import runpy
             runpy.run_module(self.module.split('/')[-1], run_name='__main__')
             #imp.load_module(self.module, fp, self.dir, ('.py', 'rb', imp.PY_SOURCE))
@@ -296,15 +295,8 @@ class KodiPlugin:
         logger.debug('Plugin {} ended with: {}'.format(self.name, items))
 
         # some cleanup
-        settings_after = {id:xbmcaddon.ADDON_CACHE[id].settings for id in xbmcaddon.ADDON_CACHE}
-        for id in settings:
-            if id not in settings_after:
-                settings_after[id] = settings[id]
-        if settings != settings_after:
-            logger.debug('Saving settings')
-            bridge._message({'type': 'saveSettings', 'settings': settings_after})
-        else:
-            logger.debug('settings haven\'t changed')
+        for id in xbmcaddon.ADDON_CACHE:
+            kodi_utils.set_settings(id, xbmcaddon.ADDON_CACHE[id].settings)
         if hasattr(bridge, 'progress') and bridge.progress.is_alive():
             logger.debug('Closing left over progress')
             bridge.closeprogress()

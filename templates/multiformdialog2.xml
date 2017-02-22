@@ -50,7 +50,12 @@
 									<title class="foo">{{field.label}}</title><decorationLabel class="foo2" id="{{field.id}}">{{field.value}}</decorationLabel>
 								</listItemLockup>
 								{% elif field.type == "textfield" %}
-								<listItemLockup onselect="var field = JSON.parse(event.target.children.item(0).getAttribute('field')); showInputDialog(field.label, field.description, field.placeholder, field.button, field.secure, function(ans) {if (typeof ans != 'undefined') {event.target.children.item(2).textContent = ans;}});">
+								<listItemLockup onselect="var field = JSON.parse(event.target.children.item(0).getAttribute('field')); showInputDialog(field.label, field.description, field.placeholder, field.button, field.secure, 'default', field.value, function(ans) {if (typeof ans != 'undefined') {event.target.children.item(2).textContent = ans;}});">
+									<placeholder field='{{field | tojson}}'></placeholder>
+									<title class="foo">{{field.label}}</title><subtitle class="foo2" id="{{field.id}}">{{field.value}}</subtitle><decorationImage class="foo" src="resource://list-chevron"/>
+								</listItemLockup>
+								{% elif field.type == "ipaddress" or field.type == "number" or field.type == "slider" %}
+								<listItemLockup onselect="var field = JSON.parse(event.target.children.item(0).getAttribute('field')); showInputDialog(field.label, field.description, field.placeholder, field.button, field.secure, 'numericPad', field.value, function(ans) {if (typeof ans != 'undefined') { event.target.children.item(2).textContent = ans;}});">
 									<placeholder field='{{field | tojson}}'></placeholder>
 									<title class="foo">{{field.label}}</title><subtitle class="foo2" id="{{field.id}}">{{field.value}}</subtitle><decorationImage class="foo" src="resource://list-chevron"/>
 								</listItemLockup>
@@ -58,6 +63,10 @@
 								<listItemLockup onselect="var field = JSON.parse(event.target.children.item(0).getAttribute('field')); performAction(field.action);">
 									<placeholder field='{{field | tojson}}'></placeholder>
 									<title class="foo">{{field.label}}</title><decorationLabel class="foo2">{{field.value}}</decorationLabel>
+								</listItemLockup>
+								{% elif field.type == "sep" %}
+								<listItemLockup disabled="true">
+									<title style="text-align:center">{{field.label}}</title>
 								</listItemLockup>
 								{% elif field.type == "label" %}
 								<listItemLockup disabled="true">
