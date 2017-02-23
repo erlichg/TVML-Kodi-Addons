@@ -577,15 +577,13 @@ DocumentLoader.prototype.play = function(msg, time, callback) {
             try {
                 var total = player.getDuration();
                 console.log("player ended with "+time+"ms out of "+total+"ms");
-                if (typeof time == "undefined") {
-                    time = 0;
+                if (typeof time == "undefined" || time == 0 || typeof total == "undefined" || total == 0) {
+                    //do nothing
+                } else {
+                    var url = this.prepareURL(msg['stop'] + "/" + btoa(JSON.stringify({'time': time.toString(), 'total': total.toString()})));
+                    console.log("notifying " + url);
+                    VLCPlayer.notify(url);
                 }
-                if (typeof total == "undefined") {
-                    total = 0;
-                }
-                var url = this.prepareURL(msg['stop']+"/"+btoa(JSON.stringify({'time':time.toString(), 'total':total.toString()})));
-                console.log("notifying "+url);
-                VLCPlayer.notify(url);
             } catch (e) {
                 console.log(e);
             }
@@ -648,15 +646,13 @@ DocumentLoader.prototype.play = function(msg, time, callback) {
             myPlayer.addEventListener("stateDidChange", function(e) {
                 if(e.state == "end") {
                 	try {
-                        if (typeof duration == "undefined") {
-                            duration = 0;
+                        if (typeof duration == "undefined" || duration == 0 || typeof currenttime == "undefined" || currenttime == 0) {
+                    		//do nothing
+                		} else {
+                            currenttime = currenttime * 1000; //since we're getting ms from player
+                            var url = this.prepareURL(msg['stop'] + "/" + btoa(JSON.stringify({'time': currenttime.toString(), 'total': duration.toString()})));
+                            notify(url);
                         }
-                        if (typeof currenttime == "undefined") {
-                            currenttime = 0;
-                        }
-                        currenttime = currenttime * 1000; //since we're getting ms from player
-                        var url = this.prepareURL(msg['stop'] + "/" + btoa(JSON.stringify({'time': currenttime.toString(), 'total': duration.toString()})));
-                        notify(url);
                     } catch (err) {
                 		console.log(err);
 					}
