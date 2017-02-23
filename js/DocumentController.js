@@ -199,19 +199,28 @@ function addLoadingDocument(title) {
 }
 
 function removeLoadingDocument() {
-	try {
-		navigationDocument.removeDocument(singleton_loading_document);
-	} catch (e) {
-		//nothing to do
-	}
+	setTimeout(function() {
+		try {
+			navigationDocument.removeDocument(singleton_loading_document);
+		} catch (e) {
+			//nothing to do
+		}
+	}, 1000);
 }
 
 function replaceLoadingDocument(newdoc) {
-	if (navigationDocument.documents.indexOf(singleton_loading_document)!=-1) { //if loading document already on stack
-    	navigationDocument.replaceDocument(newdoc, singleton_loading_document);
-	} else {
-		navigationDocument.pushDocument(newdoc);
-	}
+	setTimeout(function() {
+		try {
+			if (navigationDocument.documents.indexOf(singleton_loading_document)!=-1) { //if loading document already on stack
+    			navigationDocument.replaceDocument(newdoc, singleton_loading_document);
+			} else {
+				navigationDocument.pushDocument(newdoc);
+			}
+        } catch (e) {
+			//nothing to do
+        }
+    }, 1000);
+
 }
 
 function clearPlay() {
