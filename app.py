@@ -216,7 +216,6 @@ def route(pid, id, res=None):
 @app.route('/playstop/<s>/<text>', methods=['GET'])
 def playstop(s, text):
     try:
-        s = kodi_utils.b64decode(s)
         text = json.loads(kodi_utils.b64decode(text))
         kodi_utils.set_play_history(s, text['time'], text['total'])
     except:
@@ -232,7 +231,7 @@ def icon():
 
 @app.route('/cache/<id>')
 def cache(id):
-    if kodi_utils.get_config('proxy'):
+    if kodi_utils.get_config(kodi_utils.PROXY_CONFIG):
         file = imageCache.get(id)
         if file:
             return send_file(file)
@@ -245,9 +244,10 @@ def cache(id):
 
 @app.route('/toggleProxy')
 def toggle_proxy():
-    proxy = not kodi_utils.get_config('proxy')
-    kodi_utils.set_config('proxy', proxy)
+    proxy = not kodi_utils.get_config(kodi_utils.PROXY_CONFIG, False)
+    kodi_utils.set_config(kodi_utils.PROXY_CONFIG, proxy)
     return json.dumps({'messagetype': 'nothing', 'end':True})
+
 
 @app.route('/addons/<path:filename>')
 def kodiplugin_icon(filename):
@@ -271,25 +271,18 @@ def template(filename):
 # @app.route('/catalog/<pluginid>/<url>')
 # @app.route('/catalog/<pluginid>/<url>/<process>')
 def catalog(pluginid, process=None):
-    url = None
+    url = ''
     if request.method == 'POST':
         try:
-            post_data = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
-            url = post_data['url']
+            url = kodi_utils.b64decode(request.form.keys()[0])
         except:
             logger.exception('Failed to parse post data')
-            url = request.form.keys()[0]
+            url = ''
 
     try:
-        if not url:
-            decoded_url = ''
-        elif url == 'fake':
-            decoded_url = ''
-        else:
-            decoded_url = kodi_utils.b64decode(url)
         decoded_id = kodi_utils.b64decode(pluginid)
         if request.full_path.startswith('/catalog'):
-            logger.debug('catalog {}, {}, {}'.format(decoded_id, decoded_url, process))
+            logger.debug('catalog {}, {}, {}'.format(decoded_id, url, process))
         else:
             logger.debug('menu {}, {}'.format(decoded_id, process))
         plugin = get_installed_addon(decoded_id)
@@ -305,9 +298,9 @@ def catalog(pluginid, process=None):
             p = PROCESSES[process]
         else:
             if request.full_path.startswith('/catalog'):
-                p = Process(target=get_items, args=(plugin['id'], decoded_url, CONTEXT))
+                p = Process(target=get_items, args=(plugin['id'], url, CONTEXT))
             else:
-                p = Process(target=get_menu, args=(plugin['id'], decoded_url))
+                p = Process(target=get_menu, args=(plugin['id'], url))
             logger.debug('saving process id {}'.format(p.id))
             PROCESSES[p.id] = p
 
@@ -353,10 +346,7 @@ def catalog(pluginid, process=None):
                     else:
                         # add response bridge
                         return_url = '{}/{}'.format(request.url, p.id)
-                    # else:
-                    # No url and no response so add 'fake' url
-                    #	return_url = '{}/{}/{}'.format(request.url, 'fake', p.id)
-                    ans = method(plugin, msg, return_url, decoded_url)
+                    ans = method(plugin, msg, return_url, url)
                     #time.sleep(1)
                     ans['end'] = msg['type'] == 'end'
                     if not ans['end'] and not 'return_url' in ans:
@@ -395,8 +385,8 @@ def catalog(pluginid, process=None):
                     # p.join()
                     # p.terminate()
                     logger.debug('PROCESS {} TERMINATED'.format(p.id))
-                ans = method(plugin, msg, request.url, decoded_url) if process else method(plugin, msg,
-                                                                               '{}/{}'.format(request.url, p.id), decoded_url)
+                ans = method(plugin, msg, request.url, url) if process else method(plugin, msg,
+                                                                               '{}/{}'.format(request.url, p.id), url)
                 ans['end'] = msg['type'] == 'end'
                 if not ans['end'] and not 'return_url' in ans:
                     print 'blah'
@@ -425,14 +415,14 @@ def catalog(pluginid, process=None):
         return json.dumps({'doc': doc, 'end': True})
 
 
-@app.route('/main', methods=['POST'])
+@app.route('/main')
 def main():
     try:
-        favs = kodi_utils.get_config('favorite_addons')
-        proxy = kodi_utils.get_config('proxy_mode')
-        language = kodi_utils.get_config('addon_language')
+        favs = kodi_utils.get_config(kodi_utils.FAVORITE_CONFIG, [])
+        proxy = kodi_utils.get_config(kodi_utils.PROXY_CONFIG, False)
+        language = kodi_utils.get_config(kodi_utils.LANGUAGE_CONFIG, 'English')
         filtered_plugins =  [p for p in get_all_installed_addons() if [val for val in json.loads(p['type']) if val in ['Video', 'Audio']]] #Show only plugins with video/audio capability since all others are not supported
-        fav_plugins = [p for p in filtered_plugins if p['favorite']]
+        fav_plugins = [p for p in filtered_plugins if p['id'] in favs]
         doc = render_template('main.xml', menu=filtered_plugins, favs=fav_plugins, url=request.full_path, proxy='On' if proxy else 'Off', version=VERSION, languages=["Afrikaans", "Albanian", "Amharic", "Arabic", "Armenian", "Azerbaijani", "Basque", "Belarusian", "Bosnian", "Bulgarian", "Burmese", "Catalan", "Chinese", "Croatian", "Czech", "Danish", "Dutch", "English", "Esperanto", "Estonian", "Faroese", "Finnish", "French", "Galician", "German", "Greek", "Hebrew", "Hindi", "Hungarian", "Icelandic", "Indonesian", "Italian", "Japanese", "Korean", "Latvian", "Lithuanian", "Macedonian", "Malay", "Malayalam", "Maltese", "Maori", "Mongolian", "Norwegian", "Ossetic", "Persian", "Persian", "Polish", "Portuguese", "Romanian", "Russian", "Serbian", "Silesian", "Sinhala", "Slovak", "Slovenian", "Spanish", "Spanish", "Swedish", "Tajik", "Tamil", "Telugu", "Thai", "Turkish", "Ukrainian", "Uzbek", "Vietnamese", "Welsh"], current_language=language)
         return json.dumps({'doc':doc, 'end': True})
     except:
@@ -475,7 +465,7 @@ def clear_all():
 def set_language():
     try:
         language = kodi_utils.b64decode(request.form.keys()[0])
-        kodi_utils.set_config('addon_language', language)
+        kodi_utils.set_config(kodi_utils.LANGUAGE_CONFIG, language)
     except:
         logger.exception('Failed to set language')
     return json.dumps({'messagetype':'nothing', 'end': True})
@@ -669,17 +659,13 @@ def get_installed_addon(id):
 def set_installed_addon_favorite():
     """Updates the favorite column of the installed addon in the DB"""
     try:
-        post_data = json.loads(kodi_utils.b64decode(request.form.keys()[0]))
-        id = post_data['id']
-        fav = post_data['fav']
-        ans = kodi_utils.get_config('favorite_addons')
-        if not ans:
-            ans = []
-        if fav:
-            ans.append(id)
-        else:
+        id = kodi_utils.b64decode(request.form.keys()[0])
+        ans = kodi_utils.get_config(kodi_utils.FAVORITE_CONFIG, [])
+        if id in ans:
             ans.remove(id)
-        kodi_utils.set_config('favorite_addons', ans)
+        else:
+            ans.append(id)
+        kodi_utils.set_config(kodi_utils.FAVORITE_CONFIG, ans)
     except:
         logger.exception('Failed to update addon favorite')
     return json.dumps({'messagetype': 'nothing', 'end': True})
@@ -734,7 +720,8 @@ def getAddonData():
         #addon['dir'] = json.loads(addon['dir'])
         addon['data'] = json.loads(addon['data'])
         addon['requires'] = json.loads(addon['requires'])
-        doc = render_template('addonDetails.xml', addon=addon)
+        favorites = kodi_utils.get_config(kodi_utils.FAVORITE_CONFIG, [])
+        doc = render_template('addonDetails.xml', addon=addon, favorite=id in favorites)
         return json.dumps({'doc': doc, 'end': True, 'end': True})
     except:
         logger.exception('Failed to get data on {}'.format(id))
@@ -962,7 +949,6 @@ def browse():
     global last_dir
     if not dir:
         dir = last_dir
-    last_dir = dir
     try:
         if os.path.isdir(dir):
             files = [{'url': kodi_utils.b64encode(os.path.join(dir, f)), 'title': f} for f in os.listdir('{}'.format(dir))]
@@ -970,7 +956,8 @@ def browse():
                 files = [f for f in files if os.path.isdir(kodi_utils.b64decode(f['url'])) or re.match(filter, f['title'])]
             up = kodi_utils.b64encode(os.path.dirname(dir))
             doc = render_template('browse.xml', title=dir, files=files, up=up)
-            return json.dumps({'doc': doc, 'end': True})
+            last_dir = dir
+            return json.dumps({'messagetype':'modal', 'doc': doc, 'end': True})
         else:
             return json.dumps({'ans':dir, 'messagetype':'special', 'end':True})
     except:

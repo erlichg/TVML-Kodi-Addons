@@ -5,6 +5,13 @@ from contextlib import contextmanager
 import sqlite3, time
 
 logger = logging.getLogger(__name__)
+PROXY_CONFIG='proxy_mode'
+LANGUAGE_CONFIG='addon_language'
+FAVORITE_CONFIG='favorite_addons'
+
+HISTORY_TABLE='HISTORY'
+SETTINGS_TABLE='SETTINGS'
+CONFIG_TABLE='CONFIG'
 
 def b64decode(data):
 	"""Decode base64, padding being optional.
@@ -168,18 +175,18 @@ def set_settings(id, settings):
     except:
         logger.exception('Failed to update DB')
 
-def get_config(id):
+def get_config(id, _default=None):
     try:
         with open_db() as DB:
             DB.execute('select * from CONFIG where id=?', (id,))
             ans = DB.fetchone()
         if not ans:
-            return None
+            return _default
         ans = json.loads(ans['string'])
         return ans
     except:
         logger.exception('Encountered error in get_config')
-        return None
+        return _default
 
 def set_config(id, value):
     try:

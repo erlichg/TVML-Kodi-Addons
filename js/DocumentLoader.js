@@ -44,7 +44,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
     xhr.onload = function() {
         try {
             var msg = xhr.response;
-            console.log('Got message '+msg);
+            console.log('Got message type='+msg['messagetype']+' and end='+msg['end']);
             var end = msg['end'];
             var type = msg['messagetype'] || "undefined";
             if (type == 'play') { //play
@@ -304,9 +304,11 @@ DocumentLoader.prototype.fetchPost = function(options) {
                     }
                 }
                 if (typeof end == "undefined" || !end) {
-                    options.url = msg['return_url'];
-                    options.silent = true; //load next page silently so as not to show loading document
-                    this.fetchPost(options);
+                	responseDoc.addEventListener("unload", function() {
+                		options.url = msg['return_url'];
+                    	this.fetchPost(options);
+					}.bind(this));
+
                 }
             }
         } catch (err) {
@@ -664,7 +666,9 @@ DocumentLoader.prototype.play = function(msg, time, callback) {
                 }
             }.bind(this), false);
         }
+        removeLoadingDocument();
     } catch (e) {
+    	removeLoadingDocument();
         console.log(e);
         var alert = createAlertDocument("Error", "Error playing URL "+msg['url'], true);
         navigationDocument.presentModal(alert);

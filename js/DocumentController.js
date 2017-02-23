@@ -32,13 +32,10 @@ function DocumentController(documentLoader, documentURL, initial, data, replace,
     if (typeof initial == "boolean" && initial) {
 	    //console.log("Clearing all documents");
 		//navigationDocument.clear();
-		var favs = loadFavourites();
-		var language = loadLanguage();
-		var proxy = loadProxy();
 		documentLoader.fetchPost({
-	    	initial: initial,	    	
+	    	initial: initial,
+			silent: true,
         	url: documentURL,
-        	data: btoa(JSON.stringify({'favs':JSON.stringify(favs), 'lang':language, 'proxy':proxy})),
         	success: function(document, isModal) {
         	    // Add the event listener for document
         	    // this.setupDocument(document);
@@ -236,21 +233,14 @@ function catalog(id, url) {
     if (typeof url == "undefined") {
         url = '';
     }
-    favs = loadFavourites();
-    language = loadLanguage();
-    settings = loadSettings();
-    history = loadHistory();
-    post('/catalog/'+id, btoa(JSON.stringify({'favs':JSON.stringify(favs), 'lang':language, 'settings':settings, 'url':url, 'history':JSON.stringify(history)})))
+    new DocumentController(documentLoader, '/catalog/'+id, false, url)
 }
 
 function menu(id, url) {
     if (typeof url == "undefined") {
         url = '';
     }
-    favs = loadFavourites();
-    language = loadLanguage();
-    settings = loadSettings();
-    post('/menu/'+id, btoa(JSON.stringify({'favs':JSON.stringify(favs), 'lang':language, 'settings':settings, 'url':url})))
+    new DocumentController(documentLoader, '/menu/'+id, false, url)
 }
 
 function notify(url, data) {
@@ -276,106 +266,23 @@ function load(url, initial, replace, callback) {
 	new DocumentController(documentLoader, url, initial, null, replace, null, callback);
 }
 
-function post(url, data, callback) {
-	console.log("posting "+url);
-	new DocumentController(documentLoader, url, false, data, false, null, callback);
-	
-}
-
-function saveSettings(settings) {
-	//console.log("saving settings: "+JSON.stringify(settings));
-	localStorage.setItem("addon_settings", JSON.stringify(settings));
-}
-
-function loadHistory() {
-    var history = localStorage.getItem('history');
-    if (history == null) {
-        history = '{}';
-    }
-    try {
-        history = JSON.parse(history);
-    } catch (e) {
-        console.log('Failed to parse history. '+e);
-        history = {};
-    }
-    return history;
-}
-
-function loadSettings() {
-	var addonSettings = localStorage.getItem("addon_settings");
-    if(addonSettings == null) {
-	    addonSettings = "{}";
-    }
-    try {
-	    addonSettings = JSON.parse(addonSettings);
-    } catch (e) {
-	    addonSettings = {};
-    }
-    //console.log('Loaded addon settings '+JSON.stringify(addonSettings));
-    return addonSettings;
-}
-
-function loadFavourites() {
-	var favs = localStorage.getItem("favourites");
-	if (favs == null) {
-	    favs = "[]";
-    }
-	try {
-		favs = JSON.parse(favs);
-	} catch (e) {
-		console.log("Error getting addonsSettings from local storage");
-		favs = [];
-	} 
-    
-    console.log('Loaded favourites '+JSON.stringify(favs));
-    return favs;
-}
 
 function refreshMainScreen() {
     new DocumentController(documentLoader, startDocURL, true);
 }
 
-function toggleFavorites(addon) {
-	var favs = loadFavourites();
-	var index = favs.indexOf(addon);
-	if (index > -1) {
-    	favs.splice(index, 1);
-	} else {
-	    favs.push(addon);
-	}
-	localStorage.setItem('favourites', JSON.stringify(favs));
-	refreshMainScreen();
-}
 
 
 function removeAddon(addon) {
-	post('/removeAddon', btoa(addon), function() {
+	new DocumentController(documentLoader,'/removeAddon', false, btoa(addon), false, null, function() {
 		refreshMainScreen();
 	});
 }
 
 function installAddon(addon) {
-    post('/installAddon', btoa(addon), function() {
+    new DocumentController(documentLoader, '/installAddon', false, btoa(addon), false,  null, function() {
     	refreshMainScreen();
 	});
-}
-
-function loadProxy() {
-	var proxy = localStorage.getItem("proxy");
-	if (proxy == null) {
-		proxy = "false";
-	}
-	return proxy;
-}
-function toggleProxy() {
-	var proxy = loadProxy();
-	if (proxy == "true") {
-		proxy = "false";
-	} else {
-		proxy = "true";
-	}
-	notify("/toggleProxy");
-	localStorage.setItem("proxy", proxy);
 }
 
 function restartServer() {
@@ -396,14 +303,6 @@ function restartServer() {
 	}, 5000);
 }
 
-function loadLanguage() {
-	var lang = localStorage.getItem("language");
-	if (lang == null) {
-	    lang = "English";
-    }
-	console.log('Loaded language '+lang);
-    return lang;
-}
 
 function selectLanguage() {
 	const lang = loadLanguage()

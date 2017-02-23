@@ -52,7 +52,7 @@ See LICENSE.txt for this sample’s licensing information
             </header>
             <section>
                 {% for id,row in all.items() %}
-                <lockup onselect="installAddon('{{row['id']}}')" onholdselect="post('/getAddonData', btoa('{{row['id']}}'))">
+                <lockup onselect="installAddon('{{row['id']}}')" onholdselect="new DocumentController(documentLoader, '/getAddonData', false, btoa('{{row['id']}}'))">
                     <img src="{{row['icon']}}" width="308" height="308"/>
                     <title class="showTextOnHighlight">{{row['name']}}</title>
                     {% if row['installed'] == 1 %}

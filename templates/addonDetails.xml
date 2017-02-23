@@ -47,8 +47,8 @@ See LICENSE.txt for this sample’s licensing information
                     </buttonLockup>
                     {% endif %}
                     {% if addon['installed'] %}
-                    <buttonLockup onselect="toggleFavorites('{{id}}'); if (event.target.children.item(0).getAttribute('src') == 'resource://button-rated') { event.target.children.item(0).setAttribute('src', 'resource://button-rate'); event.target.children.item(1).textContent = 'Add to favorites';} else {event.target.children.item(0).setAttribute('src', 'resource://button-rated'); event.target.children.item(1).textContent = 'Remove from favorites';}">
-                        {% if addon['favorite'] %}
+                    <buttonLockup onselect="notify('/setFavorite', btoa('{{id}}')); refreshMainScreen(); if (event.target.children.item(0).getAttribute('src') == 'resource://button-rated') { event.target.children.item(0).setAttribute('src', 'resource://button-rate'); event.target.children.item(1).textContent = 'Add to favorites';} else {event.target.children.item(0).setAttribute('src', 'resource://button-rated'); event.target.children.item(1).textContent = 'Remove from favorites';}">
+                        {% if favorite %}
                         <badge src="resource://button-rated"/>
                         <title>Remove from favorites</title>
                         {% else %}

@@ -30,7 +30,7 @@ See LICENSE.txt for this sample’s licensing information
                         <list style="width:1000">
                             <section>
                                 {% for addon in addons[type] %}
-                                <listItemLockup onselect="post('/installAddon', btoa('{{addon['id']}}'))" onholdselect="post('/getAddonData', '{{addon['id'] | base64encode}}')"	>
+                                <listItemLockup onselect="new DocumentController(documentLoader, '/installAddon', false, btoa('{{addon['id']}}'))" onholdselect="new DocumentController(documentLoader, '/getAddonData', false, '{{addon['id'] | base64encode}}')"	>
                                     <img src="{{addon['icon']}}" width="256" height="256"/>
                                     <title class="foo">{{addon['name']}}</title>
                                     <title class="foo">Version: {{addon['version']}}</title>

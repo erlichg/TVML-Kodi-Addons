@@ -26,7 +26,7 @@ See LICENSE.txt for this sample’s licensing information
             <grid>
                 <section>
                     {% for plugin in favs %}
-                    <lockup onholdselect="post('/getAddonData', '{{plugin.id | base64encode}}')" onselect="catalog('{{plugin.id | base64encode}}')">
+                    <lockup onholdselect="new DocumentController(documentLoader, '/getAddonData', false, '{{plugin.id | base64encode}}');" onselect="catalog('{{plugin.id | base64encode}}')">
                         <img src="/{{plugin.icon}}" width="256" height="256"/>
                         <title class="foo">{{plugin.name}}</title>
                     </lockup>
@@ -46,7 +46,7 @@ See LICENSE.txt for this sample’s licensing information
             <grid>
                 <section>
                     {% for plugin in menu %}
-                    <lockup onholdselect="post('/getAddonData', '{{plugin.id | base64encode}}')" onselect="catalog('{{plugin.id | base64encode}}')">
+                    <lockup onholdselect="new DocumentController(documentLoader, '/getAddonData', false, '{{plugin.id | base64encode}}');" onselect="catalog('{{plugin.id | base64encode}}')">
                         <img src="/{{plugin.icon}}" width="256" height="256"/>
                         <title class="foo">{{plugin.name}}</title>
                     </lockup>
@@ -96,7 +96,7 @@ See LICENSE.txt for this sample’s licensing information
                                     <title>Refresh</title>
                                     <subtitle>Refresh data from all repositories. This may take a while</subtitle>
                                 </listItemLockup>
-                                <listItemLockup onselect="browse(null, '.*\.zip', function(xhr) {post('/addRepository', btoa(xhr.responseText))})">
+                                <listItemLockup onselect="browse(null, '.*\.zip', function(ans) {new DocumentController(documentLoader, '/addRepository', false, btoa(ans))})">
 					                <title>Add from zip file</title>
 				                </listItemLockup>
                             </section>
@@ -153,19 +153,6 @@ See LICENSE.txt for this sample’s licensing information
                                     <title>Restart server</title>
                                     <subtitle style="tv-text-max-lines: 2">Restart the server process. Use this when unusual stuff happens</subtitle>
                                 </listItemLockup>
-                            </section>
-                        </list>
-                    </relatedContent>
-                </listItemLockup>
-            </section>
-            <section>
-                <listItemLockup>
-                    <title style="tv-text-style:title3">Application settings</title>
-                    <relatedContent>
-                        <list style="width:1000">
-                            <section>
-                                <header><title>Clear persistent settings</title></header>
-
                             </section>
                         </list>
                     </relatedContent>

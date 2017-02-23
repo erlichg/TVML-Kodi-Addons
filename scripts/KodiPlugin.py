@@ -146,7 +146,7 @@ class KodiPlugin:
         logger = logging.getLogger(self.id)
         import xbmc
         xbmc.bridge = bridge
-        xbmc.LANGUAGE = kodi_utils.get_config('addon_language')
+        xbmc.LANGUAGE = kodi_utils.get_config(kodi_utils.LANGUAGE_CONFIG)
         if not xbmc.LANGUAGE:
             xbmc.LANGUAGE = 'English'
         import xbmcaddon
@@ -163,7 +163,7 @@ class KodiPlugin:
         xbmc.bridge = bridge
         import Container
         xbmc.Container = Container.Container(self)
-        xbmc.LANGUAGE = kodi_utils.get_config('addon_language')
+        xbmc.LANGUAGE = kodi_utils.get_config(kodi_utils.LANGUAGE_CONFIG)
         if not xbmc.LANGUAGE:
             xbmc.LANGUAGE = 'English'
         if type(url) is not str:
