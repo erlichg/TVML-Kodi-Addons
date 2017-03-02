@@ -8,11 +8,24 @@ See LICENSE.txt for this sample’s licensing information
     <head id="menuBar">
         <style>
             @media tv-template and (tv-theme:light) {
-            .foo { color:rgb(0, 0, 0); tv-highlight-color:rgb(0, 0, 0);}
-            }
-            @media tv-template and (tv-theme:dark) {
-            .foo { color:rgb(255, 255, 255); tv-highlight-color:rgb(255,255,255);}
-            }
+      	.foo { color:rgb(0, 0, 0); tv-tint-color:rgb(0,0,0); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:2; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+      	.foo2 { color:rgb(0, 0, 0); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:2; }
+		  .foo3 { tv-position:footer; tv-align:right; margin: 0; tv-tint-color:rgb(0,0,0); tv-highlight-color:rgb(0, 0, 0); }
+		  .bold { font-weight:bold; color:rgb(0, 0, 0); tv-tint-color:rgb(0,0,0); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:2; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+
+	  }
+	  @media tv-template and (tv-theme:dark) {
+      	.foo { color:rgb(255, 255, 255); tv-tint-color:rgb(255,255,255); tv-highlight-color:rgb(255,255,255); tv-text-max-lines:2; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+      	.foo2 { color:rgb(255, 255, 255); tv-highlight-color:rgb(255, 255, 255); tv-text-max-lines:2; }
+		  .foo3 { tv-position:footer; tv-align:right; margin: 0; tv-tint-color:rgb(255,255,255); tv-highlight-color:rgb(255,255,255); }
+		  .bold { font-weight:bold; color:rgb(255, 255, 255); tv-tint-color:rgb(255,255,255); tv-highlight-color:rgb(255,255,255); tv-text-max-lines:2; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+	  }
+		  .white { color: rgb(255,255,255); tv-tint-color:rgb(255,255,255); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:2; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+		  .bold_white { font-weight:bold; color: rgb(255,255,255); tv-tint-color:rgb(255,255,255); tv-highlight-color:rgb(255,255,255); tv-text-max-lines:2; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+		  .red {color: rgb(255,0,0); tv-tint-color:rgb(255,0,0); tv-highlight-color:rgb(255,255,255); tv-text-max-lines:2; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+		  .bold_red {font-weight:bold; color: rgb(255,0,0); tv-tint-color:rgb(255,0,0); tv-highlight-color:rgb(255,255,255); tv-text-max-lines:2; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+		  .blue {color: rgb(0,0,255); tv-tint-color:rgb(0,0,255); tv-highlight-color:rgb(255,255,255); tv-text-max-lines:2; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+		  .blue_bold {font-weight:bold; color: rgb(0,0,255); tv-tint-color:rgb(0,0,255); tv-highlight-color:rgb(255,255,255); tv-text-max-lines:2; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
         </style>
     </head>
 
@@ -28,7 +41,7 @@ See LICENSE.txt for this sample’s licensing information
                     {% for plugin in favs %}
                     <lockup onholdselect="new DocumentController(documentLoader, '/getAddonData', false, '{{plugin.id | base64encode}}');" onselect="catalog('{{plugin.id | base64encode}}')">
                         <img src="/{{plugin.icon}}" width="256" height="256"/>
-                        <title class="foo">{{plugin.name}}</title>
+                        <row>{{plugin.name | safe}}</row>
                     </lockup>
                     {% endfor %}
                 </section>
@@ -48,7 +61,7 @@ See LICENSE.txt for this sample’s licensing information
                     {% for plugin in menu %}
                     <lockup onholdselect="new DocumentController(documentLoader, '/getAddonData', false, '{{plugin.id | base64encode}}');" onselect="catalog('{{plugin.id | base64encode}}')">
                         <img src="/{{plugin.icon}}" width="256" height="256"/>
-                        <title class="foo">{{plugin.name}}</title>
+                        <row>{{plugin.name | safe}}</row>
                     </lockup>
                     {% endfor %}
                 </section>
@@ -128,7 +141,7 @@ See LICENSE.txt for this sample’s licensing information
                         <list style="width: 1000">
                             <section>
                                 <header><title>Advanced server actions</title></header>
-                                <listItemLockup style="height:200" onselect="toggleProxy(); if (event.target.children.item(1).textContent=='On') { event.target.children.item(1).textContent='Off' } else { event.target.children.item(1).textContent='On' };">
+                                <listItemLockup style="height:200" onselect="notify('/toggleProxy'); if (event.target.children.item(1).textContent=='On') { event.target.children.item(1).textContent='Off' } else { event.target.children.item(1).textContent='On' };">
                                     <title>Toggle server proxy mode</title>
                                     <decorationLabel>{{proxy}}</decorationLabel>
                                     <subtitle style="tv-text-max-lines: 4">In proxy mode, all network activity (except playing media) will go through the server. This may hurt performance but can solve network access issues</subtitle>

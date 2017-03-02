@@ -1,8 +1,10 @@
-import base64, random, string, sys, os, logging, json
+import base64, random, string, sys, os, logging, json, re, bs4, cgi
 from StringIO import StringIO
 import struct
 from contextlib import contextmanager
 import sqlite3, time
+import multiprocessing
+from globals import PROCESSES, CONTEXT, REPOSITORIES, SERVICES
 
 logger = logging.getLogger(__name__)
 PROXY_CONFIG='proxy_mode'
@@ -12,6 +14,15 @@ FAVORITE_CONFIG='favorite_addons'
 HISTORY_TABLE='HISTORY'
 SETTINGS_TABLE='SETTINGS'
 CONFIG_TABLE='CONFIG'
+
+TRIGGER_PLAY_STOP=1
+TRIGGER_SETTINGS_CHANGED=2
+TRIGGER_CONFIG_CHANGED=3
+TRIGGER_ABORT=4
+TRIGGER_PLAY_START=5
+
+DATA_DIR = os.path.join(os.path.expanduser("~"), '.TVMLSERVER')
+DB_FILE = os.path.join(DATA_DIR, 'db', 'TVMLServer.db')
 
 def b64decode(data):
 	"""Decode base64, padding being optional.
@@ -132,13 +143,13 @@ def windows_pyinstaller_multiprocess_hack():
         forking.Popen = _Popen
 
 @contextmanager
-def open_db():
-    global DB_FILE
-    if not os.path.exists(DB_FILE):
-        open(DB_FILE, 'w').close()
+def open_db(file=DB_FILE):
+    if not os.path.exists(file):
+        open(file, 'w').close()
     for i in range(10):
         try:
-            CONN = sqlite3.connect(DB_FILE)
+            CONN = sqlite3.connect(file)
+            break
         except:
             logger.exception('Failed to open DB')
             time.sleep(1)
@@ -166,14 +177,20 @@ def get_settings(id):
         return None
 
 def set_settings(id, settings):
-    try:
-        settings = json.dumps(settings)
-        with open_db() as DB:
-            DB.execute('update SETTINGS set string=? where id=?', (settings, id, ))
-            if DB.rowcount == 0:
-                DB.execute('insert into SETTINGS values(?,?)', (id, settings, ))
-    except:
-        logger.exception('Failed to update DB')
+    for i in range(10):
+        try:
+            settings = json.dumps(settings)
+            with open_db() as DB:
+                DB.execute('update SETTINGS set string=? where id=?', (settings, id, ))
+                if DB.rowcount == 0:
+                    DB.execute('insert into SETTINGS values(?,?)', (id, settings, ))
+            trigger(TRIGGER_SETTINGS_CHANGED, {'id':id, 'settings':settings})
+            break
+        except sqlite3.OperationalError:
+            time.sleep(1)
+        except:
+            logger.exception('Failed to update DB')
+            break
 
 def get_config(id, _default=None):
     try:
@@ -189,14 +206,20 @@ def get_config(id, _default=None):
         return _default
 
 def set_config(id, value):
-    try:
-        value = json.dumps(value)
-        with open_db() as DB:
-            DB.execute('update CONFIG set string=? where id=?', (value, id, ))
-            if DB.rowcount == 0:
-                DB.execute('insert into CONFIG values(?,?)', (id, value, ))
-    except:
-        logger.exception('Failed to update DB')
+    for i in range(10):
+        try:
+            value = json.dumps(value)
+            with open_db() as DB:
+                DB.execute('update CONFIG set string=? where id=?', (value, id, ))
+                if DB.rowcount == 0:
+                    DB.execute('insert into CONFIG values(?,?)', (id, value, ))
+            trigger(TRIGGER_CONFIG_CHANGED, {'id': id, 'value': value})
+            break
+        except sqlite3.OperationalError:
+            time.sleep(1)
+        except:
+            logger.exception('Failed to update DB')
+            break
 
 
 def get_play_history(s):
@@ -223,10 +246,104 @@ def set_play_history(s, time, total):
     :param total: total time of item
     :return: None
     """
+    for i in range(10):
+        try:
+            with open_db() as DB:
+                DB.execute('update HISTORY set time=?, total=? where s=?', (time, total, s, ))
+                if DB.rowcount == 0:
+                    DB.execute('insert into HISTORY values(?,?,?)', (s, time, total, ))
+            trigger(TRIGGER_PLAY_STOP, {'time': time, 'total': total})
+            break
+        except sqlite3.OperationalError:
+            time.sleep(1)
+        except:
+            logger.exception('Failed to save play history')
+            break
+
+def trigger(type, data):
     try:
-        with open_db() as DB:
-            DB.execute('update HISTORY set time=?, total=? where s=?', (time, total, s, ))
-            if DB.rowcount == 0:
-                DB.execute('insert into HISTORY values(?,?,?)', (s, time, total, ))
+        for p in PROCESSES:
+            PROCESSES[p].triggers.put({'type':type, 'data':data})
+        for p in SERVICES:
+            SERVICES[p].triggers.put({'type':type, 'data':data})
     except:
-        logger.exception('Failed to save play history')
+        logger.exception('Failed to insert trigger')
+
+def trigger_listener_for_settings(id, callback):
+    def f(data):
+        data = json.loads(data)
+        if data['id'] == id:
+            try:
+                callback(data['settings'])
+            except TypeError:
+                callback()
+            except:
+                logger.exception('Failed to notify listener')
+    return f
+
+def trigger_listener_for_config(id, callback):
+    def f(data):
+        data = json.loads(data)
+        if data['id'] == id:
+            try:
+                callback(data['value'])
+            except TypeError:
+                callback()
+            except:
+                logger.exception('Failed to notify listener')
+    return f
+
+def trigger_listener_for_abort(id, callback):
+    def f(data):
+        if data == id:
+            try:
+                callback()
+            except:
+                logger.exception('Failed to notify listener')
+    return f
+
+
+def tag_conversion(s):
+    try:
+        s = s.replace('[[', '[').replace(']]', ']')
+        s = cgi.escape(s)
+        while True:
+            m = re.search('(.*)\[B\](.*)\[/B\](.*)', s)
+            if m:
+                s = '{}<title class="bold">{}</title>{}'.format(m.group(1), m.group(2), m.group(3))
+            else:
+                break
+        while True:
+            m = re.search('(.*)\[I\](.*)\[/I\](.*)', s)
+            if m:
+                s = '{}<title class="italics">{}</title>{}'.format(m.group(1), m.group(2), m.group(3))
+            else:
+                break
+        while True:
+            m = re.search('(.*)\[COLOR ([^\]]*)\](.*)\[/COLOR\](.*)', s)
+            if m:
+                s = '{}<title class="{}">{}</title>{}'.format(m.group(1), m.group(2), m.group(3), m.group(4))
+            else:
+                break
+
+        #Remove any remaining unknown []
+        #m = re.search('(.*)\[[^]]*\](.*)', s)
+        #if m:
+        #    s = '{}{}'.format(m.group(1), m.group(2))
+        #s = s.replace('[', '&#91;').replace(']', '&#93;')
+        soup = bs4.BeautifulSoup('<html><body>{}</body></html>'.format(s), 'lxml')
+
+        ans = ''
+        for child in soup.find('body').children:
+            if type(child) is bs4.element.NavigableString or child.name != 'title':
+                ans = ans + '<title class="foo">{}</title>'.format(cgi.escape(child) if type(child) is bs4.element.NavigableString else cgi.escape(child.text))
+            elif type(child) is bs4.element.Tag:
+                for child2 in child.children:
+                    if type(child2) is bs4.element.NavigableString or child2.name != 'title':
+                        ans = ans + '<title class="{}">{}</title>'.format(child.attrs['class'][0], cgi.escape(child2) if type(child2) is bs4.element.NavigableString else cgi.escape(child2.text))
+                    elif type(child2) is bs4.element.Tag:
+                        ans = ans + '<title class="{}">{}</title>'.format('{}'.format('_'.join(sorted(child.attrs['class'][0].split("_") + [child2.attrs['class'][0]]))), cgi.escape(child2.text))
+
+        return ans
+    except:
+        return '<title class="foo">{}</title>'.format(s)
