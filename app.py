@@ -1,8 +1,10 @@
 from __future__ import division
-import sys, os, imp, urllib, json, time, traceback, re, getopt, tempfile, AdvancedHTMLParser, urllib2, urlparse, zipfile, shutil, requests, logging, psutil, subprocess, sqlite3
+import sys, os, imp, urllib, json, time, traceback, re, getopt, tempfile, AdvancedHTMLParser, urllib2, urlparse, zipfile, shutil, requests, logging, psutil, subprocess, sqlite3, cgi
 from threading import Timer
 from scripts import kodi_utils
+from collections import OrderedDict
 import jinja2
+from globals import PROCESSES, CONTEXT, REPOSITORIES, SERVICES
 
 VERSION='0.6'
 
@@ -87,7 +89,7 @@ if not os.path.isdir(os.path.join(DATA_DIR, 'db')):
     print '{} not a directory or cannot be created'.format(os.path.join(DATA_DIR, 'db'))
     sys.exit(2)
 DB_FILE = os.path.join(DATA_DIR, 'db', 'TVMLServer.db')
-kodi_utils.DB_FILE = DB_FILE
+TRIGGER_DB = os.path.join(DATA_DIR, 'db', 'triggers.db')
 open_db = kodi_utils.open_db
 
 sys.path.append(os.path.join(bundle_dir, 'scripts'))
@@ -154,9 +156,17 @@ def Process(group=None, target=None, name=None, args=(), kwargs={}):
     p = MyProcess(group, target, name, args, kwargs)
     p.messages = multiprocessing.Queue()
     p.responses = multiprocessing.Queue()
+    p.triggers = multiprocessing.Queue()
     p.stop = multiprocessing.Event()  # can be used to indicate stop
     p.id = str(id(p))
     return p
+
+
+def dump_queue(q):
+    ans = []
+    while not q.empty():
+        ans.append(q.get())
+    return ans
 
 
 def update_addons():
@@ -217,9 +227,22 @@ def route(pid, id, res=None):
 def playstop(s, text):
     try:
         text = json.loads(kodi_utils.b64decode(text))
-        kodi_utils.set_play_history(s, text['time'], text['total'])
+        kodi_utils.trigger(kodi_utils.TRIGGER_PLAY_STOP, text)
+        if text['time'] == '0' or text['total'] == '0':
+            pass #I do not want to change history for mis-played item
+        else:
+            kodi_utils.set_play_history(s, text['time'], text['total'])
     except:
         logger.exception('Failed to set play history')
+    return json.dumps({'messagetype': 'nothing', 'end': True})
+
+@app.route('/playstart/<s>/<text>', methods=['GET'])
+def playstart(s, text):
+    try:
+        text = kodi_utils.b64decode(text)
+        kodi_utils.trigger(kodi_utils.TRIGGER_PLAY_START, text)
+    except:
+        logger.exception('Failed to signal play start')
     return json.dumps({'messagetype': 'nothing', 'end': True})
 
 
@@ -231,15 +254,12 @@ def icon():
 
 @app.route('/cache/<id>')
 def cache(id):
-    if kodi_utils.get_config(kodi_utils.PROXY_CONFIG):
-        file = imageCache.get(id)
-        if file:
-            return send_file(file)
-        else:
-            return 'Not found', 404
+    file = imageCache.get(id)
+    if file:
+        return send_file(file)
     else:
-        url = kodi_utils.b64decode(id)
-        return redirect(url)
+        return 'Not found', 404
+
 
 
 @app.route('/toggleProxy')
@@ -311,6 +331,7 @@ def catalog(pluginid, process=None):
 
             # b.thread.onStop = stop
             p.start()
+
         logger.debug('entering while alive')
         try:
             while p.is_alive():
@@ -321,19 +342,27 @@ def catalog(pluginid, process=None):
                     continue
                 try:
                     method = getattr(messages, msg['type'])
-                    if msg['type'] == 'end':
-                        if not p.messages.empty():
-                            logger.warning('Got end message but queue not empty. Getting another')
+                    if msg['type'] == 'end' and not p.messages.empty():
+                        logger.debug('Got terminal messages but process has more messages')
+                        p.messages.put(msg)
+                        continue
+                    if msg['type'] == 'load' and not p.messages.empty():
+                        msg_2 = p.messages.get()
+                        if msg_2['type'] != 'end':
+                            logger.debug('Got load message but process has more messages')
+                            p.messages.put(msg_2)
                             p.messages.put(msg)
                             continue
-
+                    if msg['type'] == 'end' or msg['type'] == 'load':
                         global PROCESSES
                         for t in PROCESSES:
                             PROCESSES[t].responses.close()
                             PROCESSES[t].messages.close()
+                            PROCESSES[t].triggers.close()
                             del PROCESSES[t].responses
                             del PROCESSES[t].messages
                             del PROCESSES[t].stop
+                            del PROCESSES[t].triggers
                             PROCESSES[t]._popen.terminate()
                         PROCESSES.clear()
                         # p.join()
@@ -346,7 +375,7 @@ def catalog(pluginid, process=None):
                     else:
                         # add response bridge
                         return_url = '{}/{}'.format(request.url, p.id)
-                    ans = method(plugin, msg, return_url, url)
+                    ans = method(plugin, msg, return_url, kodi_utils.b64encode(url))
                     #time.sleep(1)
                     ans['end'] = msg['type'] == 'end'
                     if not ans['end'] and not 'return_url' in ans:
@@ -368,25 +397,34 @@ def catalog(pluginid, process=None):
                 continue
             try:
                 method = getattr(messages, msg['type'])
-                if msg['type'] == 'end':
-                    if not p.messages.empty():
-                        logger.warning('Got end message but queue not empty. Getting another')
+                if msg['type'] == 'load' and not p.messages.empty():
+                    msg_2 = p.messages.get()
+                    if msg_2['type'] != 'end':
+                        logger.debug('Got load message but process has more messages')
+                        p.messages.put(msg_2)
                         p.messages.put(msg)
                         continue
+                if msg['type'] == 'end' and not p.messages.empty():
+                    logger.warning('Got end message but queue not empty. Getting another')
+                    p.messages.put(msg)
+                    continue
+                if msg['type'] == 'end' or msg['type'] == 'load':
                     global PROCESSES
                     for t in PROCESSES:
                         PROCESSES[t].responses.close()
                         PROCESSES[t].messages.close()
+                        PROCESSES[t].triggers.close()
                         del PROCESSES[t].responses
                         del PROCESSES[t].messages
                         del PROCESSES[t].stop
+                        del PROCESSES[t].triggers
                         PROCESSES[t]._popen.terminate()
                     PROCESSES.clear()
                     # p.join()
                     # p.terminate()
                     logger.debug('PROCESS {} TERMINATED'.format(p.id))
-                ans = method(plugin, msg, request.url, url) if process else method(plugin, msg,
-                                                                               '{}/{}'.format(request.url, p.id), url)
+                ans = method(plugin, msg, request.url, kodi_utils.b64encode(url)) if process else method(plugin, msg,
+                                                                               '{}/{}'.format(request.url, p.id), kodi_utils.b64encode(url))
                 ans['end'] = msg['type'] == 'end'
                 if not ans['end'] and not 'return_url' in ans:
                     print 'blah'
@@ -421,7 +459,9 @@ def main():
         favs = kodi_utils.get_config(kodi_utils.FAVORITE_CONFIG, [])
         proxy = kodi_utils.get_config(kodi_utils.PROXY_CONFIG, False)
         language = kodi_utils.get_config(kodi_utils.LANGUAGE_CONFIG, 'English')
-        filtered_plugins =  [p for p in get_all_installed_addons() if [val for val in json.loads(p['type']) if val in ['Video', 'Audio']]] #Show only plugins with video/audio capability since all others are not supported
+        filtered_plugins =  [dict(p) for p in get_all_installed_addons() if [val for val in json.loads(p['type']) if val in ['Video', 'Audio']]] #Show only plugins with video/audio capability since all others are not supported
+        for p in filtered_plugins:
+            p['name'] = kodi_utils.tag_conversion(p['name'])
         fav_plugins = [p for p in filtered_plugins if p['id'] in favs]
         doc = render_template('main.xml', menu=filtered_plugins, favs=fav_plugins, url=request.full_path, proxy='On' if proxy else 'Off', version=VERSION, languages=["Afrikaans", "Albanian", "Amharic", "Arabic", "Armenian", "Azerbaijani", "Basque", "Belarusian", "Bosnian", "Bulgarian", "Burmese", "Catalan", "Chinese", "Croatian", "Czech", "Danish", "Dutch", "English", "Esperanto", "Estonian", "Faroese", "Finnish", "French", "Galician", "German", "Greek", "Hebrew", "Hindi", "Hungarian", "Icelandic", "Indonesian", "Italian", "Japanese", "Korean", "Latvian", "Lithuanian", "Macedonian", "Malay", "Malayalam", "Maltese", "Maori", "Mongolian", "Norwegian", "Ossetic", "Persian", "Persian", "Polish", "Portuguese", "Romanian", "Russian", "Serbian", "Silesian", "Sinhala", "Slovak", "Slovenian", "Spanish", "Spanish", "Swedish", "Tajik", "Tamil", "Telugu", "Thai", "Turkish", "Ukrainian", "Uzbek", "Vietnamese", "Welsh"], current_language=language)
         return json.dumps({'doc':doc, 'end': True})
@@ -504,6 +544,20 @@ def remove_addon(id):
             global REFRESH_EVENT
             REFRESH_EVENT.clear()
             multiprocessing.Process(target=get_available_addons, args=(REPOSITORIES, REFRESH_EVENT)).start()
+        if 'Service' in json.loads(addon['type']):
+            #First abort monitor for this addon if exists
+            kodi_utils.trigger(kodi_utils.TRIGGER_ABORT, id)
+            #Now terminate service process
+            global SERVICES
+            if id in SERVICES:
+                SERVICES[id].responses.close()
+                SERVICES[id].messages.close()
+                del SERVICES[id].responses
+                del SERVICES[id].messages
+                del SERVICES[id].stop
+                del SERVICES[id].triggers
+                SERVICES[id]._popen.terminate()
+                del SERVICES[id]
     path = os.path.join(DATA_DIR, 'addons', id)
     try:
         shutil.rmtree(path)
@@ -513,7 +567,7 @@ def remove_addon(id):
         DB.execute('delete from INSTALLED where id=?', (id,))
 
 
-def get_items(plugin_id, url, context):
+def get_items(plugin_id, url, context, run_as_service=False):
     if 'setproctitle' in sys.modules:
         setproctitle.setproctitle('python TVMLServer ({}:{})'.format(plugin_id, url))
     kodi_utils.windows_pyinstaller_multiprocess_hack()
@@ -525,8 +579,9 @@ def get_items(plugin_id, url, context):
         if not plugin:
             raise Exception('could not load plugin')
         b = bridge()
+        multiprocessing.current_process().bridge = b
         b.context = context
-        items = plugin.run(b, url)
+        items = plugin.run(b, url, run_as_service)
         del plugin
         del b
         del logger
@@ -697,6 +752,15 @@ def install_addon(addon):
     path = os.path.join(DATA_DIR, 'addons')
     with zipfile.ZipFile(temp, 'r') as zip:
         zip.extractall(path)
+    plugin = KodiPlugin(addon['id'])
+    if 'Service' in plugin.type:  # Need to run service
+        try:
+            p = Process(target=get_items, args=(plugin.id, '', CONTEXT, True))
+            p.daemon = True
+            SERVICES[plugin.id] = p
+            p.start()
+        except:
+            logger.exception('Failed to run {} service'.format(plugin.id))
     with open_db() as DB:
         DB.execute('insert into INSTALLED VALUES(?,?,?,?,?,?,?,?,0)', (addon['id'], addon['type'], addon['name'], addon['data'], addon['version'], addon['script'], addon['requires'], addon['icon']))
 
@@ -798,7 +862,7 @@ def restart():
 
 @app.route('/repositories')
 def respositories():
-    doc = render_template('repositories.xml', title='Repositories', repositories=[r['name'] for r in REPOSITORIES])
+    doc = render_template('repositories.xml', title='Repositories', repositories=[r['name'].replace("'", "\\'") for r in REPOSITORIES])
     return json.dumps({'doc': doc, 'end': True})
 
 
@@ -997,24 +1061,11 @@ def mmain(argv):
                 print '{} is not a valid directory'.format(arg)
                 sys.exit(2)
 
-    manager = multiprocessing.Manager()
 
 
-    global PROCESSES
-    PROCESSES = {}
 
-    global CONTEXT
-    CONTEXT = manager.dict()
 
-    global REPOSITORIES
-    REPOSITORIES = [
-        {'name': 'Kodi repository', 'dirs': [{'xml': 'http://mirrors.kodi.tv/addons/krypton/addons.xml',
-                                              'download': 'http://mirrors.kodi.tv/addons/krypton'}]},
-        {'name': 'Kodi Israel', 'dirs': [{'xml': 'https://raw.githubusercontent.com/kodil/kodil/master/addons.xml',
-                                          'download': 'https://raw.githubusercontent.com/kodil/kodil/master/repo'}]},
-        #{'name': 'Exodus repository',
-        # 'dirs': [{'xml': 'https://offshoregit.com/exodus/addons.xml', 'download': 'https://offshoregit.com/exodus/'}]}
-    ]
+
 
     with open_db() as DB:
         DB.execute('create table if not exists SETTINGS(id text primary_key, string text)')
@@ -1054,6 +1105,14 @@ def mmain(argv):
                             REPOSITORIES.append(repo)
                     except:
                         logger.exception('Failed to parse installed repository {}'.format(plugin))
+                if 'Service' in p.type: #Need to run service
+                    try:
+                        pr = Process(target=get_items, args=(p.id, '', CONTEXT, True))
+                        pr.daemon = True
+                        SERVICES[p.id] = pr
+                        pr.start()
+                    except:
+                        logger.exception('Failed to run {} service'.format(p.id))
                 DB.execute('insert into INSTALLED VALUES(?,?,?,?,?,?,?,?,0)', (p.id, json.dumps(p.type), unicode(p.name), json.dumps(p.data), p.version, p.script, json.dumps(p.requires), p.icon))
                 logger.debug('Successfully loaded plugin: {}'.format(p))
             except Exception as e:

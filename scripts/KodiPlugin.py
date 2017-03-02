@@ -1,11 +1,12 @@
 import xml.etree.ElementTree as ET
 import os, sys, re, json, time, AdvancedHTMLParser
-import importlib
-import bridge
 import kodi_utils
-import Plugin
-import traceback
 import logging
+import runpy
+try:
+    import setproctitle
+except:
+    pass
 
 if getattr(sys, 'frozen', False):
     # we are running in a bundle
@@ -15,18 +16,6 @@ else:
 
 ADDONS_DIR = os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'addons')
 
-
-def convert_kodi_tags_to_html_tags(s):
-    m = re.search('(.*)\[B\](.*)\[/B\](.*)', s)
-    if m:
-        s = '{}<title class="bold">{}</title>{}'.format(m.group(1),m.group(2),m.group(3))
-    m = re.search('(.*)\[I\](.*)\[/I\](.*)', s)
-    if m:
-        s = '{}<title class="italics">{}</title>{}'.format(m.group(1), m.group(2), m.group(3))
-    m = re.search('(.*)\[COLOR (.*)\](.*)\[/COLOR\](.*)', s)
-    if m:
-        s = '{}<title class="{}">{}</title>{}'.format(m.group(1), m.group(2), m.group(3), m.group(4))
-    return s
 
 def parse_addon_xml(text, repo=None, dir=None):
     parser = AdvancedHTMLParser.Parser.AdvancedHTMLParser()
@@ -46,6 +35,8 @@ def parse_addon_xml(text, repo=None, dir=None):
         addon_type = []
         script = ''
         requires = []
+        service = None
+        startup = None
         try:
             ext = a.getElementsCustomFilter(lambda x: x.tagName == 'extension')
             for e in ext:
@@ -60,6 +51,8 @@ def parse_addon_xml(text, repo=None, dir=None):
                     addon_type.append('Repository')
                 elif point == 'xbmc.service':
                     addon_type.append('Service')
+                    service = e.attributes['library']
+                    startup = e.attributes['start']
                 elif point == 'xbmc.metadata.scraper.albums':
                     addon_type.append('Album information')
                 elif point == 'xbmc.metadata.scraper.artists':
@@ -117,7 +110,7 @@ def parse_addon_xml(text, repo=None, dir=None):
             pass
         if not addon_type:
             print 'Failed to determine addon type of {}'.format(id)
-        temp.append({'id': id, 'repo': repo, 'dir': dir, 'type': addon_type, 'name': data['name'], 'data': data, 'version': data['version'], 'script': script, 'requires': requires,
+        temp.append({'id': id, 'repo': repo, 'dir': dir, 'type': addon_type, 'name': data['name'], 'data': data, 'version': data['version'], 'script': script, 'requires': requires, 'service': service, 'startup': startup,
                                 'icon': '/cache/{}'.format(
                                     kodi_utils.b64encode('{}/{}/icon.png'.format(dir['download'], id))) if dir else None})
     return temp
@@ -137,6 +130,8 @@ class KodiPlugin:
             self.module = self.script[:-3]
             self.type = data['type']
             self.data = data['data']
+            self.service = data['service']
+            self.startup = data['startup']
 
     def __repr__(self):
         return json.dumps({'id': self.id, 'name': self.name, 'module': self.module})
@@ -156,7 +151,7 @@ class KodiPlugin:
         for id in xbmcaddon.ADDON_CACHE:
             kodi_utils.set_settings(id, xbmcaddon.ADDON_CACHE[id].settings)
 
-    def run(self, bridge, url):
+    def run(self, bridge, url, run_as_service=False):
         logger = logging.getLogger(self.id)
         import xbmc
 
@@ -196,7 +191,14 @@ class KodiPlugin:
         print sys.path
 
 
-
+        if run_as_service and self.service:
+            try:
+                if 'setproctitle' in sys.modules:
+                    setproctitle.setproctitle('python TVMLServer ({} service)'.format(self.id))
+                runpy.run_module(self.service.split('/')[-1][:-3], run_name='__main__')
+            except:
+                logger.exception('Failed in addon {} service'.format(self.id))
+            return None
 
         try:
             if '?' in url:
@@ -279,7 +281,6 @@ class KodiPlugin:
             sqlite3.dbapi2.connect = dbapi2_connect_patch
 
             xbmcplugin.items = []
-            import runpy
             runpy.run_module(self.module.split('/')[-1], run_name='__main__')
             #imp.load_module(self.module, fp, self.dir, ('.py', 'rb', imp.PY_SOURCE))
         except SystemExit:
@@ -308,7 +309,7 @@ class KodiPlugin:
             return items
         for item in items:
     # url, title, subtitle=None, icon=None, details=None, menuurl='', info={})
-            i = Item(url=item['url'], title=convert_kodi_tags_to_html_tags(item['listitem'].label),
+            i = Item(url=item['url'], title=kodi_utils.tag_conversion(item['listitem'].label),
                  subtitle=item['listitem'].getProperty('subtitle'),
                 icon=item['listitem'].thumbnailImage if item['listitem'].thumbnailImage != 'DefaultFolder.png' else '',
                 details=item['listitem'].getProperty('details'), info=item['listitem'].infos,

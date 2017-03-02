@@ -83,7 +83,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
                                     }
                                 }.bind(this));
                             }.bind(this));
-                            navigationDocument.pushDocument(resume);
+                            replaceLoadingDocument(resume);
                         }
                     } else {
                         this.play(msg, time, function(time) {
@@ -260,10 +260,13 @@ DocumentLoader.prototype.fetchPost = function(options) {
                 });
             } else if (type == 'closeprogress') {
                 if (typeof this.progressDocument != "undefined") {
-                    console.log("Removing progress dialog");
-                    var save = this.progressDocument;
-                    this.progressDocument = undefined;
-                    navigationDocument.removeDocument(save);
+                	setTimeout(function() {
+                		console.log("Removing progress dialog");
+                    	var save = this.progressDocument;
+                    	this.progressDocument = undefined;
+                    	navigationDocument.removeDocument(save);
+					}.bind(this), 500);
+
                 }
                 if (typeof end == "undefined" || !end) {
                     options.url = msg['return_url'];
@@ -278,9 +281,21 @@ DocumentLoader.prototype.fetchPost = function(options) {
                     options.url = msg['return_url'];
                     this.fetchPost(options);
                 }
+            } else if (type == 'refresh') { //refresh current doc
+				if (navigationDocument.documents.indexOf(singleton_loading_document) != -1) {
+                    var doc_to_refresh = navigationDocument.documents[navigationDocument.documents.length - 2];
+                } else {
+					var doc_to_refresh = navigationDocument.documents[navigationDocument.documents.length - 1];
+				}
+				var url = doc_to_refresh.documentElement.getAttribute('data-url');
+				url = url.substring(0, url.lastIndexOf('/')); //remove the process part since we want a fresh call
+				var data = doc_to_refresh.documentElement.getAttribute('data-item-url');
+				new DocumentController(documentLoader, url, false, data, true);
             } else { //regular document
                 responseDoc = new DOMParser().parseFromString(msg['doc'], "application/xml");
                 responseDoc = this.prepareDocument(responseDoc);
+                responseDoc.documentElement.setAttribute('data-item-url', msg['item_url']);
+                responseDoc.documentElement.setAttribute('data-url', msg['return_url']);
                 if (typeof options.initial == "boolean" && options.initial) {
                     console.log("registering event handlers");
                     responseDoc.addEventListener("disappear", function () {
@@ -323,21 +338,21 @@ DocumentLoader.prototype.fetchPost = function(options) {
         }
     }.bind(this);
     xhr.onerror = function() {
-		removeLoadingDocument();
         if (typeof options.error === "function") {
             options.error(xhr);
         } else {
             const alertDocument = createLoadErrorAlertDocument(docURL, xhr, true);
             navigationDocument.presentModal(alertDocument);
+            removeLoadingDocument();
         }
     };
     xhr.ontimeout = function() {
-		removeLoadingDocument();
         if (typeof options.error === "function") {
             options.error(xhr);
         } else {
             const alertDocument = createAlertDocument('Timeout', 'The request timed-out');
             navigationDocument.presentModal(alertDocument);
+            removeLoadingDocument();
         }
     }
     xhr.timeout = 3600000; //timeout of 1 hour
@@ -573,22 +588,27 @@ function traverseElements(elem, callback) {
 
 DocumentLoader.prototype.play = function(msg, time, callback) {
     try {
+    	var currenttime = 0;
+		var duration = 0;
         var player = VLCPlayer.createPlayerWithUrlTimeImageDescriptionTitleImdbSeasonEpisodeCallback(msg['url'], time, this.prepareURL(msg['image']), msg['description'], msg['title'], msg['imdb'], msg['season'], msg['episode'], function(time) {
             try {
-                var total = player.getDuration();
-                console.log("player ended with "+time+"ms out of "+total+"ms");
-                if (typeof time == "undefined" || time == 0 || typeof total == "undefined" || total == 0) {
-                    //do nothing
-                } else {
-                    var url = this.prepareURL(msg['stop'] + "/" + btoa(JSON.stringify({'time': time.toString(), 'total': total.toString()})));
-                    console.log("notifying " + url);
-                    VLCPlayer.notify(url);
+                duration = player.getDuration();
+                currenttime = time;
+                console.log("player ended with "+currenttime+"ms out of "+duration+"ms");
+                if (typeof currenttime == "undefined") {
+                    currenttime == 0;
                 }
+                if (typeof duration == "undefined") {
+                	duration = 0;
+                }
+				var url = this.prepareURL(msg['stop'] + "/" + btoa(JSON.stringify({'time': currenttime.toString(), 'total': duration.toString()})));
+				console.log("notifying " + url);
+				VLCPlayer.notify(url);
             } catch (e) {
                 console.log(e);
             }
             setTimeout(function() {
-				callback(time);
+				callback(currenttime);
 			}, 0);
         }.bind(this));
         console.log("after create player: "+player);
@@ -620,8 +640,7 @@ DocumentLoader.prototype.play = function(msg, time, callback) {
             myPlayer.seekToTime(time);
 
 
-            var currenttime = 0;
-            var duration;
+
             console.log("media item duration: "+myPlayer.currentMediaItemDuration);
             if (myPlayer.currentMediaItemDuration == null) { //pre tvos 10
                 duration = 0;
@@ -646,13 +665,9 @@ DocumentLoader.prototype.play = function(msg, time, callback) {
             myPlayer.addEventListener("stateDidChange", function(e) {
                 if(e.state == "end") {
                 	try {
-                        if (typeof duration == "undefined" || duration == 0 || typeof currenttime == "undefined" || currenttime == 0) {
-                    		//do nothing
-                		} else {
-                            currenttime = currenttime * 1000; //since we're getting ms from player
-                            var url = this.prepareURL(msg['stop'] + "/" + btoa(JSON.stringify({'time': currenttime.toString(), 'total': duration.toString()})));
-                            notify(url);
-                        }
+                        currenttime = currenttime * 1000; //since we're getting ms from player
+						var url = this.prepareURL(msg['stop'] + "/" + btoa(JSON.stringify({'time': currenttime.toString(), 'total': duration.toString()})));
+						notify(url);
                     } catch (err) {
                 		console.log(err);
 					}
@@ -663,21 +678,19 @@ DocumentLoader.prototype.play = function(msg, time, callback) {
             }.bind(this), false);
         }
         removeLoadingDocument();
+        if (typeof duration == "undefined") {
+        	duration = 0;
+		}
+        setTimeout(function() {
+        	var url = this.prepareURL(msg['start'] + "/" + btoa(duration.toString()));
+			notify(url);
+		}.bind(this), 0);
     } catch (e) {
     	removeLoadingDocument();
         console.log(e);
         var alert = createAlertDocument("Error", "Error playing URL "+msg['url'], true);
         navigationDocument.presentModal(alert);
-        if (typeof time == "undefined") {
-			time = 0;
-		}
-		if (typeof total == "undefined") {
-			total = 0;
-		}
-		var url = this.prepareURL(msg['stop']+"/"+btoa(JSON.stringify({'time':time.toString(), 'total':total.toString()})));
-		console.log("notifying "+url);
-		VLCPlayer.notify(url);
-		setTimeout(function() {
+        setTimeout(function() {
 			callback(null);
 		});
 

@@ -191,7 +191,21 @@ class Player(object):
 		"""
 		Creates a new Player with as default the xbmc music playlist.
 		"""
-		pass
+		self.is_playing = False
+		def play_start():
+			self.is_playing = True
+			self.onPlayBackStarted()
+		bridge.register_for_trigger(kodi_utils.TRIGGER_PLAY_START, bridge.thread.id, play_start)
+
+		def play_stop(history):
+			logger.debug('stop play is detected')
+			self.is_playing = False
+			if history['time'] == history['total']:
+				self.onPlayBackEnded()
+			else:
+				self.onPlayBackStopped()
+
+		bridge.register_for_trigger(kodi_utils.TRIGGER_PLAY_STOP, bridge.thread.id, play_stop)
 
 	def play(self, item=None, listitem=None, windowed=False, statrpos=-1):
 		"""
@@ -217,20 +231,19 @@ class Player(object):
 		"""
 		logger.debug('called Player.play with item={}, listitem={}'.format(item, listitem))
 		if listitem:
-			if listitem.path.startswith('plugin://'):
-				function = 'Container.Update({})'.format(listitem.path)
-				logger.debug('calling execute on {}'.format(function))
-				executebuiltin(function)
-			else:
-				_xbmcplugin.setResolvedUrl(None, True, listitem)		
-		elif url:
-			if url.startswith('plugin://'):
-				function = 'Container.Update({})'.format(url)
-				logger.debug('calling execute on {}'.format(function))
-				executebuiltin(function)
-			else:
+			_xbmcplugin.setResolvedUrl(0, True, listitem)
+			return
+		url=None
+		if item.startswith('plugin://'):
+			m = re.search('plugin://([^/]*)(.*)\)', item)
+			if m:
+				url = m.group(2)
 				bridge.play(url=url)
-			
+			else:
+				logger.error('Got bad play url {}'.format(item))
+		else:
+			url=item
+			bridge.play(url=url)
 
 	def stop(self):
 		"""Stop playing."""
@@ -259,17 +272,15 @@ class Player(object):
 
 	def onPlayBackStarted(self):
 		"""Will be called when xbmc starts playing a file."""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onPlayBackEnded(self):
 		"""Will be called when xbmc stops playing a file."""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onPlayBackStopped(self):
 		"""Will be called when user stops xbmc playing a file."""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
+		pass
 
 	def onPlayBackPaused(self):
 		"""Will be called when user pauses a playing file."""
@@ -328,7 +339,7 @@ class Player(object):
 
 	def isPlaying(self):
 		"""Returns ``True`` is xbmc is playing a file."""
-		return _xbmc.bridge.isplaying()
+		return self.is_playing
 
 	def isPlayingAudio(self):
 		"""Returns ``True`` is xbmc is playing an audio file."""
@@ -374,8 +385,7 @@ class Player(object):
 
 		:raises: Exception: If player is not playing a file.
 		"""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
-		return float()
+		return -1
 
 	def getTime(self):
 		"""Returns the current time of the current playing media as fractional seconds.
@@ -463,7 +473,6 @@ class Player(object):
 		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
-
 class PlayList(object):
 	"""Retrieve a reference from a valid xbmc playlist
 
@@ -476,6 +485,26 @@ class PlayList(object):
 
 	Use PlayList[int position] or __getitem__(int position) to get a PlayListItem.
 	"""
+
+	def __new__(cls, playList):
+		if playList == PLAYLIST_MUSIC:
+			try:
+				global playlist_0
+				return playlist_0
+			except:
+				ans = super(PlayList, cls).__new__(cls, playList)
+				playlist_0 = ans
+				return ans
+		elif playList == PLAYLIST_VIDEO:
+			try:
+				global playlist_1
+				return playlist_1
+			except:
+				ans = super(PlayList, cls).__new__(cls, playList)
+				playlist_1 = ans
+				return ans
+		else:
+			raise Exception('Cannot create playlist with type {}'.format(playList))
 	def __init__(self, playList):
 		"""Retrieve a reference from a valid xbmc playlist
 
@@ -564,6 +593,8 @@ class PlayList(object):
 		"""getPlayListId() --returns an integer."""
 		return id(self)
 
+playlist_0 = PlayList(PLAYLIST_MUSIC)
+playlist_1 = PlayList(PLAYLIST_VIDEO)
 
 class PlayListItem(object):
 	"""Creates a new PlaylistItem which can be added to a PlayList."""
@@ -796,18 +827,32 @@ class Monitor(object):
 
 	Creates a new Monitor to notify addon about changes.
 	"""
+	def __init__(self):
+		import traceback
+		stack = traceback.extract_stack()[:-1]
+		print 'searching for id in {}'.format(stack)
+		for s in stack:
+			m = re.search(os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'addons', '([^{}]+)'.format(os.path.sep)).encode('string-escape'), s[0])
+			if m:
+				print 'Found id {}'.format(m.group(1))
+				self.id = m.group(1)
+				break
+		if not self.id:
+			raise Exception('Could not find addon ID automatically')
+		self.abort = False
+		bridge.register_for_trigger(kodi_utils.TRIGGER_SETTINGS_CHANGED, bridge.thread.id, kodi_utils.trigger_listener_for_settings(self.id, self.onSettingsChanged))
+		bridge.register_for_trigger(kodi_utils.TRIGGER_ABORT, bridge.thread.id, kodi_utils.trigger_listener_for_abort(self.id, self.onAbortRequested))
+
 	def onAbortRequested(self):
 		"""
 		.. warning:: Deprecated!
 		"""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
-		pass
+		self.abort = True
 
 	def onDatabaseUpdated(self, database):
 		"""
 		.. warning:: Deprecated!
 		"""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onScreensaverActivated(self):
@@ -816,7 +861,6 @@ class Monitor(object):
 
 		Will be called when screensaver kicks in
 		"""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onScreensaverDeactivated(self):
@@ -825,7 +869,6 @@ class Monitor(object):
 
 		Will be called when screensaver goes off
 		"""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onSettingsChanged(self):
@@ -834,14 +877,12 @@ class Monitor(object):
 
 		Will be called when addon settings are changed
 		"""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onDatabaseScanStarted(self, database):
 		"""
 		.. warning:: Deprecated!
 		"""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onNotification(self, sender, method, data):
@@ -854,7 +895,6 @@ class Monitor(object):
 
 		Will be called when Kodi receives or sends a notification
 		"""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onCleanStarted(self, library):
@@ -866,7 +906,6 @@ class Monitor(object):
 		Will be called when library clean has started
 		and return video or music to indicate which library is being cleaned
 		"""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onCleanFinished(self, library):
@@ -878,7 +917,6 @@ class Monitor(object):
 		Will be called when library clean has ended
 		and return video or music to indicate which library has been cleaned
 		"""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onDPMSActivated(self):
@@ -887,7 +925,6 @@ class Monitor(object):
 
 		Will be called when energysaving/DPMS gets active
 		"""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onDPMSDeactivated(self):
@@ -896,7 +933,6 @@ class Monitor(object):
 
 		Will be called when energysaving/DPMS is turned off
 		"""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onScanFinished(self, library):
@@ -908,7 +944,6 @@ class Monitor(object):
 		Will be called when library scan has ended
 		and return video or music to indicate which library has been scanned
 		"""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def onScanStarted(self, library):
@@ -920,7 +955,6 @@ class Monitor(object):
 		Will be called when library scan has started
 		and return video or music to indicate which library is being scanned
 		"""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
 		pass
 
 	def waitForAbort(self, timeout=-1):
@@ -934,15 +968,20 @@ class Monitor(object):
 		:param timeout: float - (optional) timeout in seconds. Default: no timeout.
 		:return: bool
 		"""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
-		return bool(0)
+		if timeout!=-1:
+			now = time.time()
+			while time.time() - now < timeout and not abortRequested:
+				time.sleep(1)
+		else:
+			while not abortRequested:
+				time.sleep(1)
+		return abortRequested
 
 	def abortRequested(self):
 		"""
 		Returns ``True`` if abort has been requested.
 		"""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
-		return bool(0)
+		return self.abort
 
 
 class RenderCapture(object):
@@ -1139,7 +1178,7 @@ def executebuiltin(function, wait=False):
 	m = re.search('.*Container.Refresh.*', function)
 	if m:
 		bridge.saveSettings()
-		bridge._message({'type':'load', 'url':'/catalog/{}'.format(kodi_utils.b64encode(Container.plugin.id)), 'data':'', 'replace':True})
+		bridge._message({'type':'refresh'})
 		return str()
 	m = re.search('.*RunPlugin\(plugin://([^/]*)(.*)\)', function)
 	if m:
@@ -1248,7 +1287,8 @@ def getCondVisibility(condition):
 			return not os.path.isdir(os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'addons', m.group(2)))
 		else:
 			return os.path.isdir(os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'addons', m.group(2)))
-		
+	if condition == 'Library.IsScanningVideo':
+		return False
 	logger.warning('{}.{} not implemented'.format(__name__, sys._getframe().f_code.co_name))	
 	return bool(1)
 

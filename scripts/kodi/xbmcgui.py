@@ -1439,7 +1439,7 @@ class ListItem(object):
 		"""
 		if not items:
 			return
-		logger.debug('adding contextmenus {}'.format(items))
+		#logger.debug('adding contextmenus {}'.format(items))
 		if replaceItems:
 			self.context = items
 		else:
@@ -2780,8 +2780,40 @@ class Dialog(object):
 			dialog = xbmcgui.Dialog()
 			d = dialog.numeric(1, 'Enter date of birth')
 		"""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
-		return str()
+		logger.debug('Calling bridge inputdialog')
+		ans = _xbmc.bridge.inputdialog(striptags(heading))
+		if type == 0:
+			try:
+				int(ans)
+				return ans
+			except:
+				logger.exception('Got non-integer input from dialog')
+				return default
+		if type == 1:
+			from datetime import datetime
+			try:
+				datetime.strptime(ans, "%d/%m/%Y")
+				return ans
+			except:
+				logger.exception('Got non date input from dialog')
+				return default
+		if type == 2:
+			from datetime import datetime
+			try:
+				datetime.strptime(ans, "%H:%M")
+				return ans
+			except:
+				logger.exception('Got non time input from dialog')
+				return default
+		if type == 3:
+			from IPy import IP
+			try:
+				IP(ans)
+				return ans
+			except:
+				logger.exception('Got non IP from dialog')
+				return default
+		return default
 
 	def notification(self, heading, message, icon='', time=5000, sound=True):
 		"""

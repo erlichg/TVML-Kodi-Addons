@@ -130,16 +130,34 @@ DocumentController.prototype.setupDocument = function(document) {
 
 DocumentController.prototype.handleDocument = function(document, isModal, replace) {
     if (typeof isModal == "undefined") {
-		if (typeof replace == "boolean" && replace && navigationDocument.documents.length > 1) {
-			navigationDocument.removeDocument(navigationDocument.documents[navigationDocument.documents.length-1]); //remove previous document
+		if (typeof replace == "boolean" && replace) {
+			var index =  navigationDocument.documents.length - 1;
+			while(index >= 0) {
+				var doc_to_replace = navigationDocument.documents[index];
+				if (doc_to_replace != singleton_loading_document) {
+					break;
+				}
+				index = index - 1;
+			}
+			if (index >= 0) {
+                navigationDocument.replaceDocument(document, doc_to_replace);
+                removeLoadingDocument();
+            } else {
+				console.log('Did not find any document to replace')
+				replaceLoadingDocument(document);
+			}
+		} else {
+			replaceLoadingDocument(document);
 		}
-		console.log("pushing document");
-		replaceLoadingDocument(document);
 	} else {
-		console.log("presenting modal document");
 		removeLoadingDocument();
-		navigationDocument.presentModal(document);
+		setTimeout(function() {
+			console.log('Presenting modal');
+			navigationDocument.presentModal(document);
+		}, 500);
+
 		document.addEventListener("select", function(e) {
+			console.log('Removing modal');
 			navigationDocument.dismissModal();
 		});
 	}

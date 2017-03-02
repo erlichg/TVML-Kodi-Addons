@@ -1,5 +1,5 @@
-import importlib, time, sys, json, kodi_utils
-import multiprocessing, gevent, logging
+import importlib, time, sys, json, kodi_utils, sqlite3
+import multiprocessing, gevent, logging, thread
 logger = logging.getLogger('TVMLServer')
 
 
@@ -29,6 +29,8 @@ def progress_stop(responses, stop, _id):
     logger.debug('Progress thread has ended')
 
 
+
+
 class bridge:
     """Bridge class which is created on every client request.
     It is passed to the plugin run method and used to communicate between the plugin and the server.
@@ -36,6 +38,36 @@ class bridge:
     """
     def __init__(self):
         self.thread = multiprocessing.current_process()
+        self.listeners = {}
+        thread.start_new_thread(self._trigger_monitor)
+
+    def _trigger_monitor(self):
+        while not self.thread.stop.is_set():
+            try:
+                t = self.thread.triggers.get(False)
+                type = t['type']
+                data = t['data']
+                #logger.debug('{} Got trigger {} with data {} and listeners are {}'.format(self.thread.id, type, data, self.listeners))
+                if type in self.listeners:
+                    for (id, callback) in self.listeners[type]:
+                        #logger.debug('Notifying {}'.format(id))
+                        try:
+                            callback(data)
+                        except TypeError:
+                            callback()
+                        except:
+                            logger.exception('Failed to notify listener')
+            except:
+                gevent.sleep(0.1)
+        logger.debug('thread {} trigger monitor has ended'.format(self.thread.id))
+
+
+    def register_for_trigger(self, type, id, callback):
+        logger.debug('{} registering for {}'.format(id, type))
+        if not type in self.listeners:
+            self.listeners[type] = []
+        self.listeners[type].append((id, callback))
+
 
     def _message(self, msg, wait=False, _id=None):
         if not self.thread:
@@ -133,7 +165,7 @@ class bridge:
         gevent.sleep(1)
         return ans
 
-    def play(self, url, type_='video', title=None, description=None, image=None, imdb=None, season=None, episode=None, stop_completion=None):
+    def play(self, url, type_='video', title=None, description=None, image=None, imdb=None, season=None, episode=None):
         """
         Playes an item
         :param url: url to play
@@ -148,14 +180,9 @@ class bridge:
         :return:
         """
         logger.debug('Playing {}'.format(url))
-        self.play = url
         _id = kodi_utils.randomword()
         self._message({'type':'play', 'url':url, 'playtype': type_, 'title':title, 'description':description, 'image':image, 'imdb':imdb, 'season':season, 'episode':episode})
         return
-
-    def isplaying(self):
-        """Returns whether the player is still showing or has been cancelled"""
-        return self.play is not None
 
     def formdialog(self, title, fields=[], sections={}, cont=False):
         """Show a custom form dialog with custom fields
