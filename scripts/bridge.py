@@ -39,7 +39,7 @@ class bridge:
     def __init__(self):
         self.thread = multiprocessing.current_process()
         self.listeners = {}
-        thread.start_new_thread(self._trigger_monitor)
+        thread.start_new_thread(self._trigger_monitor, ())
 
     def _trigger_monitor(self):
         while not self.thread.stop.is_set():
@@ -47,10 +47,10 @@ class bridge:
                 t = self.thread.triggers.get(False)
                 type = t['type']
                 data = t['data']
-                #logger.debug('{} Got trigger {} with data {} and listeners are {}'.format(self.thread.id, type, data, self.listeners))
+                logger.debug('{} Got trigger {} with data {} and listeners are {}'.format(self.thread.id, type, data, self.listeners))
                 if type in self.listeners:
                     for (id, callback) in self.listeners[type]:
-                        #logger.debug('Notifying {}'.format(id))
+                        logger.debug('Notifying {}'.format(id))
                         try:
                             callback(data)
                         except TypeError:
@@ -110,50 +110,37 @@ class bridge:
     def progressdialog(self, heading, text=''):
         """Shows a progress dialog to the user"""
         _id = kodi_utils.randomword()
-        self.progress = multiprocessing.Process(target=progress_stop, args=(self.thread.responses, self.thread.stop, _id))
-        self.progress.title = heading
-        self.progress.id = _id
-        self.progress.text = text
-        #self.progress['process'] = p
-        self.progress.daemon = True
-        self.progress.start()
-        self._message({'type':'progressdialog', 'title':heading, 'text':text, 'value':'0', 'id':'{}/{}'.format(self.thread.id, _id)}, False, _id)
+        self.progress = {'title': heading, 'id': _id, 'text': text}
+        def close():
+            del self.progress
+        self.register_for_trigger(kodi_utils.TRIGGER_PROGRESS_CLOSE, self.thread.id, close)
+        self._message({'type':'progressdialog', 'title':heading, 'text':text, 'value':'0', 'id': self.thread.id}, False, _id)
 
     def updateprogressdialog(self, value, text=None):
         """Updates the progress dialog"""
         try:
-            if self.progress and self.progress.is_alive():
-                logger.debug('updating progress with {}, {}'.format(value, text))
-                return self._message({'type':'updateprogressdialog', 'title':self.progress.title, 'text':text if text else self.progress.text, 'value':value, 'id':'{}/{}'.format(self.thread.id, self.progress.id)}, False, self.progress.id)
+            self.progress
+            logger.debug('updating progress with {}, {}'.format(value, text))
+            return self._message({'type':'updateprogressdialog', 'title':self.progress['title'], 'text':text if text else self.progress['text'], 'value':value, 'id':self.thread.id}, False, self.progress['id'])
         except:
             pass
 
     def isprogresscanceled(self):
         """Returns whether the progress dialog is still showing or canceled by user"""
         try:
-            try:
-                self.progress
-            except:
-                #progress has been closed programatically
-                logger.debug('isprogresscanceled True (by script)')
-                return True
-            if not self.progress.is_alive(): #progress has been cancelled by user
-                logger.debug('isprogresscanceled True (by user)')
-                return True
+            self.progress
             logger.debug('isprogresscanceled False')
             return False
         except:
-            logger.exception('isprogresscanceled True (by unknown)')
+            #progress has been closed programatically
+            logger.debug('isprogresscanceled True')
             return True
+
 
     def closeprogress(self):
         """Closes the progress dialog"""
         self._message({'type':'closeprogress'})
-        #while self.progress and self.progress['process'].is_alive():
-        #	print 'waiting for progress thread'
-        #	gevent.sleep(1)
         try:
-            self.progress.terminate()
             del self.progress
         except:
             pass

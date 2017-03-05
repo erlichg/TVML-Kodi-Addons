@@ -298,7 +298,7 @@ class KodiPlugin:
         # some cleanup
         for id in xbmcaddon.ADDON_CACHE:
             kodi_utils.set_settings(id, xbmcaddon.ADDON_CACHE[id].settings)
-        if hasattr(bridge, 'progress') and bridge.progress.is_alive():
+        if hasattr(bridge, 'progress'):
             logger.debug('Closing left over progress')
             bridge.closeprogress()
         ans = []

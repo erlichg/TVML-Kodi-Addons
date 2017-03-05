@@ -112,13 +112,13 @@ def progressdialog(plugin, msg, url=None, item_url=None):
     """Shows a progress dialog. Initially with progress 0"""
     logger.debug('returning progress template with {}'.format(msg))
     doc = render_template('progressdialog.xml', title=msg['title'], text=msg['text'], value=msg['value'], url=url, msgid=msg['id'], data=item_url)
-    return {'doc': doc, 'messagetype':'progress', 'return_url':url, 'item_url':item_url}
+    return {'doc': doc, 'messagetype':'progress', 'return_url':url, 'item_url':item_url, 'stop': '/progressstop/{}'.format(msg['id'])}
 
 
 def updateprogressdialog(plugin, msg, url=None, item_url=None):
     logger.debug('updating progress template with {}'.format(msg))
     doc = render_template('progressdialog.xml', title=msg['title'], text=msg['text'], value=msg['value'], url=url, msgid=msg['id'], data=item_url)
-    return {'doc': doc, 'messagetype':'updateprogress', 'return_url':url, 'item_url':item_url}
+    return {'doc': doc, 'messagetype':'updateprogress', 'return_url':url, 'item_url':item_url, 'stop': '/progressstop/{}'.format(msg['id'])}
 
 
 def selectdialog(plugin, msg, url=None, item_url=None):

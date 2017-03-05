@@ -1,12 +1,52 @@
 from __future__ import division
 import sys, os, imp, urllib, json, time, traceback, re, getopt, tempfile, AdvancedHTMLParser, urllib2, urlparse, zipfile, shutil, requests, logging, psutil, subprocess, sqlite3, cgi
 from threading import Timer
+import thread
 from scripts import kodi_utils
 from collections import OrderedDict
-import jinja2
+import jinja2, signal
 from globals import PROCESSES, CONTEXT, REPOSITORIES, SERVICES
 
 VERSION='0.6'
+
+def program_end(signal, frame):
+    logger.debug('Shutting down program')
+    logger.debug('Sending abort signal for all services')
+    for p in SERVICES:
+        kodi_utils.trigger(kodi_utils.TRIGGER_ABORT, SERVICES[p].id)
+    time.sleep(5)
+    logger.debug('Closing remaining processes')
+    for p in PROCESSES:
+        if PROCESSES[p].is_alive:
+            PROCESSES[p].responses.close()
+            PROCESSES[p].messages.close()
+            del PROCESSES[p].responses
+            del PROCESSES[p].messages
+            del PROCESSES[p].stop
+            del PROCESSES[p].triggers
+            PROCESSES[p]._popen.terminate()
+            del PROCESSES[p]
+    logger.debug('Closing remaining services')
+    for p in SERVICES:
+        if SERVICES[p].is_alive:
+            SERVICES[p].responses.close()
+            SERVICES[p].messages.close()
+            del SERVICES[p].responses
+            del SERVICES[p].messages
+            del SERVICES[p].stop
+            del SERVICES[p].triggers
+            SERVICES[p]._popen.terminate()
+            del SERVICES[p]
+    logger.debug('Forcefully closing remaining threads')
+    for p in multiprocessing.active_children():
+        if p.is_alive:
+            try:
+                p.terminate()
+            except:
+                pass
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, program_end)
 
 try:
     from flask import Flask, render_template, send_from_directory, request, send_file, redirect
@@ -135,6 +175,7 @@ logger = logging.getLogger('TVMLServer')
 
 class MyProcess(multiprocessing.Process):
     def run(self):
+        logger.debug('Process {} starting'.format(self.id))
         ans = self._target(*self._args, **self._kwargs)
         logger.debug('Process {} adding end message'.format(self.id))
         self.message({'type': 'end', 'ans': ans})
@@ -160,13 +201,6 @@ def Process(group=None, target=None, name=None, args=(), kwargs={}):
     p.stop = multiprocessing.Event()  # can be used to indicate stop
     p.id = str(id(p))
     return p
-
-
-def dump_queue(q):
-    ans = []
-    while not q.empty():
-        ans.append(q.get())
-    return ans
 
 
 def update_addons():
@@ -241,6 +275,15 @@ def playstart(s, text):
     try:
         text = kodi_utils.b64decode(text)
         kodi_utils.trigger(kodi_utils.TRIGGER_PLAY_START, text)
+    except:
+        logger.exception('Failed to signal play start')
+    return json.dumps({'messagetype': 'nothing', 'end': True})
+
+
+@app.route('/progressstop/<id>', methods=['GET'])
+def progressstop(id):
+    try:
+        kodi_utils.trigger(kodi_utils.TRIGGER_PROGRESS_CLOSE, id)
     except:
         logger.exception('Failed to signal play start')
     return json.dumps({'messagetype': 'nothing', 'end': True})
@@ -485,7 +528,7 @@ def clear_play():
 def clear_settings():
     try:
         with open_db() as DB:
-            DB.execute('delete from SETTINGS')
+            DB.execute('delete from {}'.format(kodi_utils.SETTINGS_TABLE))
     except:
         logger.exception('Failed to clear settings')
     return json.dumps({'messagetype': 'nothing', 'end': True})
@@ -494,9 +537,9 @@ def clear_settings():
 def clear_all():
     try:
         with open_db() as DB:
-            DB.execute('delete from SETTINGS')
-            DB.execute('delete from HISTORY')
-            DB.execute('delete from CONFIG')
+            DB.execute('delete from {}'.format(kodi_utils.SETTINGS_TABLE))
+            DB.execute('delete from {}'.format(kodi_utils.HISTORY_TABLE))
+            DB.execute('delete from {}'.format(kodi_utils.CONFIG_TABLE))
     except:
         logger.exception('Failed to clear all')
     return json.dumps({'messagetype': 'nothing', 'end': True})
@@ -543,10 +586,12 @@ def remove_addon(id):
                 del REPOSITORIES[index_to_del]
             global REFRESH_EVENT
             REFRESH_EVENT.clear()
-            multiprocessing.Process(target=get_available_addons, args=(REPOSITORIES, REFRESH_EVENT)).start()
+            #multiprocessing.Process(target=get_available_addons, args=(REPOSITORIES, REFRESH_EVENT)).start()
+            thread.start_new_thread(get_available_addons, (REPOSITORIES, REFRESH_EVENT))
         if 'Service' in json.loads(addon['type']):
             #First abort monitor for this addon if exists
             kodi_utils.trigger(kodi_utils.TRIGGER_ABORT, id)
+            time.sleep(5)
             #Now terminate service process
             global SERVICES
             if id in SERVICES:
@@ -568,11 +613,12 @@ def remove_addon(id):
 
 
 def get_items(plugin_id, url, context, run_as_service=False):
+    logger = logging.getLogger(plugin_id)
+    logger.debug('Getting items for {}:{}'.format(plugin_id, url))
     if 'setproctitle' in sys.modules:
         setproctitle.setproctitle('python TVMLServer ({}:{})'.format(plugin_id, url))
     kodi_utils.windows_pyinstaller_multiprocess_hack()
-    logger = logging.getLogger(plugin_id)
-    logger.debug('Getting items for: {}'.format(url))
+
 
     try:
         plugin = KodiPlugin(plugin_id)
@@ -752,12 +798,16 @@ def install_addon(addon):
     path = os.path.join(DATA_DIR, 'addons')
     with zipfile.ZipFile(temp, 'r') as zip:
         zip.extractall(path)
+    time.sleep(5)
     plugin = KodiPlugin(addon['id'])
+    logger.debug('Successfully installed plugin {} of type {}'.format(plugin.id, plugin.type))
     if 'Service' in plugin.type:  # Need to run service
+        global SERVICES
+        logger.debug('Starting service {}'.format(plugin.id))
         try:
             p = Process(target=get_items, args=(plugin.id, '', CONTEXT, True))
-            p.daemon = True
             SERVICES[plugin.id] = p
+            p.daemon = True
             p.start()
         except:
             logger.exception('Failed to run {} service'.format(plugin.id))
@@ -798,7 +848,8 @@ def refresh_repositories():
     global REFRESH_EVENT
     if REFRESH_EVENT.is_set(): #i.e. refresh not in progress
         REFRESH_EVENT.clear()
-        multiprocessing.Process(target=get_available_addons, args=(REPOSITORIES, REFRESH_EVENT)).start()
+        #multiprocessing.Process(target=get_available_addons, args=(REPOSITORIES, REFRESH_EVENT)).start()
+        thread.start_new_thread(get_available_addons, (REPOSITORIES, REFRESH_EVENT))
     gevent.sleep(1)
     return json.dumps({'messagetye':'load', 'url': '/refreshProgress'})
 
@@ -936,7 +987,8 @@ def addRepository():
             REPOSITORIES.append(repo)
             global REFRESH_EVENT
             REFRESH_EVENT.clear()
-            multiprocessing.Process(target=get_available_addons, args=(REPOSITORIES, REFRESH_EVENT)).start()
+            #multiprocessing.Process(target=get_available_addons, args=(REPOSITORIES, REFRESH_EVENT)).start()
+            thread.start_new_thread(get_available_addons, (REPOSITORIES, REFRESH_EVENT))
             return json.dumps({'messagetype':'load', 'url': '/main', 'replace': True, 'initial': True, 'end':True})
     except Exception as e:
         logger.exception('Failed to add repository {}'.format(path))
@@ -1068,9 +1120,9 @@ def mmain(argv):
 
 
     with open_db() as DB:
-        DB.execute('create table if not exists SETTINGS(id text primary_key, string text)')
-        DB.execute('create table if not exists CONFIG(id text primary_key, string text)')
-        DB.execute('create table if not exists HISTORY(s text primary_key, time integer, total integer)')
+        DB.execute('create table if not exists {}(id text primary_key, string text)'.format(kodi_utils.SETTINGS_TABLE))
+        DB.execute('create table if not exists {}(id text primary_key, string text)'.format(kodi_utils.CONFIG_TABLE))
+        DB.execute('create table if not exists {}(s text primary_key, time integer, total integer)'.format(kodi_utils.HISTORY_TABLE))
         DB.execute('drop table if exists ADDONS')
         DB.execute('create table ADDONS(id text, repo text, dir text, type text, name text, data text, version text, script text, requires text, icon text)')
         DB.execute('drop table if exists INSTALLED')
@@ -1105,7 +1157,8 @@ def mmain(argv):
                             REPOSITORIES.append(repo)
                     except:
                         logger.exception('Failed to parse installed repository {}'.format(plugin))
-                if 'Service' in p.type: #Need to run service
+
+                if 'Service' in p.type:  # Need to run service
                     try:
                         pr = Process(target=get_items, args=(p.id, '', CONTEXT, True))
                         pr.daemon = True
@@ -1113,6 +1166,7 @@ def mmain(argv):
                         pr.start()
                     except:
                         logger.exception('Failed to run {} service'.format(p.id))
+
                 DB.execute('insert into INSTALLED VALUES(?,?,?,?,?,?,?,?,0)', (p.id, json.dumps(p.type), unicode(p.name), json.dumps(p.data), p.version, p.script, json.dumps(p.requires), p.icon))
                 logger.debug('Successfully loaded plugin: {}'.format(p))
             except Exception as e:
@@ -1128,7 +1182,9 @@ def mmain(argv):
 
     global REFRESH_EVENT
     REFRESH_EVENT = multiprocessing.Event()
-    multiprocessing.Process(target=get_available_addons, args=(REPOSITORIES, REFRESH_EVENT)).start()
+
+    #multiprocessing.Process(target=get_available_addons, args=(REPOSITORIES, REFRESH_EVENT)).start()
+    thread.start_new_thread(get_available_addons, (REPOSITORIES, REFRESH_EVENT))
 
     print
     print 'Server now running on port {}'.format(port)

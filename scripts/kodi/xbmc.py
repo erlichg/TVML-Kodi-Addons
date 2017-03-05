@@ -192,6 +192,8 @@ class Player(object):
 		Creates a new Player with as default the xbmc music playlist.
 		"""
 		self.is_playing = False
+		self.time = 0
+		self.total = -1
 		def play_start():
 			self.is_playing = True
 			self.onPlayBackStarted()
@@ -200,6 +202,8 @@ class Player(object):
 		def play_stop(history):
 			logger.debug('stop play is detected')
 			self.is_playing = False
+			self.time = history['time']
+			self.total = history['total']
 			if history['time'] == history['total']:
 				self.onPlayBackEnded()
 			else:
@@ -385,15 +389,14 @@ class Player(object):
 
 		:raises: Exception: If player is not playing a file.
 		"""
-		return -1
+		return self.total
 
 	def getTime(self):
 		"""Returns the current time of the current playing media as fractional seconds.
 
 		:raises: Exception: If player is not playing a file.
 		"""
-		logger.warning('{}.{}.{} not implemented'.format(__name__, self.__class__.__name__, sys._getframe().f_code.co_name))
-		return float()
+		return self.time
 
 	def seekTime(self, pTime):
 		"""Seeks the specified amount of time as fractional seconds.

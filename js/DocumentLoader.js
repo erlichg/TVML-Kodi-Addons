@@ -47,6 +47,9 @@ DocumentLoader.prototype.fetchPost = function(options) {
             console.log('Got message type='+msg['messagetype']+' and end='+msg['end']);
             var end = msg['end'];
             var type = msg['messagetype'] || "undefined";
+            if (typeof options.onload == "function") {
+                options.onload(msg);
+            }
             if (type == 'play') { //play
                 var time = msg['time'];
                 //VLC player
@@ -147,12 +150,8 @@ DocumentLoader.prototype.fetchPost = function(options) {
                     this.progressDocument.addEventListener("unload", function() { //in case of user cancel, send abort notification
                         if (typeof this.progressDocument != "undefined") {
                             this.progressDocument = undefined;
-                            if (typeof id != "undefined" && id != "") { //only if response is required
-                                this.fetchPost({
-                                    url: "/response/" + id,
-                                    silent: true,
-                                    data: "blah"
-                                });
+                            if (typeof msg['stop'] != "undefined") { //only if response is required
+                                notify(msg['stop'])
                             }
                         }
                     }.bind(this));
@@ -170,37 +169,21 @@ DocumentLoader.prototype.fetchPost = function(options) {
                 var url = progress.getAttribute("documentURL");
                 var data = progress.getAttribute("data");
                 //fetch new message
-                this.fetchPost({
-                    url: url,
-                    silent:true,
-                    data: data,
-                    success: function(doc) { //if we get success, this means we got a regular document without closing the progress
-                        if (typeof this.progressDocument != "undefined" && navigationDocument.documents.indexOf(this.progressDocument) != -1) { //if progress is still showing, we need to remove it
-                            console.log('Manually removing progress document');
-                            const temp = this.progressDocument; //save it
-                            this.progressDocument = undefined; //delete it so as not to call "unload"
-                            navigationDocument.removeDocument(temp);
-                        }
-                        replaceLoadingDocument(doc);
-                    }.bind(this),
-                    abort: function() { //if we get abort, remove the progress dialog
-                        try {
-                            if (typeof this.progressDocument != "undefined") {
-                                console.log("Removing progress dialog");
-                                var save = this.progressDocument;
-                                this.progressDocument = undefined;
-                                navigationDocument.removeDocument(save);
-                            }
-                            var match = /\/catalog\/(.*)/.exec(url);
-                            if (match != null) {
-                                catalog(match[1], data);
-                            } else {
-                                new DocumentController(this, url, false, data);
-                            }
-                        } catch (err) {
-                        }
-                    }.bind(this)
-                });
+                options.url = url;
+                options.silent = true;
+                options.data = data;
+                options.onload = function(msg) {
+                    var type = msg['messagetype'];
+                    if (type == 'progress' || type == 'updateprogress' || type == 'closeprogress') {
+                        //do nothing. Let builting handlers deal with this
+                    } else if (typeof this.progressDocument != "undefined" && navigationDocument.documents.indexOf(this.progressDocument) != -1) { //we got other type of document and progress is still showing so we need to remove it
+                        console.log('Manually removing progress document');
+                        const temp = this.progressDocument; //save it
+                        this.progressDocument = undefined; //delete it so as not to call "unload"
+                        navigationDocument.removeDocument(temp);
+                    }
+                }.bind(this)
+                this.fetchPost(options);
             } else if (type == 'updateprogress') { //update progress
                 if (typeof this.progressDocument != "undefined") {
                     var progress = this.progressDocument.getElementById("progress");
@@ -225,39 +208,21 @@ DocumentLoader.prototype.fetchPost = function(options) {
                     var data = progress.getAttribute("data");
                 }
                 //fetch new message
-                this.fetchPost({
-                    url: url,
-                    silent: true,
-                    data: data,
-                    success: function (doc) { //if we get success, this means we got a regular document with or without closing the progress
-                        if (typeof this.progressDocument != "undefined" && navigationDocument.documents.indexOf(this.progressDocument) != -1) {
-                            console.log('Manually removing progress document');
-                            const temp = this.progressDocument; //save it
-                            this.progressDocument = undefined; //delete it so as not to call "unload"
-                            navigationDocument.replaceDocument(doc, temp);
-                        } else {
-                            replaceLoadingDocument(doc);
-                        }
-                    }.bind(this),
-                    abort: function () { //if we get abort, remove the progress dialog
-                        console.log('In abort function');
-                        try {
-                            if (typeof this.progressDocument != "undefined") {
-                                console.log("Removing progress dialog");
-                                var save = this.progressDocument;
-                                this.progressDocument = undefined;
-                                navigationDocument.removeDocument(save);
-                            }
-                            var match = /\/catalog\/(.*)/.exec(url);
-                            if (match != null) {
-                                catalog(match[1], data);
-                            } else {
-                                new DocumentController(this, url, false, data);
-                            }
-                        } catch (err) {
-                        }
-                    }.bind(this)
-                });
+                options.url = url;
+                options.silent = true;
+                options.data = data;
+                options.onload = function(msg) {
+                    var type = msg['messagetype'];
+                    if (type == 'progress' || type == 'updateprogress' || type == 'closeprogress') {
+                        //do nothing. Let builting handlers deal with this
+                    } else if (typeof this.progressDocument != "undefined" && navigationDocument.documents.indexOf(this.progressDocument) != -1) { //we got other type of document and progress is still showing so we need to remove it
+                        console.log('Manually removing progress document');
+                        const temp = this.progressDocument; //save it
+                        this.progressDocument = undefined; //delete it so as not to call "unload"
+                        navigationDocument.removeDocument(temp);
+                    }
+                }.bind(this)
+                this.fetchPost(options);
             } else if (type == 'closeprogress') {
                 if (typeof this.progressDocument != "undefined") {
                 	setTimeout(function() {
@@ -338,6 +303,9 @@ DocumentLoader.prototype.fetchPost = function(options) {
         }
     }.bind(this);
     xhr.onerror = function() {
+        if (typeof options.onload === "function") {
+            options.onload({'messagetype': 'error', 'end': true});
+        }
         if (typeof options.error === "function") {
             options.error(xhr);
         } else {
@@ -347,6 +315,9 @@ DocumentLoader.prototype.fetchPost = function(options) {
         }
     };
     xhr.ontimeout = function() {
+        if (typeof options.onload === "function") {
+            options.onload({'messagetype': 'timeout', 'end': true});
+        }
         if (typeof options.error === "function") {
             options.error(xhr);
         } else {
