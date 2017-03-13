@@ -8,13 +8,24 @@ See LICENSE.txt for this sample’s licensing information
 	<head>
 	  <style>
 	  @media tv-template and (tv-theme:light) {
-      	.foo { color:rgb(0, 0, 0); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+      	.foo { color:rgb(0, 0, 0); tv-tint-color:rgb(0,0,0); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
       	.foo2 { color:rgb(0, 0, 0); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; }
+		  .foo3 { tv-position:footer; tv-align:right; margin: 0; tv-tint-color:rgb(0,0,0); tv-highlight-color:rgb(0, 0, 0); }
+		  .bold { font-weight:bold; color:rgb(0, 0, 0); tv-tint-color:rgb(0,0,0); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+
 	  }
 	  @media tv-template and (tv-theme:dark) {
-      	.foo { color:rgb(255, 255, 255); tv-highlight-color:rgb(0,0,0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+      	.foo { color:rgb(255, 255, 255); tv-tint-color:rgb(255,255,255); tv-highlight-color:rgb(0,0,0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
       	.foo2 { color:rgb(255, 255, 255); tv-highlight-color:rgb(255, 255, 255); tv-text-max-lines:15; }
+		  .foo3 { tv-position:footer; tv-align:right; margin: 0; tv-tint-color:rgb(255,255,255); tv-highlight-color:rgb(255,255,255); }
+		  .bold { font-weight:bold; color:rgb(255, 255, 255); tv-tint-color:rgb(255,255,255); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
 	  }
+		  .white { color: rgb(255,255,255); tv-tint-color:rgb(255,255,255); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+		  .bold_white { font-weight:bold; color: rgb(255,255,255); tv-tint-color:rgb(255,255,255); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+		  .red {color: rgb(255,0,0); tv-tint-color:rgb(255,0,0); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+		  .bold_red {font-weight:bold; color: rgb(255,0,0); tv-tint-color:rgb(255,0,0); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+		  .blue {color: rgb(0,0,255); tv-tint-color:rgb(0,0,255); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
+		  .blue_bold {font-weight:bold; color: rgb(0,0,255); tv-tint-color:rgb(0,0,255); tv-highlight-color:rgb(0, 0, 0); tv-text-max-lines:15; tv-text-highlight-style: marquee-on-highlight; tv-minimum-scale-factor: 0.7; }
 	</style>	
 	</head>
 	<listTemplate>
@@ -24,8 +35,10 @@ See LICENSE.txt for this sample’s licensing information
 		<list>
 			<section>
 				{% for r in repositories %}
-				<listItemLockup onselect="new DocumentController(documentLoader, '/addonsForRepository', false, btoa('{{r|safe}}'))">
-					<title>{{r}}</title>
+				<listItemLockup onselect="new DocumentController(documentLoader, '/addonsForRepository', false, btoa('{{r['name']|safe}}'))">
+					<row>
+						{{r['title'] | safe}}
+					</row>
 				</listItemLockup>
 				{% endfor %}
 			</section>

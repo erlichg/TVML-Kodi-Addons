@@ -226,19 +226,49 @@ class Addon(object):
             xbmc.bridge.alertdialog('No settings', 'This addon does not have any settings available for view or modification')
             return
         sections = OrderedDict()
-        def isvisible(setting):
-            visible = setting['visible']
+        def isvisible(visible, i, category):
             if visible == 'false':
                 return False
-            m = re.search('(!*)eq\(([^,]*),([^,]*)\)', visible)
+            if visible == 'true':
+                return True
+            if '|' in visible:
+                for v in visible.split('|'):
+                    if isvisible(v, i, category):
+                        return True
+                return False
+            if '+' in visible:
+                for v in visible.split('+'):
+                    if not isvisible(v, i, category):
+                        return False
+                return True
+            m = re.search('(!*)(eq|gt|lt)\(([^,]*),([^,]*)\)', visible)
             if m:
-                x=m.group(2)
-                y=m.group(3)
+                x=m.group(3)
+                y=m.group(4)
+                try:
+                    int(x)
+                    x = category[i+int(x)]['value']
+                except:
+                    pass
+                try:
+                    int(y)
+                    y = category[i+int(y)]['value']
+                except:
+                    pass
+                sign = m.group(2)
+                if sign == 'eq':
+                    ans = x == y
+                elif sign == 'gt':
+                    ans = x > y
+                elif sign == 'lt':
+                    ans = x < y
+                else:
+                    logger.error('Unknown operator in visible setting {}'.format(category[i]))
                 neg=m.group(1) == '!'
                 if neg:
-                    return x != y
+                    return not ans
                 else:
-                    return x == y
+                    return ans
             m = re.search('(!*)System.HasAddon\((.*)\)', visible)
             if m:
                 neg = m.group(1) == '!'
@@ -246,10 +276,11 @@ class Addon(object):
                     return not os.path.isdir(os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'addons', m.group(2)))
                 else:
                     return os.path.isdir(os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'addons', m.group(2)))
+            return True
         for cat in self.settings:
             fields = []
-            for attrib in self.settings[cat]:
-                if 'visible' in attrib and not isvisible(attrib):
+            for (i,attrib) in enumerate(self.settings[cat]):
+                if 'visible' in attrib and not isvisible(attrib['visible'], i, self.settings[cat]):
                     continue
                 if 'label' not in attrib:
                     continue

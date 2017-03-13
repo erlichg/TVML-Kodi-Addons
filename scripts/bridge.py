@@ -1,4 +1,4 @@
-import importlib, time, sys, json, kodi_utils, sqlite3
+import importlib, time, sys, json, kodi_utils, sqlite3, globals, urllib
 import multiprocessing, gevent, logging, thread
 logger = logging.getLogger('TVMLServer')
 
@@ -40,6 +40,7 @@ class bridge:
         self.thread = multiprocessing.current_process()
         self.listeners = {}
         thread.start_new_thread(self._trigger_monitor, ())
+        self.is_playing = None
 
     def _trigger_monitor(self):
         while not self.thread.stop.is_set():
@@ -166,8 +167,38 @@ class bridge:
         :param stop_completion: callback when item has finished playing. Called with stop time and total time
         :return:
         """
+        if kodi_utils.get_config(kodi_utils.PROXY_CONFIG):
+            url = 'http://{}:{}/?url={}'.format(globals.ADDR, globals.PROXY_PORT, kodi_utils.b64encode(url))
         logger.debug('Playing {}'.format(url))
         _id = kodi_utils.randomword()
+        import xbmcplugin
+        if xbmcplugin.resolved:
+            listitem = xbmcplugin.resolved
+            if not image:
+                image = listitem.thumbnailImage if listitem.thumbnailImage != 'DefaultFolder.png' else ''
+                if listitem.getProperty('poster'):
+                    image = listitem.getProperty('poster')
+            if not imdb:
+                imdb = listitem.getProperty('imdb')
+                if not imdb:
+                    imdb = listitem.getProperty('imdb_id')
+                if not imdb:
+                    imdb = listitem.getProperty('imdbnumber')
+                if not imdb:
+                    imdb = listitem.getProperty('code')
+            if not title:
+                title = listitem.getProperty('title')
+            if not description:
+                description = listitem.getProperty('plot')
+            if not season:
+                season = str(listitem.getProperty('season')) if listitem.getProperty('season') else None
+            if not episode:
+                episode = str(listitem.getProperty('episode')) if listitem.getProperty('episode') else None
+            xbmcplugin.resolved = None
+        self.is_playing = url
+        def play_stop(data):
+            self.is_playing = None
+        self.register_for_trigger(kodi_utils.TRIGGER_PLAY_STOP, self.thread.id, play_stop)
         self._message({'type':'play', 'url':url, 'playtype': type_, 'title':title, 'description':description, 'image':image, 'imdb':imdb, 'season':season, 'episode':episode})
         return
 

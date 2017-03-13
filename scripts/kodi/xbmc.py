@@ -236,15 +236,15 @@ class Player(object):
 		logger.debug('called Player.play with item={}, listitem={}'.format(item, listitem))
 		if listitem:
 			_xbmcplugin.setResolvedUrl(0, True, listitem)
-			return
 		url=None
 		if item.startswith('plugin://'):
-			m = re.search('plugin://([^/]*)(.*)\)', item)
-			if m:
-				url = m.group(2)
-				bridge.play(url=url)
-			else:
-				logger.error('Got bad play url {}'.format(item))
+			executebuiltin('RunPlugin({})'.format(item))
+			#m = re.search('plugin://([^/]*)/(.*)', item)
+			#if m:
+			#	url = m.group(2)
+			#	bridge.play(url=url)
+			#else:
+			#	logger.error('Got bad play url {}'.format(item))
 		else:
 			url=item
 			bridge.play(url=url)

@@ -153,6 +153,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
                             if (typeof msg['stop'] != "undefined") { //only if response is required
                                 notify(msg['stop'])
                             }
+                            addLoadingDocument(); //since we're aborting, we need to show loading while next page is fetched
                         }
                     }.bind(this));
                     var progress = this.progressDocument.getElementById("progress")

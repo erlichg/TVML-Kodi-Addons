@@ -5,7 +5,8 @@ import thread
 from scripts import kodi_utils
 from collections import OrderedDict
 import jinja2, signal
-from globals import PROCESSES, CONTEXT, REPOSITORIES, SERVICES
+from globals import PROCESSES, CONTEXT, REPOSITORIES, SERVICES, ADDR, PROXY_PORT, ContinueException
+import app_proxy
 
 VERSION='0.6'
 
@@ -333,14 +334,14 @@ def template(filename):
 @app.route('/catalog/<pluginid>/<process>', methods=['POST', 'GET'])
 # @app.route('/catalog/<pluginid>/<url>')
 # @app.route('/catalog/<pluginid>/<url>/<process>')
-def catalog(pluginid, process=None):
-    url = ''
-    if request.method == 'POST':
+def catalog(pluginid, process=None, url=''):
+    if not url and request.method == 'POST':
         try:
             url = kodi_utils.b64decode(request.form.keys()[0])
         except:
             logger.exception('Failed to parse post data')
             url = ''
+
 
     try:
         decoded_id = kodi_utils.b64decode(pluginid)
@@ -396,9 +397,21 @@ def catalog(pluginid, process=None):
                             p.messages.put(msg_2)
                             p.messages.put(msg)
                             continue
-                    if msg['type'] == 'end' or msg['type'] == 'load':
+                    if msg['type'] == 'load':
+                        return catalog(msg['url'].split('/')[-1], None, kodi_utils.b64decode(msg['data']))
+                    if msg['type'] == 'end':
                         global PROCESSES
                         for t in PROCESSES:
+                            if t == p.id:  # if self
+                                continue
+                            if not PROCESSES[t].messages.empty():
+                                msg2 = PROCESSES[t].messages.get()
+                                if msg2['type'] == 'end':
+                                    continue
+                                p.messages.put(msg2)
+                                p.messages.put(msg)
+                                logger.debug('Got load message but replaced with {} from process {}'.format(msg2, PROCESSES[t].id))
+                                raise ContinueException()
                             PROCESSES[t].responses.close()
                             PROCESSES[t].messages.close()
                             PROCESSES[t].triggers.close()
@@ -424,6 +437,8 @@ def catalog(pluginid, process=None):
                     if not ans['end'] and not 'return_url' in ans:
                         print 'blah'
                     return json.dumps(ans)
+                except ContinueException:
+                    pass
                 except:
                     logger.exception('Error in while alive')
         except:
@@ -451,9 +466,21 @@ def catalog(pluginid, process=None):
                     logger.warning('Got end message but queue not empty. Getting another')
                     p.messages.put(msg)
                     continue
-                if msg['type'] == 'end' or msg['type'] == 'load':
+                if msg['type'] == 'load':
+                    return catalog(msg['url'].split('/')[-1], None, kodi_utils.b64decode(msg['data']))
+                if msg['type'] == 'end':
                     global PROCESSES
                     for t in PROCESSES:
+                        if t == p.id: #if self
+                            continue
+                        if not PROCESSES[t].messages.empty():
+                            msg2 = PROCESSES[t].messages.get()
+                            if msg2['type'] == 'end':
+                                continue
+                            p.messages.put(msg2)
+                            p.messages.put(msg)
+                            logger.debug('Got end message but replaced with {} from process '.format(msg2, PROCESSES[t].id))
+                            raise ContinueException()
                         PROCESSES[t].responses.close()
                         PROCESSES[t].messages.close()
                         PROCESSES[t].triggers.close()
@@ -472,6 +499,8 @@ def catalog(pluginid, process=None):
                 if not ans['end'] and not 'return_url' in ans:
                     print 'blah'
                 return json.dumps(ans)
+            except ContinueException:
+                pass
             except:
                 logger.exception('Error while waiting for process messages after death')
         logger.debug('finished 5 sec wait')
@@ -479,11 +508,6 @@ def catalog(pluginid, process=None):
         global PROCESSES
         if p.id in PROCESSES:
             del PROCESSES[p.id]
-        try:
-            p.join()
-            p.terminate()
-        except:
-            logger.exception('Process not found or cannot be killed')
         logger.error('PROCESS {} CRASHED'.format(p.id))
 
         doc = render_template('alert.xml', title='Communication error',
@@ -625,7 +649,7 @@ def get_items(plugin_id, url, context, run_as_service=False):
         if not plugin:
             raise Exception('could not load plugin')
         b = bridge()
-        multiprocessing.current_process().bridge = b
+        #multiprocessing.current_process().bridge = b
         b.context = context
         items = plugin.run(b, url, run_as_service)
         del plugin
@@ -857,7 +881,7 @@ def refresh_repositories():
 def refresh_progress():
     if not REFRESH_EVENT.is_set():
         gevent.sleep(1)
-        doc = render_template('progressdialog.xml', title='Please wait', text='Refreshing repositories. This may take some time', value='0', url='/refreshProgress')
+        doc = render_template('progressdialog.xml', title='Please wait', text='Still refreshing repositories.\nWaiting for it to complete', value='0', url='/refreshProgress')
         return json.dumps({'doc': doc, 'messagetype': 'progress'})
     return json.dumps({'messagetype': 'nothing'})
 
@@ -913,7 +937,7 @@ def restart():
 
 @app.route('/repositories')
 def respositories():
-    doc = render_template('repositories.xml', title='Repositories', repositories=[r['name'].replace("'", "\\'") for r in REPOSITORIES])
+    doc = render_template('repositories.xml', title='Repositories', repositories=[{'name':r['name'].replace("'", "\\'"), 'title':kodi_utils.tag_conversion(r['name'])} for r in REPOSITORIES])
     return json.dumps({'doc': doc, 'end': True})
 
 
@@ -922,7 +946,7 @@ def addonsForRepository():
     try:
         if not REFRESH_EVENT.is_set():
             gevent.sleep(1)
-            doc = render_template('progressdialog.xml', title='Please wait', text='Refreshing repositories. This may take some time', value='0', url='/addonsForRepository', data=request.form.keys()[0])
+            doc = render_template('progressdialog.xml', title='Please wait', text='Still refreshing repositories.\nWaiting for it to complete', value='0', url='/addonsForRepository', data=request.form.keys()[0])
             return json.dumps({'doc': doc, 'messagetype': 'progress'})
         name = kodi_utils.b64decode(request.form.keys()[0])
         with open_db() as DB:
@@ -1174,11 +1198,7 @@ def mmain(argv):
 
     global http_server
     http_server = WSGIServer(('', port), app)
-    import socket
-    try:
-        addr = socket.gethostbyname(socket.gethostname())
-    except:
-        addr = socket.gethostname()
+
 
     global REFRESH_EVENT
     REFRESH_EVENT = multiprocessing.Event()
@@ -1186,9 +1206,13 @@ def mmain(argv):
     #multiprocessing.Process(target=get_available_addons, args=(REPOSITORIES, REFRESH_EVENT)).start()
     thread.start_new_thread(get_available_addons, (REPOSITORIES, REFRESH_EVENT))
 
+    proxy = app_proxy.ProxyService(app_proxy.HTTP("0.0.0.0", PROXY_PORT))
+    # proxy.start()
+    proxy.start()
+
     print
     print 'Server now running on port {}'.format(port)
-    print 'Connect your TVML client to: http://{}:{}'.format(addr, port)
+    print 'Connect your TVML client to: http://{}:{}'.format(ADDR, port)
     # http_server.log = open('http.log', 'w')
     http_server.serve_forever()
 

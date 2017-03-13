@@ -55,6 +55,7 @@ __platform__ = 'ALL'
 __version__ = '2.20.0'
 
 items = []
+resolved = None
 def addDirectoryItem(handle, url, listitem, isFolder=False, totalItems=0):
     """Callback function to pass directory contents back to XBMC.
 
@@ -127,18 +128,12 @@ def setResolvedUrl(handle, succeeded, listitem):
 
         xbmcplugin.setResolvedUrl(int(sys.argv[1]), True, listitem)
     """
+    if _xbmc.bridge.is_playing == listitem.path:
+        logger.debug('Got resolved item but already playing it. Ignoring')
+        return
     logger.debug('Resolving item {}'.format(listitem))
-    image=listitem.thumbnailImage if listitem.thumbnailImage != 'DefaultFolder.png' else ''
-    if listitem.getProperty('poster'):
-        image = listitem.getProperty('poster')
-    imdb=listitem.getProperty('imdb')
-    if not imdb:
-        imdb = listitem.getProperty('imdb_id')
-    if not imdb:
-        imdb = listitem.getProperty('imdbnumber')
-    if not imdb:
-        imdb = listitem.getProperty('code')
-    _xbmc.bridge.play(listitem.path, title=listitem.getProperty('title'), description=listitem.getProperty('plot'), image=image, imdb=imdb, season=str(listitem.getProperty('season')) if listitem.getProperty('season') else None, episode=str(listitem.getProperty('episode')) if listitem.getProperty('episode') else None)
+    global resolved
+    resolved = listitem
 #global items
 #items = [listitem]
 

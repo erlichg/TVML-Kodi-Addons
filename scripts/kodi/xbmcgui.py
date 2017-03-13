@@ -4,6 +4,7 @@ Classes and functions to work with Kodi GUI
 """
 
 import xbmc as _xbmc
+import kodi_utils
 from Plugin import Item
 import ast, sys, logging, gevent
 logger = logging.getLogger('TVMLServer')
@@ -1298,7 +1299,7 @@ class ListItem(object):
 
 		:param thumbFilename: string or unicode - image filename.
 		"""
-		self.thumbnailImage = thumbnailImage
+		self.thumbnailImage = thumbFilename
 
 	def select(self, selected):
 		"""Sets the listitem's selected status.
@@ -2897,11 +2898,10 @@ class Dialog(object):
 		"""
 		logger.debug('Calling bridge selectdialog')
 		ans = []
-		from Plugin import Item
 		for (index,item) in enumerate(list_):
 			if item is dict:
 				#url, title, subtitle=None, icon=None, details=None, menuurl='', info={})
-				i = Item(url=index, title=convert_kodi_tags_to_html_tags(item['listitem'].label), subtitle=item['listitem'].getProperty('subtitle'), icon=item['listitem'].thumbnailImage if item['listitem'].thumbnailImage != 'DefaultFolder.png' else '', details=item['listitem'].getProperty('details'),info=item['listitem'].infos, context=item['listitem'].context)
+				i = Item(url=index, title=kodi_utils.convert_kodi_tags_to_html_tags(item['listitem'].label), subtitle=item['listitem'].getProperty('subtitle'), icon=item['listitem'].thumbnailImage if item['listitem'].thumbnailImage != 'DefaultFolder.png' else '', details=item['listitem'].getProperty('details'),info=item['listitem'].infos, context=item['listitem'].context)
 				if type(i.context) is list: #needs to be dict
 					i.context = {x[0]:x[1] for x in i.context}
 				infos = item['listitem'].infos

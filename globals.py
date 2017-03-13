@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import multiprocessing
+import socket
 
 PROCESSES = OrderedDict()
 
@@ -9,6 +10,8 @@ manager = multiprocessing.Manager()
 
 CONTEXT = manager.dict()
 
+PROXY_PORT = 5001
+
 REPOSITORIES = [
         #{'name': 'Kodi repository', 'dirs': [{'xml': 'http://mirrors.kodi.tv/addons/krypton/addons.xml',
         #                                      'download': 'http://mirrors.kodi.tv/addons/krypton'}]},
@@ -17,3 +20,13 @@ REPOSITORIES = [
         #{'name': 'Exodus repository',
         # 'dirs': [{'xml': 'https://offshoregit.com/exodus/addons.xml', 'download': 'https://offshoregit.com/exodus/'}]}
 ]
+
+ADDR=None
+try:
+    ADDR = socket.gethostbyname(socket.gethostname())
+except:
+    ADDR = socket.gethostname()
+
+
+class ContinueException(Exception):
+    pass

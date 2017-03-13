@@ -1,6 +1,6 @@
 import xml.etree.ElementTree as ET
 import os, sys, re, json, time, AdvancedHTMLParser
-import kodi_utils
+import kodi_utils, globals
 import logging
 import runpy
 try:
@@ -110,9 +110,14 @@ def parse_addon_xml(text, repo=None, dir=None):
             pass
         if not addon_type:
             print 'Failed to determine addon type of {}'.format(id)
+        if kodi_utils.get_config(kodi_utils.PROXY_CONFIG) and dir:
+            icon = 'http://{}:{}/?url={}'.format(globals.ADDR, globals.PROXY_PORT, kodi_utils.b64encode('{}/{}/icon.png'.format(dir['download'], id)))
+        elif dir:
+            icon = '{}/{}/icon.png'.format(dir['download'], id)
+        else:
+            icon = None
         temp.append({'id': id, 'repo': repo, 'dir': dir, 'type': addon_type, 'name': data['name'], 'data': data, 'version': data['version'], 'script': script, 'requires': requires, 'service': service, 'startup': startup,
-                                'icon': '/cache/{}'.format(
-                                    kodi_utils.b64encode('{}/{}/icon.png'.format(dir['download'], id))) if dir else None})
+                                'icon': icon})
     return temp
 
 
@@ -293,6 +298,22 @@ class KodiPlugin:
         sys.path = orig
 # sys.argv = old_sys_argv
         items = xbmcplugin.items
+        if xbmcplugin.resolved:
+            listitem = xbmcplugin.resolved
+            image = listitem.thumbnailImage if listitem.thumbnailImage != 'DefaultFolder.png' else ''
+            if listitem.getProperty('poster'):
+                image = listitem.getProperty('poster')
+            imdb = listitem.getProperty('imdb')
+            if not imdb:
+                imdb = listitem.getProperty('imdb_id')
+            if not imdb:
+                imdb = listitem.getProperty('imdbnumber')
+            if not imdb:
+                imdb = listitem.getProperty('code')
+            global resolved
+            resolved = listitem
+            bridge.play(listitem.path, title=listitem.getProperty('title'), description=listitem.getProperty('plot'), image=image, imdb=imdb, season=str(listitem.getProperty('season')) if listitem.getProperty('season') else None, episode=str(listitem.getProperty('episode')) if listitem.getProperty('episode') else None)
+            xbmcplugin.resolved = None
         logger.debug('Plugin {} ended with: {}'.format(self.name, items))
 
         # some cleanup
