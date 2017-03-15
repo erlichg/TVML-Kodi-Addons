@@ -5,7 +5,8 @@ import thread
 from scripts import kodi_utils
 from collections import OrderedDict
 import jinja2, signal
-from globals import PROCESSES, CONTEXT, REPOSITORIES, SERVICES, ADDR, PROXY_PORT, ContinueException
+import globals
+
 import app_proxy
 
 VERSION='0.6'
@@ -13,31 +14,31 @@ VERSION='0.6'
 def program_end(signal, frame):
     logger.debug('Shutting down program')
     logger.debug('Sending abort signal for all services')
-    for p in SERVICES:
-        kodi_utils.trigger(kodi_utils.TRIGGER_ABORT, SERVICES[p].id)
+    for p in globals.SERVICES:
+        kodi_utils.trigger(kodi_utils.TRIGGER_ABORT, globals.SERVICES[p].id)
     time.sleep(5)
     logger.debug('Closing remaining processes')
-    for p in PROCESSES:
-        if PROCESSES[p].is_alive:
-            PROCESSES[p].responses.close()
-            PROCESSES[p].messages.close()
-            del PROCESSES[p].responses
-            del PROCESSES[p].messages
-            del PROCESSES[p].stop
-            del PROCESSES[p].triggers
-            PROCESSES[p]._popen.terminate()
-            del PROCESSES[p]
+    for p in globals.PROCESSES:
+        if globals.PROCESSES[p].is_alive:
+            globals.PROCESSES[p].responses.close()
+            globals.PROCESSES[p].messages.close()
+            del globals.PROCESSES[p].responses
+            del globals.PROCESSES[p].messages
+            del globals.PROCESSES[p].stop
+            del globals.PROCESSES[p].triggers
+            globals.PROCESSES[p]._popen.terminate()
+            del globals.PROCESSES[p]
     logger.debug('Closing remaining services')
-    for p in SERVICES:
-        if SERVICES[p].is_alive:
-            SERVICES[p].responses.close()
-            SERVICES[p].messages.close()
-            del SERVICES[p].responses
-            del SERVICES[p].messages
-            del SERVICES[p].stop
-            del SERVICES[p].triggers
-            SERVICES[p]._popen.terminate()
-            del SERVICES[p]
+    for p in globals.SERVICES:
+        if globals.SERVICES[p].is_alive:
+            globals.SERVICES[p].responses.close()
+            globals.SERVICES[p].messages.close()
+            del globals.SERVICES[p].responses
+            del globals.SERVICES[p].messages
+            del globals.SERVICES[p].stop
+            del globals.SERVICES[p].triggers
+            globals.SERVICES[p]._popen.terminate()
+            del globals.SERVICES[p]
     logger.debug('Forcefully closing remaining threads')
     for p in multiprocessing.active_children():
         if p.is_alive:
@@ -245,9 +246,8 @@ def fix_addons():
 def route(pid, id, res=None):
     if request.method == 'POST':
         res = request.form.keys()[0]
-    global PROCESSES
-    if pid in PROCESSES:
-        p = PROCESSES[pid]
+    if pid in globals.PROCESSES:
+        p = globals.PROCESSES[pid]
         logger.debug('received response on process {}'.format(pid))
         if p is not None:
             p.responses.put({'id': id, 'response': res})
@@ -355,23 +355,21 @@ def catalog(pluginid, process=None, url=''):
                                    description="Failed to run plugin {}.\nYou may need to install it manually".format(decoded_id))
             return json.dumps({'doc': doc, 'end': True})
 
-        global PROCESSES
         if process:
-            if not process in PROCESSES:
+            if not process in globals.PROCESSES:
                 return json.dumps({'messagetype': 'nothing', 'end': True}) #For some reason the process has already ended and was deleted
-            p = PROCESSES[process]
+            p = globals.PROCESSES[process]
         else:
             if request.full_path.startswith('/catalog'):
-                p = Process(target=get_items, args=(plugin['id'], url, CONTEXT))
+                p = Process(target=get_items, args=(plugin['id'], url, globals.CONTEXT))
             else:
                 p = Process(target=get_menu, args=(plugin['id'], url))
             logger.debug('saving process id {}'.format(p.id))
-            PROCESSES[p.id] = p
+            globals.PROCESSES[p.id] = p
 
             def stop():
                 time.sleep(5)  # close bridge after 5s
-                global PROCESSES
-                del PROCESSES[p.id]
+                del globals.PROCESSES[p.id]
 
             # b.thread.onStop = stop
             p.start()
@@ -400,27 +398,26 @@ def catalog(pluginid, process=None, url=''):
                     if msg['type'] == 'load':
                         return catalog(msg['url'].split('/')[-1], None, kodi_utils.b64decode(msg['data']))
                     if msg['type'] == 'end':
-                        global PROCESSES
-                        for t in PROCESSES:
+                        for t in globals.PROCESSES:
                             if t == p.id:  # if self
                                 continue
-                            if not PROCESSES[t].messages.empty():
-                                msg2 = PROCESSES[t].messages.get()
+                            if not globals.PROCESSES[t].messages.empty():
+                                msg2 = globals.PROCESSES[t].messages.get()
                                 if msg2['type'] == 'end':
                                     continue
                                 p.messages.put(msg2)
                                 p.messages.put(msg)
-                                logger.debug('Got load message but replaced with {} from process {}'.format(msg2, PROCESSES[t].id))
+                                logger.debug('Got load message but replaced with {} from process {}'.format(msg2, globals.PROCESSES[t].id))
                                 raise ContinueException()
-                            PROCESSES[t].responses.close()
-                            PROCESSES[t].messages.close()
-                            PROCESSES[t].triggers.close()
-                            del PROCESSES[t].responses
-                            del PROCESSES[t].messages
-                            del PROCESSES[t].stop
-                            del PROCESSES[t].triggers
-                            PROCESSES[t]._popen.terminate()
-                        PROCESSES.clear()
+                            globals.PROCESSES[t].responses.close()
+                            globals.PROCESSES[t].messages.close()
+                            globals.PROCESSES[t].triggers.close()
+                            del globals.PROCESSES[t].responses
+                            del globals.PROCESSES[t].messages
+                            del globals.PROCESSES[t].stop
+                            del globals.PROCESSES[t].triggers
+                            globals.PROCESSES[t]._popen.terminate()
+                        globals.PROCESSES.clear()
                         # p.join()
                         # p.terminate()
                         logger.debug('PROCESS {} TERMINATED'.format(p.id))
@@ -469,27 +466,26 @@ def catalog(pluginid, process=None, url=''):
                 if msg['type'] == 'load':
                     return catalog(msg['url'].split('/')[-1], None, kodi_utils.b64decode(msg['data']))
                 if msg['type'] == 'end':
-                    global PROCESSES
-                    for t in PROCESSES:
+                    for t in globals.PROCESSES:
                         if t == p.id: #if self
                             continue
-                        if not PROCESSES[t].messages.empty():
-                            msg2 = PROCESSES[t].messages.get()
+                        if not globals.PROCESSES[t].messages.empty():
+                            msg2 = globals.PROCESSES[t].messages.get()
                             if msg2['type'] == 'end':
                                 continue
                             p.messages.put(msg2)
                             p.messages.put(msg)
-                            logger.debug('Got end message but replaced with {} from process '.format(msg2, PROCESSES[t].id))
+                            logger.debug('Got end message but replaced with {} from process '.format(msg2, globals.PROCESSES[t].id))
                             raise ContinueException()
-                        PROCESSES[t].responses.close()
-                        PROCESSES[t].messages.close()
-                        PROCESSES[t].triggers.close()
-                        del PROCESSES[t].responses
-                        del PROCESSES[t].messages
-                        del PROCESSES[t].stop
-                        del PROCESSES[t].triggers
-                        PROCESSES[t]._popen.terminate()
-                    PROCESSES.clear()
+                        globals.PROCESSES[t].responses.close()
+                        globals.PROCESSES[t].messages.close()
+                        globals.PROCESSES[t].triggers.close()
+                        del globals.PROCESSES[t].responses
+                        del globals.PROCESSES[t].messages
+                        del globals.PROCESSES[t].stop
+                        del globals.PROCESSES[t].triggers
+                        globals.PROCESSES[t]._popen.terminate()
+                    globals.PROCESSES.clear()
                     # p.join()
                     # p.terminate()
                     logger.debug('PROCESS {} TERMINATED'.format(p.id))
@@ -505,9 +501,8 @@ def catalog(pluginid, process=None, url=''):
                 logger.exception('Error while waiting for process messages after death')
         logger.debug('finished 5 sec wait')
         # if we got here, this means thread has probably crashed.
-        global PROCESSES
-        if p.id in PROCESSES:
-            del PROCESSES[p.id]
+        if p.id in globals.PROCESSES:
+            del globals.PROCESSES[p.id]
         logger.error('PROCESS {} CRASHED'.format(p.id))
 
         doc = render_template('alert.xml', title='Communication error',
@@ -601,32 +596,30 @@ def remove_addon(id):
     addon = get_installed_addon(id)
     if addon:
         if 'Repository' in json.loads(addon['type']):
-            global REPOSITORIES
             index_to_del = None
-            for (i,j) in enumerate(REPOSITORIES):
+            for (i,j) in enumerate(globals.REPOSITORIES):
                 if j['name'] == addon['name']:
                     index_to_del = i
             if index_to_del:
-                del REPOSITORIES[index_to_del]
+                del globals.REPOSITORIES[index_to_del]
             global REFRESH_EVENT
             REFRESH_EVENT.clear()
-            #multiprocessing.Process(target=get_available_addons, args=(REPOSITORIES, REFRESH_EVENT)).start()
-            thread.start_new_thread(get_available_addons, (REPOSITORIES, REFRESH_EVENT))
+            #multiprocessing.Process(target=get_available_addons, args=(globals.REPOSITORIES, REFRESH_EVENT)).start()
+            thread.start_new_thread(get_available_addons, (globals.REPOSITORIES, REFRESH_EVENT))
         if 'Service' in json.loads(addon['type']):
             #First abort monitor for this addon if exists
             kodi_utils.trigger(kodi_utils.TRIGGER_ABORT, id)
             time.sleep(5)
             #Now terminate service process
-            global SERVICES
-            if id in SERVICES:
-                SERVICES[id].responses.close()
-                SERVICES[id].messages.close()
-                del SERVICES[id].responses
-                del SERVICES[id].messages
-                del SERVICES[id].stop
-                del SERVICES[id].triggers
-                SERVICES[id]._popen.terminate()
-                del SERVICES[id]
+            if id in globals.SERVICES:
+                globals.SERVICES[id].responses.close()
+                globals.SERVICES[id].messages.close()
+                del globals.SERVICES[id].responses
+                del globals.SERVICES[id].messages
+                del globals.SERVICES[id].stop
+                del globals.SERVICES[id].triggers
+                globals.SERVICES[id]._popen.terminate()
+                del globals.SERVICES[id]
     path = os.path.join(DATA_DIR, 'addons', id)
     try:
         shutil.rmtree(path)
@@ -705,7 +698,7 @@ def get_available_addons(REPOSITORIES, e=None):
                 DB.executemany('insert into ADDONS values(?,?,?,?,?,?,?,?,?,?)', temp)
             except:
                 logger.exception('failed to insert addons into DB')
-    logger.debug('Finished refreshing repositories')
+    logger.debug('Finished refreshing repostories')
     fix_addons()
     update_addons()
     if e:
@@ -826,11 +819,10 @@ def install_addon(addon):
     plugin = KodiPlugin(addon['id'])
     logger.debug('Successfully installed plugin {} of type {}'.format(plugin.id, plugin.type))
     if 'Service' in plugin.type:  # Need to run service
-        global SERVICES
         logger.debug('Starting service {}'.format(plugin.id))
         try:
-            p = Process(target=get_items, args=(plugin.id, '', CONTEXT, True))
-            SERVICES[plugin.id] = p
+            p = Process(target=get_items, args=(plugin.id, '', globals.CONTEXT, True))
+            globals.SERVICES[plugin.id] = p
             p.daemon = True
             p.start()
         except:
@@ -872,8 +864,8 @@ def refresh_repositories():
     global REFRESH_EVENT
     if REFRESH_EVENT.is_set(): #i.e. refresh not in progress
         REFRESH_EVENT.clear()
-        #multiprocessing.Process(target=get_available_addons, args=(REPOSITORIES, REFRESH_EVENT)).start()
-        thread.start_new_thread(get_available_addons, (REPOSITORIES, REFRESH_EVENT))
+        #multiprocessing.Process(target=get_available_addons, args=(globals.REPOSITORIES, REFRESH_EVENT)).start()
+        thread.start_new_thread(get_available_addons, (globals.REPOSITORIES, REFRESH_EVENT))
     gevent.sleep(1)
     return json.dumps({'messagetye':'load', 'url': '/refreshProgress'})
 
@@ -881,7 +873,7 @@ def refresh_repositories():
 def refresh_progress():
     if not REFRESH_EVENT.is_set():
         gevent.sleep(1)
-        doc = render_template('progressdialog.xml', title='Please wait', text='Still refreshing repositories.\nWaiting for it to complete', value='0', url='/refreshProgress')
+        doc = render_template('progressdialog.xml', title='Please wait', text='Still refreshing globals.REPOSITORIES.\nWaiting for it to complete', value='0', url='/refreshProgress')
         return json.dumps({'doc': doc, 'messagetype': 'progress'})
     return json.dumps({'messagetype': 'nothing'})
 
@@ -937,7 +929,7 @@ def restart():
 
 @app.route('/repositories')
 def respositories():
-    doc = render_template('repositories.xml', title='Repositories', repositories=[{'name':r['name'].replace("'", "\\'"), 'title':kodi_utils.tag_conversion(r['name'])} for r in REPOSITORIES])
+    doc = render_template('repositories.xml', title='Repositories', repositories=[{'name':r['name'].replace("'", "\\'"), 'title':kodi_utils.tag_conversion(r['name'])} for r in globals.REPOSITORIES])
     return json.dumps({'doc': doc, 'end': True})
 
 
@@ -1004,15 +996,14 @@ def addRepository():
                 raise Exception('Failed to parse addon.xml')
             for i in range(len(infos)):
                 repo['dirs'].append({'xml': infos[i].text, 'download': datadirs[i].text})
-            global REPOSITORIES
-            if repo['name'] in [r['name'] for r in REPOSITORIES]:
+            if repo['name'] in [r['name'] for r in globals.REPOSITORIES]:
                 doc = render_template('alert.xml', title='Already exists', description='Repository with this name already exists')
                 return json.dumps({'doc':doc, 'end':True})
-            REPOSITORIES.append(repo)
+            globals.REPOSITORIES.append(repo)
             global REFRESH_EVENT
             REFRESH_EVENT.clear()
-            #multiprocessing.Process(target=get_available_addons, args=(REPOSITORIES, REFRESH_EVENT)).start()
-            thread.start_new_thread(get_available_addons, (REPOSITORIES, REFRESH_EVENT))
+            #multiprocessing.Process(target=get_available_addons, args=(globals.REPOSITORIES, REFRESH_EVENT)).start()
+            thread.start_new_thread(get_available_addons, (globals.REPOSITORIES, REFRESH_EVENT))
             return json.dumps({'messagetype':'load', 'url': '/main', 'replace': True, 'initial': True, 'end':True})
     except Exception as e:
         logger.exception('Failed to add repository {}'.format(path))
@@ -1028,7 +1019,7 @@ def browse_addons():
         search='.*{}.*'.format(request.form.keys()[0])
     if not REFRESH_EVENT.is_set():
         gevent.sleep(1)
-        doc = render_template('progressdialog.xml', title='Please wait', text='Refreshing repositories. This may take some time', value='0', url='/browseAddons')
+        doc = render_template('progressdialog.xml', title='Please wait', text='Refreshing globals.REPOSITORIES. This may take some time', value='0', url='/browseAddons')
         return json.dumps({'doc':doc, 'messagetype':'progress'})
     with open_db() as DB:
         rows = [row for row in DB.execute('select * from ADDONS')]
@@ -1056,7 +1047,7 @@ def all_addons():
     """This method will return all available addons in a search template"""
     if not REFRESH_EVENT.is_set():
         gevent.sleep(1)
-        doc = render_template('progressdialog.xml', title='Please wait', text='Refreshing repositories. This may take some time', value='0', url='/allAddons')
+        doc = render_template('progressdialog.xml', title='Please wait', text='Refreshing globals.REPOSITORIES. This may take some time', value='0', url='/allAddons')
         return json.dumps({'doc':doc, 'messagetype':'progress'})
     with open_db() as DB:
         rows = [row for row in DB.execute('select * from ADDONS')]
@@ -1175,18 +1166,18 @@ def mmain(argv):
                             for i in range(len(infos)):
                                 repo['dirs'].append({'xml': infos[i].text, 'download': datadirs[i].text})
                             #check if already exists
-                            if not [d for d in repo['dirs'] if d not in [i for j in [r['dirs'] for r in REPOSITORIES] for i in j]]:
+                            if not [d for d in repo['dirs'] if d not in [i for j in [r['dirs'] for r in globals.REPOSITORIES] for i in j]]:
                                 #we have no dirs that don't already exists
                                 continue
-                            REPOSITORIES.append(repo)
+                            globals.REPOSITORIES.append(repo)
                     except:
                         logger.exception('Failed to parse installed repository {}'.format(plugin))
 
                 if 'Service' in p.type:  # Need to run service
                     try:
-                        pr = Process(target=get_items, args=(p.id, '', CONTEXT, True))
+                        pr = Process(target=get_items, args=(p.id, '', globals.CONTEXT, True))
                         pr.daemon = True
-                        SERVICES[p.id] = pr
+                        globals.SERVICES[p.id] = pr
                         pr.start()
                     except:
                         logger.exception('Failed to run {} service'.format(p.id))
@@ -1203,16 +1194,16 @@ def mmain(argv):
     global REFRESH_EVENT
     REFRESH_EVENT = multiprocessing.Event()
 
-    #multiprocessing.Process(target=get_available_addons, args=(REPOSITORIES, REFRESH_EVENT)).start()
-    thread.start_new_thread(get_available_addons, (REPOSITORIES, REFRESH_EVENT))
+    #multiprocessing.Process(target=get_available_addons, args=(globals.REPOSITORIES, REFRESH_EVENT)).start()
+    thread.start_new_thread(get_available_addons, (globals.REPOSITORIES, REFRESH_EVENT))
 
-    proxy = app_proxy.ProxyService(app_proxy.HTTP("0.0.0.0", PROXY_PORT))
+    proxy = app_proxy.ProxyService(app_proxy.HTTP("0.0.0.0", globals.PROXY_PORT))
     # proxy.start()
     proxy.start()
 
     print
     print 'Server now running on port {}'.format(port)
-    print 'Connect your TVML client to: http://{}:{}'.format(ADDR, port)
+    print 'Connect your TVML client to: http://{}:{}'.format(globals.ADDR, port)
     # http_server.log = open('http.log', 'w')
     http_server.serve_forever()
 
@@ -1224,6 +1215,9 @@ if __name__ == '__main__':
     multiprocessing.freeze_support()
 
     kodi_utils.windows_pyinstaller_multiprocess_hack()
+    globals.manager = multiprocessing.Manager()
+
+    globals.CONTEXT = globals.manager.dict()
     #  	import pystray
     #  	from PIL import Image, ImageDraw
     #  	width=30

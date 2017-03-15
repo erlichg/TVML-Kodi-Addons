@@ -4,7 +4,7 @@ import struct
 from contextlib import contextmanager
 import sqlite3, time
 import multiprocessing
-from globals import PROCESSES, CONTEXT, REPOSITORIES, SERVICES
+from globals import PROCESSES, REPOSITORIES, SERVICES
 
 logger = logging.getLogger(__name__)
 PROXY_CONFIG='proxy_mode'

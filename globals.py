@@ -6,9 +6,9 @@ PROCESSES = OrderedDict()
 
 SERVICES = OrderedDict()
 
-manager = multiprocessing.Manager()
+#manager = multiprocessing.Manager()
 
-CONTEXT = manager.dict()
+#CONTEXT = manager.dict()
 
 PROXY_PORT = 5001
 
