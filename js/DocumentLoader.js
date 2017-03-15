@@ -588,6 +588,7 @@ DocumentLoader.prototype.play = function(msg, time, callback) {
         if (typeof(player) == "string") { //an error has occured
             throw player;
         } else if (typeof(player) != "undefined") {
+            removeLoadingDocument();
             VLCPlayer.present(player);
         } else {
             //Built-in player
@@ -608,6 +609,7 @@ DocumentLoader.prototype.play = function(msg, time, callback) {
             var myPlayer = new Player();
             console.log("old player");
             myPlayer.playlist = videoList;
+            removeLoadingDocument();
             myPlayer.play();
             myPlayer.seekToTime(time);
 
@@ -649,7 +651,7 @@ DocumentLoader.prototype.play = function(msg, time, callback) {
                 }
             }.bind(this), false);
         }
-        removeLoadingDocument();
+
         if (typeof duration == "undefined") {
         	duration = 0;
 		}
