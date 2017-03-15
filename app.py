@@ -505,9 +505,10 @@ def catalog(pluginid, process=None, url=''):
             del globals.PROCESSES[p.id]
         logger.error('PROCESS {} CRASHED'.format(p.id))
 
-        doc = render_template('alert.xml', title='Communication error',
-                               description="Failed to load page.\nThis could mean the server had a problem, or the request dialog timed-out\nPlease try again")
-        return json.dumps({'doc':doc, 'end':True})
+        #doc = render_template('alert.xml', title='Communication error',
+        #                       description="Failed to load page.\nThis could mean the server had a problem, or the request dialog timed-out\nPlease try again")
+        #return json.dumps({'doc':doc, 'end':True})
+        return json.dumps({'messagetype': 'nothing', 'end': True})
     except:
         logger.exception('Error in catalog')
         doc = render_template('alert.xml', title='Communication error',
