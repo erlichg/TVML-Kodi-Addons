@@ -115,7 +115,7 @@ def parse_addon_xml(text, repo=None, dir=None):
         elif dir:
             icon = '{}/{}/icon.png'.format(dir['download'], id)
         else:
-            icon = None
+            icon = os.path.join(ADDONS_DIR, id, 'icon.png')
         temp.append({'id': id, 'repo': repo, 'dir': dir, 'type': addon_type, 'name': data['name'], 'data': data, 'version': data['version'], 'script': script, 'requires': requires, 'service': service, 'startup': startup,
                                 'icon': icon})
     return temp
