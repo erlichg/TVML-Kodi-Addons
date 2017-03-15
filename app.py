@@ -434,7 +434,7 @@ def catalog(pluginid, process=None, url=''):
                     if not ans['end'] and not 'return_url' in ans:
                         print 'blah'
                     return json.dumps(ans)
-                except ContinueException:
+                except globals.ContinueException:
                     pass
                 except:
                     logger.exception('Error in while alive')
