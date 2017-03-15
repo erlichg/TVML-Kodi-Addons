@@ -828,7 +828,7 @@ def install_addon(addon):
         except:
             logger.exception('Failed to run {} service'.format(plugin.id))
     with open_db() as DB:
-        DB.execute('insert into INSTALLED VALUES(?,?,?,?,?,?,?,?,0)', (addon['id'], addon['type'], addon['name'], addon['data'], addon['version'], addon['script'], addon['requires'], addon['icon']))
+        DB.execute('insert into INSTALLED VALUES(?,?,?,?,?,?,?,?,0)', (plugin.id, json.dumps(plugin.type), plugin.name, json.dumps(plugin.data), plugin.version, plugin.script, json.dumps(plugin.requires), plugin.icon))
 
 
 @app.route('/getAddonData', methods=['POST'])
