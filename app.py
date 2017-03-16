@@ -48,7 +48,7 @@ def program_end(signal, frame):
                 pass
     sys.exit(0)
 
-signal.signal(signal.SIGINT, program_end)
+#signal.signal(signal.SIGINT, program_end)
 
 try:
     from flask import Flask, render_template, send_from_directory, request, send_file, redirect
@@ -197,6 +197,7 @@ class MyProcess(multiprocessing.Process):
 
 def Process(group=None, target=None, name=None, args=(), kwargs={}):
     p = MyProcess(group, target, name, args, kwargs)
+    p.daemon = True
     p.messages = multiprocessing.Queue()
     p.responses = multiprocessing.Queue()
     p.triggers = multiprocessing.Queue()
@@ -399,16 +400,14 @@ def catalog(pluginid, process=None, url=''):
                         return catalog(msg['url'].split('/')[-1], None, kodi_utils.b64decode(msg['data']))
                     if msg['type'] == 'end':
                         for t in globals.PROCESSES:
-                            if t == p.id:  # if self
-                                continue
-                            if not globals.PROCESSES[t].messages.empty():
+                            if not globals.PROCESSES[t].messages.empty() and t != p.id:
                                 msg2 = globals.PROCESSES[t].messages.get()
                                 if msg2['type'] == 'end':
                                     continue
                                 p.messages.put(msg2)
                                 p.messages.put(msg)
                                 logger.debug('Got load message but replaced with {} from process {}'.format(msg2, globals.PROCESSES[t].id))
-                                raise ContinueException()
+                                raise globals.ContinueException()
                             globals.PROCESSES[t].responses.close()
                             globals.PROCESSES[t].messages.close()
                             globals.PROCESSES[t].triggers.close()
@@ -467,16 +466,14 @@ def catalog(pluginid, process=None, url=''):
                     return catalog(msg['url'].split('/')[-1], None, kodi_utils.b64decode(msg['data']))
                 if msg['type'] == 'end':
                     for t in globals.PROCESSES:
-                        if t == p.id: #if self
-                            continue
-                        if not globals.PROCESSES[t].messages.empty():
+                        if not globals.PROCESSES[t].messages.empty() and t != p.id:
                             msg2 = globals.PROCESSES[t].messages.get()
                             if msg2['type'] == 'end':
                                 continue
                             p.messages.put(msg2)
                             p.messages.put(msg)
                             logger.debug('Got end message but replaced with {} from process '.format(msg2, globals.PROCESSES[t].id))
-                            raise ContinueException()
+                            raise globals.ContinueException()
                         globals.PROCESSES[t].responses.close()
                         globals.PROCESSES[t].messages.close()
                         globals.PROCESSES[t].triggers.close()
@@ -495,7 +492,7 @@ def catalog(pluginid, process=None, url=''):
                 if not ans['end'] and not 'return_url' in ans:
                     print 'blah'
                 return json.dumps(ans)
-            except ContinueException:
+            except globals.ContinueException:
                 pass
             except:
                 logger.exception('Error while waiting for process messages after death')
@@ -896,14 +893,14 @@ def clear_log():
 def check_for_update():
     try:
         req = requests.get('https://api.github.com/repos/ggyeh/TVML-Kodi-Addons/releases/latest')
-        json = req.json()
-        latest = json['tag_name']
+        req = req.json()
+        latest = req['tag_name']
         current = VERSION
         if latest != current:
             doc = render_template('alert.xml', title='Update found', description='New version detected {}\nCurrent version is {}\n\nSorry, no auto-update yet.\nPlease visit https://github.com/ggyeh/TVML-Kodi-Addons/releases/latest to download'.format(latest, current))
         else:
             doc = render_template('alert.xml', title='Up to date',
-                           decsription='You are running the latest version')
+                           decsription='You are running the latest version {}'.format(current))
         return json.dumps({'doc': doc, 'end': True})
     except:
         doc = render_template('alert.xml', title='UError',
