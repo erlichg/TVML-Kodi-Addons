@@ -14,6 +14,7 @@ FAVORITE_CONFIG='favorite_addons'
 HISTORY_TABLE='HISTORY'
 SETTINGS_TABLE='SETTINGS'
 CONFIG_TABLE='CONFIG'
+ITEMS_TABLE='ITEMS'
 
 TRIGGER_PLAY_STOP='play stopped'
 TRIGGER_SETTINGS_CHANGED='settings changed'
@@ -260,6 +261,34 @@ def set_play_history(s, time, total):
         except:
             logger.exception('Failed to save play history')
             break
+
+
+def add_item(addon, item):
+    for i in range(10):
+        try:
+            with open_db() as DB:
+                DB.execute('insert into ITEMS values(?,?)', (item, addon, ))
+            break
+        except sqlite3.OperationalError:
+            time.sleep(1)
+        except:
+            logger.exception('Failed to add item')
+            break
+
+
+def get_items():
+    ans = {}
+    try:
+        with open_db() as DB:
+            for row in DB.execute('select * from ITEMS'):
+                addon = row['addon']
+                if not addon in ans:
+                    ans[addon] = []
+                ans[addon].append(json.loads(row['s']))
+        return ans
+    except:
+        logger.exception('Failed to retrieve items')
+
 
 def trigger(type, data):
     try:

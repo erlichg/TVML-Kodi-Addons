@@ -69,6 +69,28 @@ See LICENSE.txt for this sample’s licensing information
         </collectionList>
     </stackTemplate>
 
+    <stackTemplate title="Continue watching" id="continue">
+        {% if not recents %}
+        <banner style="margin: 300">
+            <title class="foo">Recently played items will be shown here</title>
+        </banner>
+        {% endif %}
+        <collectionList>
+            {% for plugin in recents %}
+            <shelf>
+                <section>
+                    {% for item in plugin %}
+                    <lockup onselect="catalog('{{plugin.id | base64encode}}', '{{item.url | base64encode}}')">
+                        <img style="tv-placeholder: movie;" src="{{item.icon}}" width="256" height="256"/>
+                        <row>{{item.title | safe}}</row>
+                    </lockup>
+                    {% endfor %}
+                </section>
+            </shelf>
+            {% endfor %}
+        </collectionList>
+    </stackTemplate>
+
     <catalogTemplate autoHighlight="true" title="Settings" id="settings">
         <list>
             <section>

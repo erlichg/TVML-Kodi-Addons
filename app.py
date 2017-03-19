@@ -16,28 +16,70 @@ def program_end(signal, frame):
     logger.debug('Sending abort signal for all services')
     for p in globals.SERVICES:
         kodi_utils.trigger(kodi_utils.TRIGGER_ABORT, globals.SERVICES[p].id)
-    time.sleep(5)
+    time.sleep(2)
     logger.debug('Closing remaining processes')
     for p in globals.PROCESSES:
         if globals.PROCESSES[p].is_alive:
-            globals.PROCESSES[p].responses.close()
-            globals.PROCESSES[p].messages.close()
-            del globals.PROCESSES[p].responses
-            del globals.PROCESSES[p].messages
-            del globals.PROCESSES[p].stop
-            del globals.PROCESSES[p].triggers
-            globals.PROCESSES[p]._popen.terminate()
+            try:
+                globals.PROCESSES[p].responses.close()
+            except:
+                pass
+            try:
+                globals.PROCESSES[p].messages.close()
+            except:
+                pass
+            try:
+                del globals.PROCESSES[p].responses
+            except:
+                pass
+            try:
+                del globals.PROCESSES[p].messages
+            except:
+                pass
+            try:
+                del globals.PROCESSES[p].stop
+            except:
+                pass
+            try:
+                del globals.PROCESSES[p].triggers
+            except:
+                pass
+            try:
+                globals.PROCESSES[p]._popen.terminate()
+            except:
+                pass
             del globals.PROCESSES[p]
     logger.debug('Closing remaining services')
     for p in globals.SERVICES:
         if globals.SERVICES[p].is_alive:
-            globals.SERVICES[p].responses.close()
-            globals.SERVICES[p].messages.close()
-            del globals.SERVICES[p].responses
-            del globals.SERVICES[p].messages
-            del globals.SERVICES[p].stop
-            del globals.SERVICES[p].triggers
-            globals.SERVICES[p]._popen.terminate()
+            try:
+                globals.SERVICES[p].responses.close()
+            except:
+                pass
+            try:
+                globals.SERVICES[p].messages.close()
+            except:
+                pass
+            try:
+                del globals.SERVICES[p].responses
+            except:
+                pass
+            try:
+                del globals.SERVICES[p].messages
+            except:
+                pass
+            try:
+                del globals.SERVICES[p].stop
+            except:
+                pass
+            try:
+                del globals.SERVICES[p].triggers
+            except:
+                pass
+            try:
+                globals.SERVICES[p]._popen.terminate()
+            except:
+                pass
             del globals.SERVICES[p]
     logger.debug('Forcefully closing remaining threads')
     for p in multiprocessing.active_children():
@@ -46,9 +88,9 @@ def program_end(signal, frame):
                 p.terminate()
             except:
                 pass
-    sys.exit(0)
+    os._exit(1)
 
-#signal.signal(signal.SIGINT, program_end)
+
 
 try:
     from flask import Flask, render_template, send_from_directory, request, send_file, redirect
@@ -523,6 +565,25 @@ def main():
         for p in filtered_plugins:
             p['name'] = kodi_utils.tag_conversion(p['name'])
         fav_plugins = [p for p in filtered_plugins if p['id'] in favs]
+        recents = {}
+        try:
+            with open_db() as DB:
+                for row in DB.execute('select * from HISTORY'):
+                    try:
+                        s = kodi_utils.b64decode(row['s'])
+                        m = re.search('plugin://([^/]*)/', s)
+                        if m:
+                            id = m.group(1)
+                            addon = get_installed_addon(id)
+                            if addon:
+                                if not addon['name'] in recents:
+                                    recents[addon['name']] = []
+                                recents[addon['name']].append()
+                    except:
+                        pass
+        except:
+            logger.exception('Failed to retrieve play history')
+            return {'time': 0, 'total': 0}
         doc = render_template('main.xml', menu=filtered_plugins, favs=fav_plugins, url=request.full_path, proxy='On' if proxy else 'Off', version=VERSION, languages=["Afrikaans", "Albanian", "Amharic", "Arabic", "Armenian", "Azerbaijani", "Basque", "Belarusian", "Bosnian", "Bulgarian", "Burmese", "Catalan", "Chinese", "Croatian", "Czech", "Danish", "Dutch", "English", "Esperanto", "Estonian", "Faroese", "Finnish", "French", "Galician", "German", "Greek", "Hebrew", "Hindi", "Hungarian", "Icelandic", "Indonesian", "Italian", "Japanese", "Korean", "Latvian", "Lithuanian", "Macedonian", "Malay", "Malayalam", "Maltese", "Maori", "Mongolian", "Norwegian", "Ossetic", "Persian", "Persian", "Polish", "Portuguese", "Romanian", "Russian", "Serbian", "Silesian", "Sinhala", "Slovak", "Slovenian", "Spanish", "Spanish", "Swedish", "Tajik", "Tamil", "Telugu", "Thai", "Turkish", "Ukrainian", "Uzbek", "Vietnamese", "Welsh"], current_language=language)
         return json.dumps({'doc':doc, 'end': True})
     except:
@@ -1104,6 +1165,7 @@ def help(argv):
 
 
 def mmain(argv):
+    signal.signal(signal.SIGINT, program_end)
     port = 5000  # default
 
     try:
@@ -1136,6 +1198,7 @@ def mmain(argv):
         DB.execute('create table if not exists {}(id text primary_key, string text)'.format(kodi_utils.SETTINGS_TABLE))
         DB.execute('create table if not exists {}(id text primary_key, string text)'.format(kodi_utils.CONFIG_TABLE))
         DB.execute('create table if not exists {}(s text primary_key, time integer, total integer)'.format(kodi_utils.HISTORY_TABLE))
+        DB.execute('create table if not exists {}(s text primary_key, addon text)'.format(kodi_utils.ITEMS_TABLE))
         DB.execute('drop table if exists ADDONS')
         DB.execute('create table ADDONS(id text, repo text, dir text, type text, name text, data text, version text, script text, requires text, icon text)')
         DB.execute('drop table if exists INSTALLED')
