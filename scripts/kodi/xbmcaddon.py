@@ -180,7 +180,7 @@ class Addon(object):
             except:
                 return id
 
-    def getSetting(self, id):
+    def getSetting(self, _id):
         """Returns the value of a setting as a unicode string.
 
         :param id: string - id of the setting that the module needs to access.
@@ -192,14 +192,18 @@ class Addon(object):
 
         for cat in self.settings:
             for s in self.settings[cat]:
-                if 'id' in s and s['id'] == id:
+                if 'id' in s and s['id'] == _id:
                     ans = unicode(s['value'])
                     #logger.debug('getSetting {}={}'.format(id, ans))
+                    return ans
+                elif not 'id' in s and (s['label']+s['type']) == _id:
+                    ans = unicode(s['value'])
+                    # logger.debug('getSetting {}={}'.format(id, ans))
                     return ans
         #logger.debug('getSetting {}='.format(id))
         return ''
 
-    def setSetting(self, id, value):
+    def setSetting(self, _id, value):
         """Sets a script setting.
 
         :param id: string - id of the setting that the module needs to access.
@@ -209,15 +213,18 @@ class Addon(object):
 
             self.Settings.setSetting(id='username', value='teamxbmc')
         """
-        logger.debug('setSetting {}={}'.format(id, value))
+        logger.debug('setSetting {}={}'.format(_id, value))
         for cat in self.settings:
             for s in self.settings[cat]:
-                if 'id' in s and s['id'] == id:
+                if 'id' in s and s['id'] == _id:
+                    s['value'] = value
+                    return
+                elif not 'id' in s and (s['label'] + s['type']) == _id:
                     s['value'] = value
                     return
         #if we got here this means key does not exist
         for cat in self.settings:
-            self.settings[cat].append({'id':id, 'value':value})
+            self.settings[cat].append({'id':_id, 'value':value})
             break
 
     def openSettings(self):
@@ -284,6 +291,8 @@ class Addon(object):
                     continue
                 if 'label' not in attrib:
                     continue
+                if 'id' not in attrib:
+                    attrib['id'] = (attrib['label']+attrib['type'])
                 _type = attrib['type']
                 if _type == 'select' or _type == 'labelenum':
                     values = attrib['values'].split("|") if 'values' in attrib else [self.getLocalizedString(s) for s in attrib['lvalues'].split("|")]
@@ -311,10 +320,12 @@ class Addon(object):
                 continue
             sections[self.getLocalizedString(cat)] = fields
         ans = xbmc.bridge.formdialog('Addon settings', sections=sections, cont=True)
-        def getSet(id):
+        def getSet(_id):
             for cat in self.settings:
                 for s in self.settings[cat]:
-                    if 'id' in s and s['id'] == id:
+                    if 'id' in s and s['id'] == _id:
+                        return s
+                    elif not 'id' in s and (s['label'] + s['type']) == _id:
                         return s
             return None
 

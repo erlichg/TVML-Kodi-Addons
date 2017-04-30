@@ -748,7 +748,7 @@ def get_available_addons(REPOSITORIES, e=None):
                 req = requests.get(dir['xml'])
                 link = req.text
                 parsed = parse_addon_xml(link, r, dir)
-                parsed = [(addon['id'], r['name'], json.dumps(dir), json.dumps(addon['type']), addon['name'], json.dumps(addon['data']), addon['version'], addon['script'], json.dumps(addon['requires']), addon['icon']) for addon in parsed]
+                parsed = [(addon['id'], r['name'], json.dumps(dir), json.dumps(addon['type']), addon['name'].decode('utf-8'), json.dumps(addon['data']), addon['version'], addon['script'], json.dumps(addon['requires']), addon['icon']) for addon in parsed]
                 temp += parsed
             except:
                 logger.exception('Cannot read repository {}'.format(r['name']))
@@ -877,6 +877,25 @@ def install_addon(addon):
     time.sleep(5)
     plugin = KodiPlugin(addon['id'])
     logger.debug('Successfully installed plugin {} of type {}'.format(plugin.id, plugin.type))
+    if 'Repository' in p.type:  # Need additional stuff
+        try:
+            with open(os.path.join(DATA_DIR, 'addons', plugin, 'addon.xml'), 'r') as f:
+                repo = {}
+                parser = AdvancedHTMLParser.Parser.AdvancedHTMLParser()
+                parser.feed(f.read())
+                repo['name'] = parser.getElementsByTagName('addon')[0].attributes['name']
+                repo['dirs'] = []
+                infos = parser.getElementsByTagName('info')
+                datadirs = parser.getElementsByTagName('datadir')
+                if len(infos) != len(datadirs):
+                    raise Exception('Failed to parse addon.xml')
+                for i in range(len(infos)):
+                    repo['dirs'].append({'xml': infos[i].text, 'download': datadirs[i].text})
+                # check if already exists
+                if [d for d in repo['dirs'] if d not in [i for j in [r['dirs'] for r in globals.REPOSITORIES] for i in j]]:
+                    globals.REPOSITORIES.append(repo)
+        except:
+            logger.exception('Failed to parse installed repository {}'.format(plugin))
     if 'Service' in plugin.type:  # Need to run service
         logger.debug('Starting service {}'.format(plugin.id))
         try:
@@ -887,7 +906,7 @@ def install_addon(addon):
         except:
             logger.exception('Failed to run {} service'.format(plugin.id))
     with open_db() as DB:
-        DB.execute('insert into INSTALLED VALUES(?,?,?,?,?,?,?,?,0)', (plugin.id, json.dumps(plugin.type), plugin.name, json.dumps(plugin.data), plugin.version, plugin.script, json.dumps(plugin.requires), plugin.icon))
+        DB.execute('insert into INSTALLED VALUES(?,?,?,?,?,?,?,?,0)', (plugin.id, json.dumps(plugin.type), plugin.name.decode('utf-8'), json.dumps(plugin.data), plugin.version, plugin.script, json.dumps(plugin.requires), plugin.icon))
 
 
 @app.route('/getAddonData', methods=['POST'])
@@ -1243,7 +1262,7 @@ def mmain(argv):
                     except:
                         logger.exception('Failed to run {} service'.format(p.id))
 
-                DB.execute('insert into INSTALLED VALUES(?,?,?,?,?,?,?,?,0)', (p.id, json.dumps(p.type), unicode(p.name), json.dumps(p.data), p.version, p.script, json.dumps(p.requires), p.icon))
+                DB.execute('insert into INSTALLED VALUES(?,?,?,?,?,?,?,?,0)', (p.id, json.dumps(p.type), p.name.decode('utf-8'), json.dumps(p.data), p.version, p.script, json.dumps(p.requires), p.icon))
                 logger.debug('Successfully loaded plugin: {}'.format(p))
             except Exception as e:
                 logger.error('Failed to load kodi plugin {}. Error: {}'.format(plugin, e))

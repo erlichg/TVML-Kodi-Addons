@@ -286,7 +286,7 @@ class KodiPlugin:
             sqlite3.dbapi2.connect = dbapi2_connect_patch
 
             xbmcplugin.items = []
-            runpy.run_module(self.module.split('/')[-1], run_name='__main__')
+            runpy.run_module(self.module.split('/')[-1], init_globals={'sys':sys}, run_name='__main__')
             #imp.load_module(self.module, fp, self.dir, ('.py', 'rb', imp.PY_SOURCE))
         except SystemExit:
             pass
