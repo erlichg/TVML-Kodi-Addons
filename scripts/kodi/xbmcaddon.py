@@ -196,7 +196,7 @@ class Addon(object):
                     ans = unicode(s['value'])
                     #logger.debug('getSetting {}={}'.format(id, ans))
                     return ans
-                elif not 'id' in s and (s['label']+s['type']) == _id:
+                elif 'id' not in s and 'label' in s and 'type' in s and (s['label']+s['type']) == _id:
                     ans = unicode(s['value'])
                     # logger.debug('getSetting {}={}'.format(id, ans))
                     return ans
