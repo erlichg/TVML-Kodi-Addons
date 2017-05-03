@@ -104,11 +104,11 @@ See LICENSE.txt for this sample’s licensing information
                                     <title>View all</title>
                                     <subtitle>View all addons (uncategorized) with a search option</subtitle>
                                 </listItemLockup>
-                                <listItemLockup onselect="post('/browseAddons')">
+                                <listItemLockup onselect="load('/browseAddons')">
                                     <title>View by type</title>
                                     <subtitle>View addons by category (i.e. Video, Audio, etc.). No search option</subtitle>
                                 </listItemLockup>
-                                <listItemLockup onselect="showInputDialog('Search', 'Search by name or id', 'Search', 'OK', false, function(ans) { if (typeof ans != 'undefined') { post('/browseAddons', ans) } })">
+                                <listItemLockup onselect="showInputDialog('Search', 'Search by name or id', 'Search', 'OK', false, undefined, undefined, function(ans) { if (typeof ans != 'undefined') { new DocumentController(documentLoader, '/browseAddons', false, btoa(ans)) } })">
                                     <title>Search</title>
                                     <subtitle>Search for addon by name or id and show results by category</subtitle>
                                 </listItemLockup>
