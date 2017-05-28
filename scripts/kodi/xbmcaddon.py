@@ -14,6 +14,7 @@ import codecs
 import xml.etree.ElementTree as ET
 from xml.sax.saxutils import escape
 import xbmc, kodi_utils
+from KodiPlugin import KodiPlugin
 from collections import OrderedDict
 
 ADDON_CACHE = {}
@@ -68,7 +69,7 @@ class Addon(object):
             if not id:
                 raise Exception('Could not find addon ID automatically')
 
-        self.id = id
+        self.plugin = KodiPlugin(id)
         self.strings = {}
         self.strings_en = {}
         try:
@@ -219,7 +220,7 @@ class Addon(object):
                 if 'id' in s and s['id'] == _id:
                     s['value'] = value
                     return
-                elif not 'id' in s and (s['label'] + s['type']) == _id:
+                elif not 'id' in s and 'label' in s and (s['label'] + s['type']) == _id:
                     s['value'] = value
                     return
         #if we got here this means key does not exist
@@ -325,7 +326,7 @@ class Addon(object):
                 for s in self.settings[cat]:
                     if 'id' in s and s['id'] == _id:
                         return s
-                    elif not 'id' in s and (s['label'] + s['type']) == _id:
+                    elif not 'id' in s and 'label' in s and (s['label'] + s['type']) == _id:
                         return s
             return None
 
@@ -356,17 +357,19 @@ class Addon(object):
             version = self.Addon.getAddonInfo('version')
         """
         if id=='path': #addon orig path
-            ans = os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'addons', self.id)
+            ans = os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'addons', self.plugin.id)
             if not os.path.exists(ans):
                 os.makedirs(ans)
             return ans
         if id=='profile': #user data dir
-            ans = os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'userdata', self.id)
+            ans = os.path.join(os.path.expanduser("~"), '.TVMLSERVER', 'userdata', self.plugin.id)
             if not os.path.exists(ans):
                 os.makedirs(ans)
             return ans
         if id=='name':
-            return self.id
+            return self.plugin.name
+        if id=='version':
+            return self.plugin.version
         if id=='id':
-            return self.id
+            return self.plugin.id
         return None
