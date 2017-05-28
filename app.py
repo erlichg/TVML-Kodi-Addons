@@ -9,7 +9,7 @@ import globals
 
 import app_proxy
 
-VERSION='0.7.2'
+VERSION='0.7.3'
 
 def program_end(signal, frame):
     logger.debug('Shutting down program')
@@ -370,6 +370,18 @@ def js(filename):
 def template(filename):
     return send_from_directory(os.path.join(bundle_dir, 'templates'), filename)
 
+
+last_localfile_path=None
+@app.route('/localfile/<file>')
+def localfile(file):
+    try:
+        filename = kodi_utils.b64decode(file)
+        global last_localfile_path
+        last_localfile_path = os.path.dirname(filename)
+    except:
+        if file and last_localfile_path:
+            filename=last_localfile_path+'/'+file
+    return send_file(filename)
 
 @app.route('/menu/<pluginid>', methods=['POST', 'GET'])
 @app.route('/menu/<pluginid>/<process>', methods=['POST', 'GET'])
@@ -862,10 +874,17 @@ def install_addon(addon):
     logger.debug('Installing addon {}'.format(addon['id']))
     download_url = '{0}/{1}/{1}-{2}.zip'.format(json.loads(addon['dir'])['download'], addon['id'], addon['version'])
     logger.debug('downloading plugin {}'.format(download_url))
-    temp = os.path.join(tempfile.gettempdir(), '{}.zip'.format(addon['id']))
     r = requests.get(download_url, stream=True)
-    if not r.status_code == 200:
+    if r.status_code >= 400:
+        #if not addon['id'].startswith('plugin'):
+        #    download_url = '{0}/plugin.{1}/plugin.{1}-{2}.zip'.format(json.loads(addon['dir'])['download'], addon['id'], addon['version'])
+        #    logger.debug('downloading plugin {}'.format(download_url))
+        #    r = requests.get(download_url, stream=True)
+        #    if r.status_code >= 400:
+        #        raise Exception('Failed to download')
+        #else:
         raise Exception('Failed to download')
+    temp = os.path.join(tempfile.gettempdir(), '{}.zip'.format(addon['id']))
     with open(temp, 'wb') as f:
         r.raw.decode_content = True
         shutil.copyfileobj(r.raw, f)
@@ -877,7 +896,7 @@ def install_addon(addon):
     time.sleep(5)
     plugin = KodiPlugin(addon['id'])
     logger.debug('Successfully installed plugin {} of type {}'.format(plugin.id, plugin.type))
-    if 'Repository' in p.type:  # Need additional stuff
+    if 'Repository' in plugin.type:  # Need additional stuff
         try:
             with open(os.path.join(DATA_DIR, 'addons', plugin, 'addon.xml'), 'r') as f:
                 repo = {}
@@ -1094,7 +1113,7 @@ def browse_addons():
     """This method will return all available addons by type"""
     search = None
     if request.method == 'POST':
-        search='.*{}.*'.format(request.form.keys()[0])
+        search='.*{}.*'.format(kodi_utils.b64decode(request.form.keys()[0]))
     if not REFRESH_EVENT.is_set():
         gevent.sleep(1)
         doc = render_template('progressdialog.xml', title='Please wait', text='Refreshing globals.REPOSITORIES. This may take some time', value='0', url='/browseAddons')
@@ -1185,7 +1204,7 @@ def help(argv):
 
 def mmain(argv):
     signal.signal(signal.SIGINT, program_end)
-    port = 5000  # default
+    globals.port = 5000  # default
 
     try:
         opts, args = getopt.getopt(argv[1:], "hp:t:", ["port=", "temp="])
@@ -1196,7 +1215,7 @@ def mmain(argv):
             help(argv)
         elif opt in ("-p", "--port"):
             try:
-                port = int(arg)
+                globals.port = int(arg)
             except:
                 print '<port> option must be an integer'
                 sys.exit(2)
@@ -1268,7 +1287,7 @@ def mmain(argv):
                 logger.error('Failed to load kodi plugin {}. Error: {}'.format(plugin, e))
 
     global http_server
-    http_server = WSGIServer(('', port), app)
+    http_server = WSGIServer(('', globals.port), app)
 
 
     global REFRESH_EVENT
@@ -1282,8 +1301,8 @@ def mmain(argv):
     proxy.start()
 
     print
-    print 'Server now running on port {}'.format(port)
-    print 'Connect your TVML client to: http://{}:{}'.format(globals.ADDR, port)
+    print 'Server now running on port {}'.format(globals.port)
+    print 'Connect your TVML client to: http://{}:{}'.format(globals.ADDR, globals.port)
     # http_server.log = open('http.log', 'w')
     http_server.serve_forever()
 
