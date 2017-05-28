@@ -167,7 +167,9 @@ class bridge:
         :param stop_completion: callback when item has finished playing. Called with stop time and total time
         :return:
         """
-        if kodi_utils.get_config(kodi_utils.PROXY_CONFIG):
+        if url.startswith('/'):
+            url = 'http://{}:{}/localfile/{}'.format(globals.ADDR, globals.port, kodi_utils.b64encode(url))
+        elif kodi_utils.get_config(kodi_utils.PROXY_CONFIG):
             url = 'http://{}:{}/?url={}'.format(globals.ADDR, globals.PROXY_PORT, kodi_utils.b64encode(url))
         logger.debug('Playing {}'.format(url))
         _id = kodi_utils.randomword()
