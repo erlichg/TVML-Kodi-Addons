@@ -8,6 +8,7 @@ Various classes and functions to interact with Kodi.
 import xbmcgui as _xbmcgui
 import xbmcplugin as _xbmcplugin
 import xbmcaddon as _xbmcaddon
+from KodiPlugin import KodiPlugin
 import time, re, os, sys, tempfile, logging, zipfile
 logger = logging.getLogger('TVMLServer')
 import kodi_utils
@@ -1214,6 +1215,12 @@ def executebuiltin(function, wait=False):
 		with zipfile.ZipFile(zip, 'r') as f:
 				f.extractall(dir)
 				return str()
+	m = re.search('Addon.OpenSettings\((.*)\)', function)
+	if m:
+		bridge.saveSettings()
+		plugin = KodiPlugin(m.group(1))
+		plugin.settings(bridge, None)
+		return str()
 	logger.warning('{}.{}({}) not implemented'.format(__name__, sys._getframe().f_code.co_name, function))
 	return str()
 
