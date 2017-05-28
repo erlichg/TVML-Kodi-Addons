@@ -9,7 +9,7 @@ import globals
 
 import app_proxy
 
-VERSION='0.7.3'
+VERSION='0.7.4'
 
 def program_end(signal, frame):
     logger.debug('Shutting down program')
