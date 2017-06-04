@@ -898,7 +898,7 @@ def install_addon(addon):
     logger.debug('Successfully installed plugin {} of type {}'.format(plugin.id, plugin.type))
     if 'Repository' in plugin.type:  # Need additional stuff
         try:
-            with open(os.path.join(DATA_DIR, 'addons', plugin, 'addon.xml'), 'r') as f:
+            with open(os.path.join(DATA_DIR, 'addons', plugin.id, 'addon.xml'), 'r') as f:
                 repo = {}
                 parser = AdvancedHTMLParser.Parser.AdvancedHTMLParser()
                 parser.feed(f.read())

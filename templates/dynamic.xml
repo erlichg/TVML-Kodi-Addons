@@ -32,19 +32,19 @@ See LICENSE.txt for this sample’s licensing information
 		  <placeholder></placeholder>		  
 		  <section>
 				{% for item in menu %}
-				<listItemLockup onholdselect="if (Object.keys({{item.context}}).length > 0) { showSelectDialog('{{item.title}}', Object.keys({{item.context}}), 0, function(ans) { if (typeof ans != 'undefined') {performAction({{item.context}}[ans], '{{plugin.id}}');}});}" onselect="catalog('{{plugin.id | base64encode}}', '{{item.url | base64encode}}')">
+				<listItemLockup onholdselect="if (Object.keys({{item['context']}}).length > 0) { showSelectDialog('{{item['title']}}', Object.keys({{item['context']}}), 0, function(ans) { if (typeof ans != 'undefined') {performAction({{item['context']}}[ans], '{{plugin.id}}');}});}" onselect="catalog('{{plugin.id | base64encode}}', '{{item['url'] | base64encode}}')">
 					<row>
-				 	{{item.title | safe}}
-					{% if item.play_state == 2 %}
+				 	{{item['title'] | safe}}
+					{% if item['play_state'] == 2 %}
 					<badge class="foo" src="resource://button-checkmark"/>
-					{% elif item.play_state == 1 %}
+					{% elif item['play_state'] == 1 %}
 					<badge class="foo" src="resource://button-play"/>
 					{% endif %}
 					</row>
 				 	<relatedContent>
 					 	<lockup style="margin: 10">
-						 	<img src="{{item.icon}}" width="857" height="842"/>
-						 	<description style="tv-text-max-lines: 15;">{{item.details}}</description>
+						 	<img src="{{item['icon']}}" width="857" height="842"/>
+						 	<description style="tv-text-max-lines: 15;">{{item['details']}}</description>
 					 	</lockup>
 				 	</relatedContent>			 					 	
 				</listItemLockup>
@@ -57,12 +57,12 @@ See LICENSE.txt for this sample’s licensing information
 		  <placeholder></placeholder>	  
 		  <section>
 				{% for item in menu %}
-				<listItemLockup onholdselect="if (Object.keys({{item.context}}).length > 0) { showSelectDialog('{{item.title}}', Object.keys({{item.context}}), 0, function(ans) { if (typeof ans != 'undefined') {performAction({{item.context}}[ans], '{{plugin.id}}');}});}" onselect="catalog('{{plugin.id | base64encode}}', '{{item.url | base64encode}}')">
+				<listItemLockup onholdselect="if (Object.keys({{item['context']}}).length > 0) { showSelectDialog('{{item['title']}}', Object.keys({{item['context']}}), 0, function(ans) { if (typeof ans != 'undefined') {performAction({{item['context']}}[ans], '{{plugin.id}}');}});}" onselect="catalog('{{plugin.id | base64encode}}', '{{item['url'] | base64encode}}')">
 					<row>
-						{{item.title | safe}}
-					{% if item.play_state == 2 %}
+						{{item['title'] | safe}}
+					{% if item['play_state'] == 2 %}
 					<badge class="foo" src="resource://button-checkmark"/>
-					{% elif item.play_state == 1 %}
+					{% elif item['play_state'] == 1 %}
 					<badge class="foo" src="resource://button-play"/>
 					{% endif %}
 					</row>
@@ -81,13 +81,13 @@ See LICENSE.txt for this sample’s licensing information
 			  <section>
 		  {% for item in menu %}
 				
-				<lockup onholdselect="if (Object.keys({{item.context}}).length > 0) { showSelectDialog('{{item.title}}', Object.keys({{item.context}}), 0, function(ans) { if (typeof ans != 'undefined') {performAction({{item.context}}[ans], '{{plugin.id}}');}});}" onselect="catalog('{{plugin.id | base64encode}}', '{{item.url | base64encode}}')">
-					<img style="tv-placeholder: movie;" src="{{item.icon}}" width="{{item.width}}" height="{{item.height}}"/>
-				 	{{item.title | safe}}
+				<lockup onholdselect="if (Object.keys({{item['context']}}).length > 0) { showSelectDialog('{{item['title']}}', Object.keys({{item['context']}}), 0, function(ans) { if (typeof ans != 'undefined') {performAction({{item['context']}}[ans], '{{plugin.id}}');}});}" onselect="catalog('{{plugin.id | base64encode}}', '{{item['url'] | base64encode}}')">
+					<img style="tv-placeholder: movie;" src="{{item['icon']}}" width="{{item['width']}}" height="{{item['height']}}"/>
+				 	{{item['title'] | safe}}
 					<overlay style="padding: 0">
-					{% if item.play_state == 2 %}
+					{% if item['play_state'] == 2 %}
 					<badge class="foo3" src="resource://overlay-checkmark"/>
-					{% elif item.play_state == 1 %}
+					{% elif item['play_state'] == 1 %}
 					<badge class="foo3" src="resource://button-play"/>
 					{% endif %}
 					</overlay>

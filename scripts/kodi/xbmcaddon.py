@@ -302,7 +302,11 @@ class Addon(object):
                     fields.append({'id':attrib['id'], 'type':'yesno', 'label':self.getLocalizedString(attrib['label']), 'value':attrib['value']})
                 elif _type == 'enum':
                     values = attrib['values'].split("|") if 'values' in attrib else [self.getLocalizedString(s) for s in attrib['lvalues'].split("|")]
-                    fields.append({'id':attrib['id'], 'type':'selection', 'label':self.getLocalizedString(attrib['label']), 'value':values[int(attrib['value'])], 'choices':values})
+                    try:
+                        val = values[int(attrib['value'])]
+                    except:
+                        val =  values.index(attrib['value'])
+                    fields.append({'id':attrib['id'], 'type':'selection', 'label':self.getLocalizedString(attrib['label']), 'value':val, 'choices':values})
                 elif _type == 'text':
                     fields.append({'id':attrib['id'], 'type':'textfield', 'label':self.getLocalizedString(attrib['label']), 'value':attrib['value'], 'secure':'option' in attrib and 'hidden' in attrib['option']})
                 elif _type == 'action':

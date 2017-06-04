@@ -1,6 +1,6 @@
 from flask import Flask, render_template
 import kodi_utils, globals, KodiPlugin
-import logging, urllib
+import logging, urllib, json
 logger = logging.getLogger('TVMLServer')
 
 
@@ -17,22 +17,23 @@ def end(plugin, msg, url=None, item_url=None):
         logger.debug('end sending 206')
         return {'messagetype':'nothing', 'return_url':url}
     template = None
+    items = [json.loads(i) for i in items]
     for item in items:
-        if item.icon:
-            if item.icon.startswith('addons'):
-                item.icon = '/{}'.format(item.icon)
-            elif item.icon.startswith('/'):
+        if item['icon']:
+            if item['icon'].startswith('addons'):
+                item['icon'] = '/{}'.format(item['icon'])
+            elif item['icon'].startswith('/'):
                 pass
             elif kodi_utils.get_config(kodi_utils.PROXY_CONFIG):
-                item.icon = 'http://{}:{}/?url={}'.format(globals.ADDR, globals.PROXY_PORT, kodi_utils.b64encode(item.icon))
-                logger.debug('image after cache = {}'.format(item.icon))
+                item['icon'] = 'http://{}:{}/?url={}'.format(globals.ADDR, globals.PROXY_PORT, kodi_utils.b64encode(item['icon']))
+                logger.debug('image after cache = {}'.format(item['icon']))
                 #item.icon = '/cache/{}'.format(kodi_utils.b64encode(item.icon))
-            item.info['poster'] = item.icon
-        item.width = 300
-        item.height = 300
-        imdb = item.info['imdb'] if 'imdb' in item.info else item.info['imdb_id'] if 'imdb_id' in item.info else item.info['imdbnumber'] if 'imdbnumber' in item.info else None
-        season = str(item.info['season']) if 'season' in item.info else None
-        episode = str(item.info['episode']) if 'episode' in item.info else None
+            item['info']['poster'] = item['icon']
+        item['width'] = 300
+        item['height'] = 300
+        imdb = item['info']['imdb'] if 'imdb' in item['info'] else item['info']['imdb_id'] if 'imdb_id' in item['info'] else item['info']['imdbnumber'] if 'imdbnumber' in item['info'] else None
+        season = str(item['info']['season']) if 'season' in item['info'] else None
+        episode = str(item['info']['episode']) if 'episode' in item['info'] else None
         if imdb:
             # we save in history the imdb id of the movie
             search = imdb;
@@ -42,14 +43,14 @@ def end(plugin, msg, url=None, item_url=None):
                 search += "E" + episode;
         else:
             # we save in history the original item url
-            search = item.url
+            search = item['url']
         state = kodi_utils.get_play_history(kodi_utils.b64encode(search))
         if state['time'] == 0 or state['total'] == 0:
-            item.play_state = 0 #item hasn't been played
+            item['play_state'] = 0 #item hasn't been played
         elif state['time'] * 100 / state['total'] >= 95:
-            item.play_state = 2 #item has finished playing
+            item['play_state'] = 2 #item has finished playing
         else:
-            item.play_state = 1 #item is in mid play
+            item['play_state'] = 1 #item is in mid play
     #widths = [item.width for item in items]
     #heights = [item.height for item in items]
     #avg_width = reduce(lambda x, y: x + y, widths) / len(widths)

@@ -1,5 +1,5 @@
 import xml.etree.ElementTree as ET
-import os, sys, re, json, time, AdvancedHTMLParser
+import os, sys, re, json, time, AdvancedHTMLParser, copy
 import kodi_utils, globals
 import logging
 import runpy
@@ -38,6 +38,8 @@ def parse_addon_xml(text, repo=None, dir=None):
         service = None
         startup = None
         try:
+            imports = a.getElementsCustomFilter(lambda x: x.tagName == 'import')
+            requires = [i.attributes['addon'] for i in imports if i.attributes['addon'] != 'xbmc.python']
             ext = a.getElementsCustomFilter(lambda x: x.tagName == 'extension')
             for e in ext:
                 point = e.attributes['point']
@@ -82,8 +84,7 @@ def parse_addon_xml(text, repo=None, dir=None):
                             addon_type.append('Video')
                         if 'executable' in text:
                             addon_type.append('Program')
-                    imports = a.getElementsCustomFilter(lambda x: x.tagName == 'import')
-                    requires = [i.attributes['addon'] for i in imports if i.attributes['addon'] != 'xbmc.python']
+
                 elif point == 'xbmc.python.weather':
                     addon_type.append('Weather')
                 elif point == 'xbmc.subtitle.module':
@@ -120,6 +121,22 @@ def parse_addon_xml(text, repo=None, dir=None):
                                 'icon': icon})
     return temp
 
+def get_requires(module):
+    import xbmcaddon
+    for r in module.requires:
+        if os.path.exists(os.path.join(ADDONS_DIR, r)):
+            tree = ET.parse(os.path.join(ADDONS_DIR, r, 'addon.xml'))
+            for e2 in tree.iter('extension'):
+                if e2.attrib['point'] == 'xbmc.python.module':
+                    sys.path.insert(0, os.path.join(ADDONS_DIR, r, e2.attrib['library']))
+                    xbmcaddon.Addon(r, copy.deepcopy(kodi_utils.get_settings(r)))
+                    p = KodiPlugin(r)
+                    get_requires(p)
+        else:
+            try:
+                __import__(r.replace('script.module.', ''))
+            except:
+                raise Exception('Addon {} is missing module {}'.format(module.id, r))
 
 class KodiPlugin:
     def __init__(self, id):
@@ -150,11 +167,11 @@ class KodiPlugin:
         if not xbmc.LANGUAGE:
             xbmc.LANGUAGE = 'English'
         import xbmcaddon
-        import copy
         xbmcaddon.Addon(self.id, copy.deepcopy(settings)) #send a copy of the settings to save original
         xbmcaddon.Addon(self.id).openSettings() #Open settings dialog
         for id in xbmcaddon.ADDON_CACHE:
             kodi_utils.set_settings(id, xbmcaddon.ADDON_CACHE[id].settings)
+
 
     def run(self, bridge, url, run_as_service=False):
         logger = logging.getLogger(self.id)
@@ -178,17 +195,11 @@ class KodiPlugin:
         sys.path.append(os.path.join(bundle_dir, 'scripts', 'kodi'))
 
         import xbmcplugin, xbmcaddon, copy
+        try:
+            get_requires(self)
+        except:
+            logger.exception('Failed to run module')
 
-        for r in self.requires:
-            if not os.path.exists(os.path.join(ADDONS_DIR, r)):
-                logger.error('Addon {} is missing module {}'.format(self.id, r))
-                return None
-
-            tree = ET.parse(os.path.join(ADDONS_DIR, r, 'addon.xml'))
-            for e2 in tree.iter('extension'):
-                if e2.attrib['point'] == 'xbmc.python.module':
-                    sys.path.insert(0, os.path.join(ADDONS_DIR, r, e2.attrib['library']))
-                    xbmcaddon.Addon(r, copy.deepcopy(kodi_utils.get_settings(r)))
 
         sys.path.insert(0, self.dir)
         if '/' in self.module:
@@ -286,7 +297,7 @@ class KodiPlugin:
             sqlite3.dbapi2.connect = dbapi2_connect_patch
 
             xbmcplugin.items = []
-            runpy.run_module(self.module.split('/')[-1], init_globals={'sys':sys}, run_name='__main__')
+            runpy.run_module(self.module.split('/')[-1], init_globals={'sys':sys, 'xbmc':xbmc}, run_name='__main__')
             #imp.load_module(self.module, fp, self.dir, ('.py', 'rb', imp.PY_SOURCE))
         except SystemExit:
             pass
@@ -354,5 +365,5 @@ class KodiPlugin:
                 i.icon = i.icon.replace(ADDONS_DIR, '/addons')
             if i.icon:
                 i.icon = i.icon.replace('\\', '/')
-            ans.append(i)
+            ans.append('{}'.format(i))
         return ans
