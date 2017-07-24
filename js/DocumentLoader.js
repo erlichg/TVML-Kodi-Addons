@@ -52,7 +52,7 @@ DocumentLoader.prototype.fetchPost = function(options) {
             }
             if (type == 'play') { //play
                 var time = msg['time'];
-                //VLC player
+                //player
                 try {
                     if (time != 0) {
                         var formattedTime = this.formatTime(Math.floor(time/1000)); //convert to fomatted time in seconds
@@ -562,7 +562,7 @@ DocumentLoader.prototype.play = function(msg, time, callback) {
     try {
     	var currenttime = 0;
 		var duration = 0;
-        var player = VLCPlayer.createPlayerWithUrlTimeImageDescriptionTitleImdbSeasonEpisodeCallback(msg['url'], time, this.prepareURL(msg['image']), msg['description'], msg['title'], msg['imdb'], msg['season'], msg['episode'], function(time) {
+        var player = Player.createPlayerWithUrlTimeImageDescriptionTitleImdbSeasonEpisodeCallback(msg['url'], time, this.prepareURL(msg['image']), msg['description'], msg['title'], msg['imdb'], msg['season'], msg['episode'], function(time) {
             try {
                 duration = player.getDuration();
                 currenttime = time;
@@ -575,7 +575,7 @@ DocumentLoader.prototype.play = function(msg, time, callback) {
                 }
 				var url = this.prepareURL(msg['stop'] + "/" + btoa(JSON.stringify({'time': currenttime.toString(), 'total': duration.toString()})));
 				console.log("notifying " + url);
-				VLCPlayer.notify(url);
+				Player.notify(url);
             } catch (e) {
                 console.log(e);
             }
@@ -589,7 +589,7 @@ DocumentLoader.prototype.play = function(msg, time, callback) {
             throw player;
         } else if (typeof(player) != "undefined") {
             removeLoadingDocument();
-            VLCPlayer.present(player);
+            Player.present(player);
         } else {
             //Built-in player
             var singleVideo = new MediaItem(msg['type'], msg['url']);

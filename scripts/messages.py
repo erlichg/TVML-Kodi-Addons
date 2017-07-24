@@ -45,12 +45,18 @@ def end(plugin, msg, url=None, item_url=None):
             # we save in history the original item url
             search = item['url']
         state = kodi_utils.get_play_history(kodi_utils.b64encode(search))
-        if state['time'] == 0 or state['total'] == 0:
-            item['play_state'] = 0 #item hasn't been played
-        elif state['time'] * 100 / state['total'] >= 95:
-            item['play_state'] = 2 #item has finished playing
-        else:
-            item['play_state'] = 1 #item is in mid play
+        try:
+            int(state['time'])
+            int(state['total'])
+            if state['time'] == 0 or state['total'] == 0:
+                item['play_state'] = 0  # item hasn't been played
+            elif state['time'] * 100 / state['total'] >= 95:
+                item['play_state'] = 2  # item has finished playing
+            else:
+                item['play_state'] = 1  # item is in mid play
+        except:
+            item['play_state'] = 0  # item hasn't been played
+
     #widths = [item.width for item in items]
     #heights = [item.height for item in items]
     #avg_width = reduce(lambda x, y: x + y, widths) / len(widths)
@@ -83,12 +89,17 @@ def play(plugin, msg, url=None, item_url=None):
         # we save in history the original item url
         search = item_url
     state = kodi_utils.get_play_history(search)
-    if state['time'] == 0 or state['total'] == 0:
-        time = 0  # item hasn't been played
-    elif state['time'] * 100 / state['total'] >= 95:
-        time = 0  # item has finished playing so start at beginning
-    else:
-        time = state['time']  # item is in mid play
+    try:
+        int(state['time'])
+        int(state['total'])
+        if state['time'] == 0 or state['total'] == 0:
+            time = 0  # item hasn't been played
+        elif state['time'] * 100 / state['total'] >= 95:
+            time = 0  # item has finished playing so start at beginning
+        else:
+            time = state['time']  # item is in mid play
+    except:
+        time = 0
     #since url paremeter is the original url that was called which resulted in a play message, we can save this url for time
     #return render_template('player.xml', url=msg['url'], type=msg['playtype'])
     return {'messagetype':'play', 'stop':'/playstop/{}'.format(search), 'start':'/playstart/{}'.format(search), 'time':time, 'continue': url, 'url': msg['url'], 'type':msg['playtype'], 'imdb':msg['imdb'], 'title':msg['title'], 'description':msg['description'], 'image':msg['image'], 'season':msg['season'], 'episode':msg['episode'], 'return_url':url}
