@@ -24,7 +24,7 @@ def end(plugin, msg, url=None, item_url=None):
                 item['icon'] = '/{}'.format(item['icon'])
             elif item['icon'].startswith('/'):
                 pass
-            elif kodi_utils.get_config(kodi_utils.PROXY_CONFIG):
+            else:
                 item['icon'] = 'http://{}:{}/?url={}'.format(globals.ADDR, globals.PROXY_PORT, kodi_utils.b64encode(item['icon']))
                 logger.debug('image after cache = {}'.format(item['icon']))
                 #item.icon = '/cache/{}'.format(kodi_utils.b64encode(item.icon))
@@ -74,7 +74,7 @@ def play(plugin, msg, url=None, item_url=None):
     if msg['image']:
         if msg['image'].startswith('addons'):
             msg['image'] = '/{}'.format(msg['image'])
-        elif kodi_utils.get_config(kodi_utils.PROXY_CONFIG):
+        else:
             #msg['image'] = '/cache/{}'.format(kodi_utils.b64encode(msg['image']))
             msg['image'] = 'http://{}:{}/?url={}'.format(globals.ADDR, globals.PROXY_PORT, kodi_utils.b64encode(msg['image']))
             logger.debug('image after cache = {}'.format(msg['image']))

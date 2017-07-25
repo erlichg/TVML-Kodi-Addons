@@ -169,8 +169,6 @@ class bridge:
         """
         if url.startswith('/'):
             url = 'http://{}:{}/localfile/{}'.format(globals.ADDR, globals.port, kodi_utils.b64encode(url))
-        elif kodi_utils.get_config(kodi_utils.PROXY_CONFIG):
-            url = 'http://{}:{}/?url={}'.format(globals.ADDR, globals.PROXY_PORT, kodi_utils.b64encode(url))
         logger.debug('Playing {}'.format(url))
         _id = kodi_utils.randomword()
         import xbmcplugin

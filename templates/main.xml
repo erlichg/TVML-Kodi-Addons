@@ -163,11 +163,6 @@ See LICENSE.txt for this sample’s licensing information
                         <list style="width: 1000">
                             <section>
                                 <header><title>Advanced server actions</title></header>
-                                <listItemLockup style="height:200" onselect="notify('/toggleProxy'); if (event.target.children.item(1).textContent=='On') { event.target.children.item(1).textContent='Off' } else { event.target.children.item(1).textContent='On' };">
-                                    <title>Toggle server proxy mode</title>
-                                    <decorationLabel>{{proxy}}</decorationLabel>
-                                    <subtitle style="tv-text-max-lines: 4">In proxy mode, all network activity (except playing media) will go through the server. This may hurt performance but can solve network access issues</subtitle>
-                                </listItemLockup>
                                 <listItemLockup onselect="load('/viewLog')">
                                     <title>View server log</title>
                                     <subtitle style="tv-text-max-lines: 2">View internal server log of all activity</subtitle>

@@ -9,7 +9,7 @@ import globals
 
 import app_proxy
 
-VERSION='0.7.6'
+VERSION='0.8'
 
 def program_end(signal, frame):
     logger.debug('Shutting down program')
@@ -349,13 +349,6 @@ def cache(id):
 
 
 
-@app.route('/toggleProxy')
-def toggle_proxy():
-    proxy = not kodi_utils.get_config(kodi_utils.PROXY_CONFIG, False)
-    kodi_utils.set_config(kodi_utils.PROXY_CONFIG, proxy)
-    return json.dumps({'messagetype': 'nothing', 'end':True})
-
-
 @app.route('/addons/<path:filename>')
 def kodiplugin_icon(filename):
     return send_from_directory(os.path.join(DATA_DIR, 'addons'), filename)
@@ -571,7 +564,6 @@ def catalog(pluginid, process=None, url=''):
 def main():
     try:
         favs = kodi_utils.get_config(kodi_utils.FAVORITE_CONFIG, [])
-        proxy = kodi_utils.get_config(kodi_utils.PROXY_CONFIG, False)
         language = kodi_utils.get_config(kodi_utils.LANGUAGE_CONFIG, 'English')
         filtered_plugins =  [dict(p) for p in get_all_installed_addons() if [val for val in json.loads(p['type']) if val in ['Video', 'Audio']]] #Show only plugins with video/audio capability since all others are not supported
         for p in filtered_plugins:
@@ -596,7 +588,7 @@ def main():
         except:
             logger.exception('Failed to retrieve play history')
             return {'time': 0, 'total': 0}
-        doc = render_template('main.xml', menu=filtered_plugins, favs=fav_plugins, url=request.full_path, proxy='On' if proxy else 'Off', version=VERSION, languages=["Afrikaans", "Albanian", "Amharic", "Arabic", "Armenian", "Azerbaijani", "Basque", "Belarusian", "Bosnian", "Bulgarian", "Burmese", "Catalan", "Chinese", "Croatian", "Czech", "Danish", "Dutch", "English", "Esperanto", "Estonian", "Faroese", "Finnish", "French", "Galician", "German", "Greek", "Hebrew", "Hindi", "Hungarian", "Icelandic", "Indonesian", "Italian", "Japanese", "Korean", "Latvian", "Lithuanian", "Macedonian", "Malay", "Malayalam", "Maltese", "Maori", "Mongolian", "Norwegian", "Ossetic", "Persian", "Persian", "Polish", "Portuguese", "Romanian", "Russian", "Serbian", "Silesian", "Sinhala", "Slovak", "Slovenian", "Spanish", "Spanish", "Swedish", "Tajik", "Tamil", "Telugu", "Thai", "Turkish", "Ukrainian", "Uzbek", "Vietnamese", "Welsh"], current_language=language)
+        doc = render_template('main.xml', menu=filtered_plugins, favs=fav_plugins, url=request.full_path, version=VERSION, languages=["Afrikaans", "Albanian", "Amharic", "Arabic", "Armenian", "Azerbaijani", "Basque", "Belarusian", "Bosnian", "Bulgarian", "Burmese", "Catalan", "Chinese", "Croatian", "Czech", "Danish", "Dutch", "English", "Esperanto", "Estonian", "Faroese", "Finnish", "French", "Galician", "German", "Greek", "Hebrew", "Hindi", "Hungarian", "Icelandic", "Indonesian", "Italian", "Japanese", "Korean", "Latvian", "Lithuanian", "Macedonian", "Malay", "Malayalam", "Maltese", "Maori", "Mongolian", "Norwegian", "Ossetic", "Persian", "Persian", "Polish", "Portuguese", "Romanian", "Russian", "Serbian", "Silesian", "Sinhala", "Slovak", "Slovenian", "Spanish", "Spanish", "Swedish", "Tajik", "Tamil", "Telugu", "Thai", "Turkish", "Ukrainian", "Uzbek", "Vietnamese", "Welsh"], current_language=language)
         return json.dumps({'doc':doc, 'end': True})
     except:
         logger.exception('Failed to load main screen')
@@ -1297,7 +1289,6 @@ def mmain(argv):
     thread.start_new_thread(get_available_addons, (globals.REPOSITORIES, REFRESH_EVENT))
 
     proxy = app_proxy.ProxyService(app_proxy.HTTP("0.0.0.0", globals.PROXY_PORT))
-    # proxy.start()
     proxy.start()
 
     print

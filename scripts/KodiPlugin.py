@@ -111,10 +111,8 @@ def parse_addon_xml(text, repo=None, dir=None):
             pass
         if not addon_type:
             print 'Failed to determine addon type of {}'.format(id)
-        if kodi_utils.get_config(kodi_utils.PROXY_CONFIG) and dir:
+        if dir:
             icon = 'http://{}:{}/?url={}'.format(globals.ADDR, globals.PROXY_PORT, kodi_utils.b64encode('{}/{}/icon.png'.format(dir['download'], id)))
-        elif dir:
-            icon = '{}/{}/icon.png'.format(dir['download'], id)
         else:
             icon = os.path.join(ADDONS_DIR, id, 'icon.png')
         temp.append({'id': id, 'repo': repo, 'dir': dir, 'type': addon_type, 'name': data['name'], 'data': data, 'version': data['version'], 'script': script, 'requires': requires, 'service': service, 'startup': startup,
