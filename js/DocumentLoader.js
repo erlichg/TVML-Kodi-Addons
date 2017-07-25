@@ -436,7 +436,7 @@ function traverseElements(elem, callback) {
 
 DocumentLoader.prototype.play = function(msg, time, playCache, options) {
 	try {
-		var player = VLCPlayer.createPlayerWithUrlTimeImageDescriptionTitleImdbSeasonEpisodeCallback(msg['url'], time, this.prepareURL(msg['image']), msg['description'], msg['title'], msg['imdb'], msg['season'], msg['episode'], function(time) {
+		var player = Player.createPlayerWithUrlTimeImageDescriptionTitleImdbSeasonEpisodeCallback(msg['url'], time, this.prepareURL(msg['image']), msg['description'], msg['title'], msg['imdb'], msg['season'], msg['episode'], function(time) {
 			try {
 				var total = player.getDuration();
 				console.log("player ended with "+time+"ms out of "+total+"ms");
@@ -462,7 +462,7 @@ DocumentLoader.prototype.play = function(msg, time, playCache, options) {
 				localStorage.setItem('playCache', JSON.stringify(playCache)); //save this url's stop time for future playback			
 				var url = this.prepareURL(msg['stop']+"/"+btoa(time.toString()));
 				console.log("notifying "+url);
-				VLCPlayer.notify(url);
+				Player.notify(url);
 			} catch (e) {
 				console.log(e);
 			}
@@ -471,7 +471,7 @@ DocumentLoader.prototype.play = function(msg, time, playCache, options) {
 		
 		if (typeof(player) != "undefined") {
 			options.abort(); //remove the loading document
-			VLCPlayer.present(player);
+			Player.present(player);
 		} else {
 			//Built-in player
 			var singleVideo = new MediaItem(msg['type'], msg['url']);
