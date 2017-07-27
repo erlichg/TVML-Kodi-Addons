@@ -248,6 +248,8 @@ def set_play_history(s, time, total):
     :param total: total time of item
     :return: None
     """
+    time = float(time)
+    total = float(total)
     for i in range(10):
         try:
             with open_db() as DB:
@@ -264,6 +266,15 @@ def set_play_history(s, time, total):
 
 
 def add_item(addon, item):
+    decoded_item = json.loads(item)
+    to_remove=[]
+    with open_db() as DB:
+        for row in DB.execute('select rowid,* from ITEMS where addon=?', (addon,)):
+            i = json.loads(row['s'])
+            if i['url'] == decoded_item['url']:
+                to_remove.append(row['rowid'])
+    for rowid in to_remove:
+        remove_item(rowid)
     for i in range(10):
         try:
             with open_db() as DB:
@@ -288,6 +299,40 @@ def get_items():
         return ans
     except:
         logger.exception('Failed to retrieve items')
+
+
+def remove_item(rowid):
+    for i in range(10):
+        try:
+            with open_db() as DB:
+                DB.execute('delete from ITEMS where rowid=?', (rowid, ))
+            break
+        except sqlite3.OperationalError:
+            time.sleep(1)
+        except:
+            logger.exception('Failed to remove item')
+            break
+
+def update_item_stop(stop, time):
+    time = float(time)
+    for i in range(10):
+        to_update = []
+        addon = None
+        try:
+            with open_db() as DB:
+                for row in DB.execute('select * from ITEMS'):
+                    i = json.loads(row['s'])
+                    if i['stop'] == stop:
+                        addon = row['addon']
+                        i['time'] = time
+                        to_update.append(json.dumps(i))
+        except sqlite3.OperationalError:
+            time.sleep(1)
+        except:
+            logger.exception('Failed to update item')
+            break
+    for item in to_update:
+        add_item(addon, item)
 
 
 def trigger(type, data):

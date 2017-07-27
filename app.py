@@ -310,6 +310,7 @@ def playstop(s, text):
             pass #I do not want to change history for mis-played item
         else:
             kodi_utils.set_play_history(s, text['time'], text['total'])
+            kodi_utils.update_item_stop('/playstop/{}'.format(s), text['time'])
     except:
         logger.exception('Failed to set play history')
     return json.dumps({'messagetype': 'nothing', 'end': True})
@@ -569,26 +570,26 @@ def main():
         for p in filtered_plugins:
             p['name'] = kodi_utils.tag_conversion(p['name'])
         fav_plugins = [p for p in filtered_plugins if p['id'] in favs]
-        recents = {}
-        try:
-            with open_db() as DB:
-                for row in DB.execute('select * from HISTORY'):
-                    try:
-                        s = kodi_utils.b64decode(row['s'])
-                        m = re.search('plugin://([^/]*)/', s)
-                        if m:
-                            id = m.group(1)
-                            addon = get_installed_addon(id)
-                            if addon:
-                                if not addon['name'] in recents:
-                                    recents[addon['name']] = []
-                                recents[addon['name']].append()
-                    except:
-                        pass
-        except:
-            logger.exception('Failed to retrieve play history')
-            return {'time': 0, 'total': 0}
-        doc = render_template('main.xml', menu=filtered_plugins, favs=fav_plugins, url=request.full_path, version=VERSION, languages=["Afrikaans", "Albanian", "Amharic", "Arabic", "Armenian", "Azerbaijani", "Basque", "Belarusian", "Bosnian", "Bulgarian", "Burmese", "Catalan", "Chinese", "Croatian", "Czech", "Danish", "Dutch", "English", "Esperanto", "Estonian", "Faroese", "Finnish", "French", "Galician", "German", "Greek", "Hebrew", "Hindi", "Hungarian", "Icelandic", "Indonesian", "Italian", "Japanese", "Korean", "Latvian", "Lithuanian", "Macedonian", "Malay", "Malayalam", "Maltese", "Maori", "Mongolian", "Norwegian", "Ossetic", "Persian", "Persian", "Polish", "Portuguese", "Romanian", "Russian", "Serbian", "Silesian", "Sinhala", "Slovak", "Slovenian", "Spanish", "Spanish", "Swedish", "Tajik", "Tamil", "Telugu", "Thai", "Turkish", "Ukrainian", "Uzbek", "Vietnamese", "Welsh"], current_language=language)
+        # recents = {}
+        # try:
+        #     with open_db() as DB:
+        #         for row in DB.execute('select * from HISTORY'):
+        #             try:
+        #                 s = kodi_utils.b64decode(row['s'])
+        #                 m = re.search('plugin://([^/]*)/(.*)', s)
+        #                 if m:
+        #                     id = m.group(1)
+        #                     addon = get_installed_addon(id)
+        #                     if addon:
+        #                         if not addon['name'] in recents:
+        #                             recents[addon['name']] = []
+        #                         recents[addon['name']].append()
+        #             except:
+        #                 pass
+        # except:
+        #     logger.exception('Failed to retrieve play history')
+        #     return {'time': 0, 'total': 0}
+        doc = render_template('main.xml', recents=kodi_utils.get_items(), menu=filtered_plugins, favs=fav_plugins, url=request.full_path, version=VERSION, languages=["Afrikaans", "Albanian", "Amharic", "Arabic", "Armenian", "Azerbaijani", "Basque", "Belarusian", "Bosnian", "Bulgarian", "Burmese", "Catalan", "Chinese", "Croatian", "Czech", "Danish", "Dutch", "English", "Esperanto", "Estonian", "Faroese", "Finnish", "French", "Galician", "German", "Greek", "Hebrew", "Hindi", "Hungarian", "Icelandic", "Indonesian", "Italian", "Japanese", "Korean", "Latvian", "Lithuanian", "Macedonian", "Malay", "Malayalam", "Maltese", "Maori", "Mongolian", "Norwegian", "Ossetic", "Persian", "Persian", "Polish", "Portuguese", "Romanian", "Russian", "Serbian", "Silesian", "Sinhala", "Slovak", "Slovenian", "Spanish", "Spanish", "Swedish", "Tajik", "Tamil", "Telugu", "Thai", "Turkish", "Ukrainian", "Uzbek", "Vietnamese", "Welsh"], current_language=language)
         return json.dumps({'doc':doc, 'end': True})
     except:
         logger.exception('Failed to load main screen')
@@ -1228,7 +1229,7 @@ def mmain(argv):
         DB.execute('create table if not exists {}(id text primary_key, string text)'.format(kodi_utils.SETTINGS_TABLE))
         DB.execute('create table if not exists {}(id text primary_key, string text)'.format(kodi_utils.CONFIG_TABLE))
         DB.execute('create table if not exists {}(s text primary_key, time integer, total integer)'.format(kodi_utils.HISTORY_TABLE))
-        DB.execute('create table if not exists {}(s text primary_key, addon text)'.format(kodi_utils.ITEMS_TABLE))
+        DB.execute('create table if not exists {}(id s text primary_key, addon text)'.format(kodi_utils.ITEMS_TABLE))
         DB.execute('drop table if exists ADDONS')
         DB.execute('create table ADDONS(id text, repo text, dir text, type text, name text, data text, version text, script text, requires text, icon text)')
         DB.execute('drop table if exists INSTALLED')

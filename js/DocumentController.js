@@ -241,6 +241,10 @@ function replaceLoadingDocument(newdoc) {
 
 }
 
+function parseMessage(msg, options) {
+    documentLoader.parseMessage(msg, options);
+}
+
 function clearPlay() {
 	notify('/clearPlay');
 	refreshMainScreen();

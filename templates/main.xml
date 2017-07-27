@@ -69,27 +69,29 @@ See LICENSE.txt for this sample’s licensing information
         </collectionList>
     </stackTemplate>
 
-    <!--stackTemplate title="Continue watching" id="continue">
+    <stackTemplate title="Continue watching" id="continue">
         {% if not recents %}
         <banner style="margin: 300">
             <title class="foo">Recently played items will be shown here</title>
         </banner>
         {% endif %}
         <collectionList>
-            {% for plugin in recents %}
+            {% for plugin,items in recents.iteritems() %}
             <shelf>
+                <header><title>{{plugin}}</title></header>
                 <section>
-                    {% for item in plugin %}
-                    <lockup onselect="catalog('{{plugin.id | base64encode}}', '{{item.url | base64encode}}')">
-                        <img style="tv-placeholder: movie;" src="{{item.icon}}" width="256" height="256"/>
-                        <row>{{item.title | safe}}</row>
+                    {% for item in items %}
+                    <lockup onselect="var item = JSON.parse(event.target.children.item(0).getAttribute('item')); parseMessage(item, {})">
+                        <placeholder item='{{item | tojson}}'></placeholder>
+                        <img style="tv-placeholder: movie;" src="{{item.image}}" width="256" height="256"/>
+                        <title>{{item.title}}</title>
                     </lockup>
                     {% endfor %}
                 </section>
             </shelf>
             {% endfor %}
         </collectionList>
-    </stackTemplate-->
+    </stackTemplate>
 
     <catalogTemplate autoHighlight="true" title="Settings" id="settings">
         <list>

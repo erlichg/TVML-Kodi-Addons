@@ -309,7 +309,22 @@ class KodiPlugin:
         items = xbmcplugin.items
         if xbmcplugin.resolved:
             listitem = xbmcplugin.resolved
-            image = listitem.thumbnailImage if listitem.thumbnailImage != 'DefaultFolder.png' else ''
+            image = None
+            if listitem.thumbnailImage and listitem.thumbnailImage != 'DefaultFolder.png':
+                image = listitem.thumbnailImage
+            elif listitem.iconImage:
+                image = listitem.iconImage
+            else:
+                image = ''
+            title = None
+            if listitem.label:
+                title = listitem.label
+            elif listitem.label2:
+                title = listitem.label2
+            elif listitem.getProperty('title'):
+                title = listitem.getProperty('title')
+            else:
+                title=''
             if listitem.getProperty('poster'):
                 image = listitem.getProperty('poster')
             imdb = listitem.getProperty('imdb')
@@ -321,7 +336,7 @@ class KodiPlugin:
                 imdb = listitem.getProperty('code')
             global resolved
             resolved = listitem
-            bridge.play(listitem.path, title=listitem.getProperty('title'), description=listitem.getProperty('plot'), image=image, imdb=imdb, season=str(listitem.getProperty('season')) if listitem.getProperty('season') else None, episode=str(listitem.getProperty('episode')) if listitem.getProperty('episode') else None)
+            bridge.play(listitem.path, title=title, description=listitem.getProperty('plot'), image=image, imdb=imdb, season=str(listitem.getProperty('season')) if listitem.getProperty('season') else None, episode=str(listitem.getProperty('episode')) if listitem.getProperty('episode') else None)
             xbmcplugin.resolved = None
         logger.debug('Plugin {} ended with: {}'.format(self.name, items))
 

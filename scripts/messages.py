@@ -100,9 +100,11 @@ def play(plugin, msg, url=None, item_url=None):
             time = state['time']  # item is in mid play
     except:
         time = 0
+    ans = {'messagetype':'play', 'stop':'/playstop/{}'.format(search), 'start':'/playstart/{}'.format(search), 'time':time, 'continue': url, 'url': msg['url'], 'type':msg['playtype'], 'imdb':msg['imdb'], 'title':msg['title'], 'description':msg['description'], 'image':msg['image'], 'season':msg['season'], 'episode':msg['episode'], 'return_url':url, 'icon':msg['image']}
+    kodi_utils.add_item(plugin['name'], json.dumps(ans))
     #since url paremeter is the original url that was called which resulted in a play message, we can save this url for time
     #return render_template('player.xml', url=msg['url'], type=msg['playtype'])
-    return {'messagetype':'play', 'stop':'/playstop/{}'.format(search), 'start':'/playstart/{}'.format(search), 'time':time, 'continue': url, 'url': msg['url'], 'type':msg['playtype'], 'imdb':msg['imdb'], 'title':msg['title'], 'description':msg['description'], 'image':msg['image'], 'season':msg['season'], 'episode':msg['episode'], 'return_url':url}
+    return ans
 
 
 def isplaying(plugin, msg, url=None, item_url=None):
