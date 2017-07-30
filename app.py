@@ -1229,7 +1229,7 @@ def mmain(argv):
         DB.execute('create table if not exists {}(id text primary_key, string text)'.format(kodi_utils.SETTINGS_TABLE))
         DB.execute('create table if not exists {}(id text primary_key, string text)'.format(kodi_utils.CONFIG_TABLE))
         DB.execute('create table if not exists {}(s text primary_key, time integer, total integer)'.format(kodi_utils.HISTORY_TABLE))
-        DB.execute('create table if not exists {}(id s text primary_key, addon text)'.format(kodi_utils.ITEMS_TABLE))
+        DB.execute('create table if not exists {}(s text primary_key, addon text)'.format(kodi_utils.ITEMS_TABLE))
         DB.execute('drop table if exists ADDONS')
         DB.execute('create table ADDONS(id text, repo text, dir text, type text, name text, data text, version text, script text, requires text, icon text)')
         DB.execute('drop table if exists INSTALLED')
