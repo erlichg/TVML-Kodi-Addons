@@ -422,3 +422,14 @@ def tag_conversion(s):
         return ans
     except:
         return '<title class="foo">{}</title>'.format(s)
+
+
+def column_names(table):
+    try:
+        with open_db() as DB:
+            cursor = DB.execute('select * from {}'.format(table))
+            names = list(map(lambda x: x[0], cursor.description))
+            return names
+    except:
+        logger.exception('Failed to get column names of {}'.format(table))
+        return []

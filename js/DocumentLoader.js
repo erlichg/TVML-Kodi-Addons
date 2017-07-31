@@ -577,6 +577,9 @@ DocumentLoader.prototype.play = function (msg, time, callback) {
                 if (typeof duration == "undefined") {
                     duration = 0;
                 }
+                if ((duration - currenttime) * 100 / duration <= 3) { //if we've stopped at more than 97% play time, don't resume
+                    currenttime = 0;
+                }
                 var url = this.prepareURL(msg['stop'] + "/" + btoa(JSON.stringify({'time': currenttime.toString(), 'total': duration.toString()})));
                 console.log("notifying " + url);
                 TVMLPlayer.notify(url);
@@ -645,6 +648,9 @@ DocumentLoader.prototype.play = function (msg, time, callback) {
                 if (e.state == "end") {
                     try {
                         currenttime = currenttime * 1000; //since we're getting ms from player
+                        if ((duration - currenttime) * 100 / duration <= 3) { //if we've stopped at more than 97% play time, don't resume
+                            currenttime = 0;
+                        }
                         var url = this.prepareURL(msg['stop'] + "/" + btoa(JSON.stringify({'time': currenttime.toString(), 'total': duration.toString()})));
                         notify(url);
                     } catch (err) {
