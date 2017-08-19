@@ -2,7 +2,7 @@ import xml.etree.ElementTree as ET
 import os, sys, re, json, time, AdvancedHTMLParser, copy
 import kodi_utils, globals
 import logging
-import runpy
+import runpy, pip, urlparse
 try:
     import setproctitle
 except:
@@ -131,9 +131,7 @@ def get_requires(module):
                     p = KodiPlugin(r)
                     get_requires(p)
         else:
-            try:
-                __import__(r.replace('script.module.', ''))
-            except:
+            if not pip.main(['show', r.replace('script.module.', '')]):
                 raise Exception('Addon {} is missing module {}'.format(module.id, r))
 
 class KodiPlugin:

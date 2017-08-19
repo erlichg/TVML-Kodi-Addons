@@ -1,4 +1,4 @@
-import importlib, time, sys, json, kodi_utils, sqlite3, globals, urllib
+import importlib, time, sys, json, kodi_utils, sqlite3, globals, urllib, urlparse
 import multiprocessing, gevent, logging, thread
 logger = logging.getLogger('TVMLServer')
 
@@ -168,7 +168,7 @@ class bridge:
         :return:
         """
         if url.startswith('/'):
-            url = 'http://{}:{}/localfile/{}'.format(globals.ADDR, globals.port, kodi_utils.b64encode(url))
+            url = 'http://{}:{}/localfile/{}'.format(urlparse.urlparse(url).hostname, globals.port, kodi_utils.b64encode(url))
         logger.debug('Playing {}'.format(url))
         _id = kodi_utils.randomword()
         import xbmcplugin

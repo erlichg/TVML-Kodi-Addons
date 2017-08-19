@@ -1,6 +1,6 @@
 from flask import Flask, render_template
 import kodi_utils, globals, KodiPlugin
-import logging, urllib, json
+import logging, urllib, json, urlparse
 logger = logging.getLogger('TVMLServer')
 
 
@@ -25,7 +25,7 @@ def end(plugin, msg, url=None, item_url=None):
             elif item['icon'].startswith('/'):
                 pass
             else:
-                item['icon'] = 'http://{}:{}/?url={}'.format(globals.ADDR, globals.PROXY_PORT, kodi_utils.b64encode(item['icon']))
+                item['icon'] = 'http://{}:{}/?url={}'.format(urlparse.urlparse(url).hostname, globals.PROXY_PORT, kodi_utils.b64encode(item['icon']))
                 logger.debug('image after cache = {}'.format(item['icon']))
                 #item.icon = '/cache/{}'.format(kodi_utils.b64encode(item.icon))
             item['info']['poster'] = item['icon']
@@ -76,7 +76,7 @@ def play(plugin, msg, url=None, item_url=None):
             msg['image'] = '/{}'.format(msg['image'])
         else:
             #msg['image'] = '/cache/{}'.format(kodi_utils.b64encode(msg['image']))
-            msg['image'] = 'http://{}:{}/?url={}'.format(globals.ADDR, globals.PROXY_PORT, kodi_utils.b64encode(msg['image']))
+            msg['image'] = 'http://{}:{}/?url={}'.format(urlparse.urlparse(url).hostname, globals.PROXY_PORT, kodi_utils.b64encode(msg['image']))
             logger.debug('image after cache = {}'.format(msg['image']))
     if msg['imdb']:
         # we save in history the imdb id of the movie
