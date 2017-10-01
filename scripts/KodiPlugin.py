@@ -243,6 +243,16 @@ class KodiPlugin:
 
             urllib.quote_plus = quote_plus_patch
 
+            getproxies_macosx_sysconf_orig = urllib.getproxies_macosx_sysconf
+            def getproxies_macosx_sysconf_patch():
+                return {}
+            urllib.getproxies_macosx_sysconf = getproxies_macosx_sysconf_patch
+
+            proxy_bypass_macosx_sysconf_orig = urllib.proxy_bypass_macosx_sysconf
+            def proxy_bypass_macosx_sysconf_patch(host):
+                return True
+            urllib.proxy_bypass_macosx_sysconf = proxy_bypass_macosx_sysconf_patch
+
             import sqlite3
 
             sqlite3_connect_orig = sqlite3.connect
@@ -302,6 +312,8 @@ class KodiPlugin:
         sqlite3.connect = sqlite3_connect_orig
         sqlite3.dbapi2.connect = dbapi2_connect_orig
         urllib.quote_plus = quote_plus_orig
+        urllib.proxy_bypass_macosx_sysconf = proxy_bypass_macosx_sysconf_orig
+        urllib.getproxies_macosx_sysconf = getproxies_macosx_sysconf_patch
         sys.path = orig
 # sys.argv = old_sys_argv
         items = xbmcplugin.items
